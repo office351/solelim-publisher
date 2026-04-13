@@ -309,6 +309,24 @@ app.post('/publish', async (req, res) => {
   }
 });
 
+// אישור ופרסום טיוטה
+app.post('/approve', async (req, res) => {
+  try {
+    const { postId } = req.body;
+    addLog(`מאשר פרסום פוסט ${postId}...`);
+    const response = await axios.post(
+      `${process.env.WP_URL}/wp-json/wp/v2/posts/${postId}`,
+      { status: 'publish' },
+      { auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD } }
+    );
+    addLog(`הפוסט פורסם בהצלחה!`);
+    res.json({ success: true, url: response.data.link });
+  } catch (error) {
+    addLog(`שגיאה באישור: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.listen(3000, () => {
   console.log('Server running on port 3000');
 });

@@ -83,6 +83,13 @@
     </div>
 
     <button onclick="publishArticle()" id="publishBtn">פרסם לוורדפרס ➜</button>
+
+    <div id="approveSection" style="display:none; margin-top:15px;">
+      <div class="card" style="background:#e8f4fb; border: 2px solid #0073aa;">
+        <p style="margin:0 0 10px 0; font-size:16px;">✅ המאמר נשמר כטיוטה בוורדפרס</p>
+        <button onclick="approvePost()" id="approveBtn" style="background:#27ae60;">פרסם עכשיו ➜</button>
+      </div>
+    </div>
   </div>
 
   <!-- לוג -->
@@ -99,6 +106,7 @@
     document.getElementById('publishDate').value = new Date().toISOString().slice(0, 10);
 
     let uploadedAudioUrl = '';
+    let publishedPostId = null;
     let uploadedMediaId = null;
     let buzzsproutEpisodeId = '';
     let buzzsproutPodcastId = '';
@@ -340,7 +348,8 @@
         updateLogs(data.logs || []);
 
         if (data.success) {
-          alert('✅ המאמר פורסם בהצלחה! מזהה: ' + data.result.id);
+          publishedPostId = data.result.id;
+          document.getElementById('approveSection').style.display = 'block';
         } else {
           alert('שגיאה: ' + data.error);
         }
@@ -350,6 +359,33 @@
 
       btn.disabled = false;
       btn.textContent = 'פרסם לוורדפרס ➜';
+    }
+
+    async function approvePost() {
+      const btn = document.getElementById('approveBtn');
+      btn.disabled = true;
+      btn.textContent = 'מפרסם...';
+      try {
+        const res = await fetch('/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postId: publishedPostId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.textContent = '✅ פורסם!';
+          btn.style.background = '#888';
+          if (data.url) window.open(data.url, '_blank');
+        } else {
+          alert('שגיאה: ' + data.error);
+          btn.disabled = false;
+          btn.textContent = 'פרסם עכשיו ➜';
+        }
+      } catch (e) {
+        alert('שגיאה: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'פרסם עכשיו ➜';
+      }
     }
   </script>
 </body>
