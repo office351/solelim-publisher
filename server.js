@@ -1,5 +1,6 @@
 require('dotenv').config({ override: true });
 const express = require('express');
+const basicAuth = require('express-basic-auth');
 const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -10,6 +11,13 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
+
+app.use(basicAuth({
+  users: { [process.env.APP_USER || 'admin']: process.env.APP_PASSWORD || 'changeme' },
+  challenge: true,
+  realm: 'solelim-publisher'
+}));
+
 const upload = multer({ dest: 'uploads/' });
 
 app.use(express.json());
