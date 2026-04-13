@@ -33,7 +33,7 @@ async function uploadToBuzzsprout(filePath, title) {
   const form = new FormData();
   form.append('title', title || 'פרק חדש');
   form.append('audio_file', fs.createReadStream(filePath));
-  form.append('private', '1');
+  form.append('private', '0');
 
   const response = await axios.post(
     `https://www.buzzsprout.com/api/${process.env.BUZZSPROUT_PODCAST_ID}/episodes.json`,
