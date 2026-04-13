@@ -4,3 +4,4 @@ uploads/
 *.mp3
 *.ogg
 *.wav
+.claude/
