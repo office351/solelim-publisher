@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js)",
+      "Bash(/c/Users/Yaakov/AppData/Roaming/npm/pm2.cmd start:*)",
+      "Bash(cmd.exe /c \"pm2 start C:/Projects/server.js --name article-publisher\")",
+      "Bash(cmd.exe /c \"pm2 list\")",
+      "Bash(cmd.exe /c \"schtasks /create /tn \\\\\"ArticlePublisher\\\\\" /tr \\\\\"'C:\\\\\\\\Program Files\\\\\\\\nodejs\\\\\\\\node.exe' C:\\\\\\\\Projects\\\\\\\\server.js\\\\\" /sc ONLOGON /ru \\\\\"%USERNAME%\\\\\" /f\")",
+      "Bash(powershell.exe -Command ':*)",
+      "Bash(cmd.exe /c \"winget install ffmpeg\")",
+      "Bash(powershell.exe -Command \"winget install --id Gyan.FFmpeg -e\")",
+      "Bash(powershell.exe -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force; Write-Host 'done'\")",
+      "Bash(powershell.exe -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(powershell.exe -Command \"Start-Process -FilePath 'C:\\\\Program Files\\\\nodejs\\\\node.exe' -ArgumentList 'C:\\\\Projects\\\\server.js' -WorkingDirectory 'C:\\\\Projects' -WindowStyle Hidden\")",
+      "Bash(powershell.exe -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,CPU,StartTime\")",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(ls /c/Projects/.env*)",
+      "Bash(gh --version)",
+      "Bash(powershell.exe -Command \"gh --version\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

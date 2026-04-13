@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מערכת פרסום תוכן</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    h1 { color: #333; text-align: center; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    textarea { width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+    input[type="file"], input[type="date"], input[type="text"], select {
+      width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;
+    }
+    button { background: #0073aa; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 100%; margin-top: 10px; }
+    button:hover { background: #005f8d; }
+    button:disabled { background: #aaa; }
+    #logs { background: #333; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 100px; white-space: pre-line; }
+    label { font-weight: bold; display: block; margin-bottom: 5px; margin-top: 10px; }
+    .quote-option { padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
+    .quote-option.selected { border-color: #0073aa; background: #e8f4fb; }
+    .hidden { display: none; }
+    .opening-option { padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
+    .opening-option.selected { border-color: #0073aa; background: #e8f4fb; }
+    .upload-status { font-size: 14px; margin-top: 5px; color: #888; }
+    .upload-status.ok { color: green; }
+    .upload-status.err { color: red; }
+  </style>
+</head>
+<body>
+  <h1>מערכת פרסום תוכן</h1>
+
+  <!-- שלב 1 - הזנה -->
+  <div id="step1">
+    <div class="card">
+      <label>טקסט המאמר:</label>
+      <textarea id="articleText" placeholder="הדבק את טקסט המאמר כאן..."></textarea>
+    </div>
+
+    <div class="card">
+      <label>תמונה (ללא לוגו):</label>
+      <input type="file" id="imageFile" accept="image/*" onchange="uploadImageNow(this)">
+      <p class="upload-status" id="imageStatus"></p>
+      <label>קובץ אודיו (MP3/WAV/OGG):</label>
+      <input type="file" id="audioFile" accept=".mp3,.wav,.ogg" onchange="uploadAudioNow(this)">
+      <p class="upload-status" id="audioStatus"></p>
+    </div>
+
+    <div class="card">
+      <label>תאריך פרסום:</label>
+      <input type="date" id="publishDate">
+    </div>
+
+    <button onclick="startProcess()" id="processBtn">עבד מאמר ➜</button>
+  </div>
+
+  <!-- שלב 2 - בקרה -->
+  <div id="step2" class="hidden">
+    <div class="card">
+      <h2>פרטים שזוהו</h2>
+      <label>כותרת:</label>
+      <input type="text" id="titleField">
+      <label>כותב (בחר מהרשימה):</label>
+      <select id="authorField"></select>
+    </div>
+
+    <div class="card">
+      <h2>בחר משפט פתיחה (יהיה גם התקציר):</h2>
+      <div id="openingOptions"></div>
+    </div>
+
+    <div class="card">
+      <h2>בחר 2 ציטוטים:</h2>
+      <p style="color:#666;font-size:14px;">הציטוט הראשון יוכנס בין המקטע הראשון לשני, השני לפני המקטע האחרון.</p>
+      <div id="quoteOptions"></div>
+      <p id="quoteCount" style="color:#e74c3c"></p>
+    </div>
+
+    <div class="card">
+      <h2>קישור אודיו:</h2>
+      <input type="text" id="audioUrl">
+    </div>
+
+    <button onclick="publishArticle()" id="publishBtn">פרסם לוורדפרס ➜</button>
+  </div>
+
+  <!-- לוג -->
+  <div class="card" style="margin-top:20px">
+    <label>לוג:</label>
+    <div id="logs">ממתין...</div>
+  </div>
+
+  <script>
+    let analysisData = null;
+    let cleanedText = '';
+    let selectedQuotes = [];
+    let selectedOpening = null;
+    document.getElementById('publishDate').value = new Date().toISOString().slice(0, 10);
+
+    let uploadedAudioUrl = '';
+    let uploadedMediaId = null;
+    let buzzsproutEpisodeId = '';
+    let buzzsproutPodcastId = '';
+
+    const stripPeriod = s => s ? s.replace(/\.+$/, '').trim() : s;
+
+    function updateLogs(logs) {
+      const logsDiv = document.getElementById('logs');
+      logsDiv.innerHTML = logs.map(l => `[${new Date(l.time).toLocaleTimeString('he-IL')}] ${l.message}`).join('\n');
+    }
+
+    async function uploadImageNow(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const status = document.getElementById('imageStatus');
+      status.className = 'upload-status';
+      status.textContent = 'מעלה תמונה לוורדפרס...';
+      const formData = new FormData();
+      formData.append('image', file);
+      try {
+        const res = await fetch('/upload-image', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          uploadedMediaId = data.mediaId;
+          status.className = 'upload-status ok';
+          status.textContent = 'תמונה הועלתה בהצלחה ✓';
+        } else {
+          status.className = 'upload-status err';
+          status.textContent = 'שגיאה: ' + data.error;
+        }
+      } catch (e) {
+        status.className = 'upload-status err';
+        status.textContent = 'שגיאה: ' + e.message;
+      }
+    }
+
+    async function uploadAudioNow(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const status = document.getElementById('audioStatus');
+      status.className = 'upload-status';
+      status.textContent = 'מעלה אודיו ל-Buzzsprout...';
+      const formData = new FormData();
+      formData.append('audio', file);
+      try {
+        const res = await fetch('/upload-audio', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          uploadedAudioUrl = data.audioData?.audio_url || '';
+          buzzsproutEpisodeId = String(data.audioData?.id || '');
+          buzzsproutPodcastId = data.podcastId || '';
+          status.className = 'upload-status ok';
+          status.textContent = 'אודיו הועלה בהצלחה ✓';
+        } else {
+          status.className = 'upload-status err';
+          status.textContent = 'שגיאה: ' + data.error;
+        }
+      } catch (e) {
+        status.className = 'upload-status err';
+        status.textContent = 'שגיאה: ' + e.message;
+      }
+    }
+
+    async function loadWpUsers(detectedAuthor) {
+      const select = document.getElementById('authorField');
+      try {
+        const res = await fetch('/wp-users');
+        const data = await res.json();
+        if (data.success) {
+          select.innerHTML = '<option value="">— בחר כותב —</option>';
+          data.users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.name;
+            opt.textContent = u.name;
+            if (detectedAuthor && u.name === detectedAuthor) opt.selected = true;
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        select.innerHTML = `<option value="${detectedAuthor}">${detectedAuthor}</option>`;
+      }
+    }
+
+    function buildAudioEmbed(url) {
+      if (!url) return '';
+      if (url.includes('spotify.com')) {
+        const embedUrl = url.replace('open.spotify.com/episode/', 'open.spotify.com/embed/episode/');
+        return `<iframe style="border-radius:12px" src="${embedUrl}" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>\n&nbsp;\n`;
+      }
+      if (buzzsproutEpisodeId && buzzsproutPodcastId) {
+        return `<div id="buzzsprout-player-${buzzsproutEpisodeId}"></div><script src="https://www.buzzsprout.com/${buzzsproutPodcastId}/${buzzsproutEpisodeId}.js?container_id=buzzsprout-player-${buzzsproutEpisodeId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n&nbsp;\n`;
+      }
+      return `<p><a href="${url}">🎧 האזן לפרק</a></p>\n&nbsp;\n`;
+    }
+
+    function buildContent(text, quote1, quote2, audioUrl) {
+      const audioHtml = buildAudioEmbed(audioUrl);
+      const q1 = `\n&nbsp;\n<blockquote>${quote1}</blockquote>\n&nbsp;\n`;
+      const q2 = `\n&nbsp;\n<blockquote>${quote2}</blockquote>\n&nbsp;\n`;
+
+      // נסיון 1: מקטעים ממוספרים (1️⃣, 1., א. וכו')
+      let sections = text.split(/\n(?=\d)/).filter(s => s.trim());
+      // נסיון 2: שורות ריקות כפולות
+      if (sections.length < 3) sections = text.split(/\n{2,}/).filter(s => s.trim());
+
+      if (sections.length >= 3) {
+        const first = sections[0];
+        const last = sections[sections.length - 1];
+        const middle = sections.slice(1, -1).join('\n&nbsp;\n');
+        return `${audioHtml}${first}${q1}${middle}${q2}${last}`;
+      }
+
+      // אין מספור — פיצול לשלישים לפי שורות, עם רווחים בין כל 4 שורות
+      const lines = text.split('\n').filter(l => l.trim());
+      const total = lines.length;
+      if (total < 4) return `${audioHtml}${text}${q1}${q2}`;
+
+      const q1pos = Math.floor(total / 3);
+      const q2pos = Math.floor(2 * total / 3);
+
+      function groupLines(arr) {
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += 4) chunks.push(arr.slice(i, i + 4).join('\n'));
+        return chunks.join('\n&nbsp;\n');
+      }
+
+      return `${audioHtml}${groupLines(lines.slice(0, q1pos))}${q1}${groupLines(lines.slice(q1pos, q2pos))}${q2}${groupLines(lines.slice(q2pos))}`;
+    }
+
+    async function startProcess() {
+      const text = document.getElementById('articleText').value;
+      if (!text.trim()) { alert('נא להזין טקסט מאמר'); return; }
+
+      const btn = document.getElementById('processBtn');
+      btn.disabled = true;
+      btn.textContent = 'מעבד...';
+      document.getElementById('logs').innerHTML = 'מתחיל עיבוד...';
+
+      const formData = new FormData();
+      formData.append('text', text);
+
+      try {
+        const response = await fetch('/process', { method: 'POST', body: formData });
+        const data = await response.json();
+        updateLogs(data.logs || []);
+
+        if (!data.success) {
+          alert('שגיאה: ' + data.error);
+          btn.disabled = false;
+          btn.textContent = 'עבד מאמר ➜';
+          return;
+        }
+
+        analysisData = data.analysis;
+        cleanedText = data.cleanedText || '';
+
+        document.getElementById('titleField').value = analysisData.title || '';
+        document.getElementById('audioUrl').value = uploadedAudioUrl || '';
+
+        await loadWpUsers(analysisData.author || '');
+
+        // אופציות פתיחה
+        const openingDiv = document.getElementById('openingOptions');
+        openingDiv.innerHTML = '';
+        [analysisData.opening1, analysisData.opening2].forEach((op) => {
+          const div = document.createElement('div');
+          div.className = 'opening-option';
+          div.textContent = stripPeriod(op);
+          div.onclick = () => {
+            document.querySelectorAll('.opening-option').forEach(d => d.classList.remove('selected'));
+            div.classList.add('selected');
+            selectedOpening = stripPeriod(op);
+          };
+          openingDiv.appendChild(div);
+        });
+
+        // ציטוטים
+        const quotesDiv = document.getElementById('quoteOptions');
+        quotesDiv.innerHTML = '';
+        selectedQuotes = [];
+        analysisData.quotes.forEach((q) => {
+          const div = document.createElement('div');
+          div.className = 'quote-option';
+          div.textContent = stripPeriod(q);
+          div.onclick = () => {
+            const clean = stripPeriod(q);
+            if (div.classList.contains('selected')) {
+              div.classList.remove('selected');
+              selectedQuotes = selectedQuotes.filter(sq => sq !== clean);
+            } else if (selectedQuotes.length < 2) {
+              div.classList.add('selected');
+              selectedQuotes.push(clean);
+            }
+            document.getElementById('quoteCount').textContent =
+              selectedQuotes.length < 2 ? `נבחרו ${selectedQuotes.length}/2 ציטוטים` : '';
+          };
+          quotesDiv.appendChild(div);
+        });
+
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+
+      } catch (err) {
+        alert('שגיאה: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'עבד מאמר ➜';
+      }
+    }
+
+    async function publishArticle() {
+      if (!selectedOpening) { alert('נא לבחור משפט פתיחה'); return; }
+      if (selectedQuotes.length < 2) { alert('נא לבחור 2 ציטוטים'); return; }
+
+      const btn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      btn.textContent = 'מפרסם...';
+
+      const audioUrl = document.getElementById('audioUrl').value;
+      const content = buildContent(cleanedText, selectedQuotes[0], selectedQuotes[1], audioUrl);
+
+      try {
+        const response = await fetch('/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: document.getElementById('titleField').value,
+            content,
+            excerpt: selectedOpening,
+            date: new Date(document.getElementById('publishDate').value).toISOString(),
+            audioUrl,
+            tags: analysisData.tags || [],
+            topics: analysisData.topics || [],
+            authorName: document.getElementById('authorField').value,
+            featuredMediaId: uploadedMediaId || null,
+          })
+        });
+
+        const data = await response.json();
+        updateLogs(data.logs || []);
+
+        if (data.success) {
+          alert('✅ המאמר פורסם בהצלחה! מזהה: ' + data.result.id);
+        } else {
+          alert('שגיאה: ' + data.error);
+        }
+      } catch (err) {
+        alert('שגיאה: ' + err.message);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'פרסם לוורדפרס ➜';
+    }
+  </script>
+</body>
+</html>
