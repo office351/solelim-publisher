@@ -266,6 +266,19 @@
         document.getElementById('titleField').value = analysisData.title || '';
         document.getElementById('audioUrl').value = uploadedAudioUrl || '';
 
+        // עדכון כותרת ושם כותב ב-Buzzsprout
+        if (buzzsproutEpisodeId && analysisData.title) {
+          fetch('/update-episode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              episodeId: buzzsproutEpisodeId,
+              title: analysisData.title,
+              author: analysisData.author || ''
+            })
+          });
+        }
+
         await loadWpUsers(analysisData.author || '');
 
         // אופציות פתיחה

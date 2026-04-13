@@ -205,6 +205,24 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
   }
 });
 
+// עדכון פרק ב-Buzzsprout
+app.post('/update-episode', async (req, res) => {
+  const { episodeId, title, author } = req.body;
+  try {
+    await axios.put(
+      `https://www.buzzsprout.com/api/${process.env.BUZZSPROUT_PODCAST_ID}/episodes/${episodeId}.json`,
+      {
+        title,
+        description: author ? `כתיבה: ${author}` : ''
+      },
+      { headers: { 'Authorization': `Token token=${process.env.BUZZSPROUT_API_TOKEN}` } }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // רשימת כותבים מוורדפרס
 app.get('/wp-users', async (req, res) => {
   try {
