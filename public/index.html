@@ -204,7 +204,7 @@
 
     function buildContent(text, quote1, quote2, audioUrl) {
       const audioHtml = buildAudioEmbed(audioUrl);
-      const SEP = '\n&nbsp;\n';
+      const SEP = '\n<p>&nbsp;</p>\n';
       const q1 = `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
       const q2 = `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
 
