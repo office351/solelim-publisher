@@ -82,7 +82,7 @@
       <input type="text" id="audioUrl">
     </div>
 
-    <button onclick="publishArticle()" id="publishBtn">פרסם לוורדפרס ➜</button>
+    <button onclick="publishArticle()" id="publishBtn">העלאה לוורדפרס ➜</button>
 
     <div id="approveSection" style="display:none; margin-top:15px;">
       <div class="card" style="background:#e8f4fb; border: 2px solid #0073aa;">
@@ -364,6 +364,8 @@
         if (data.success) {
           publishedPostId = data.result.id;
           document.getElementById('approveSection').style.display = 'block';
+          document.getElementById('publishBtn').disabled = true;
+          document.getElementById('publishBtn').textContent = 'הועלה ✓';
         } else {
           alert('שגיאה: ' + data.error);
         }
