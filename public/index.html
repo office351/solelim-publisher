@@ -204,8 +204,9 @@
 
     function buildContent(text, quote1, quote2, audioUrl) {
       const audioHtml = buildAudioEmbed(audioUrl);
-      const q1 = `\n&nbsp;\n<blockquote>${quote1}</blockquote>\n&nbsp;\n`;
-      const q2 = `\n&nbsp;\n<blockquote>${quote2}</blockquote>\n&nbsp;\n`;
+      const SEP = '\n&nbsp;\n';
+      const q1 = `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
+      const q2 = `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
 
       // נסיון 1: מקטעים ממוספרים במספרים (1️⃣, 1. וכו') או אותיות עבריות (א. א' א)
       let sections = text.split(/\n(?=\d)/).filter(s => s.trim());
@@ -216,7 +217,8 @@
       if (sections.length >= 3) {
         const first = sections[0];
         const last = sections[sections.length - 1];
-        const middle = sections.slice(1, -1).join('\n&nbsp;\n');
+        // רווח שורה בין כל סעיף
+        const middle = sections.slice(1, -1).join(SEP);
         return `${audioHtml}${first}${q1}${middle}${q2}${last}`;
       }
 
@@ -231,7 +233,7 @@
       function groupLines(arr) {
         const chunks = [];
         for (let i = 0; i < arr.length; i += 4) chunks.push(arr.slice(i, i + 4).join('\n'));
-        return chunks.join('\n&nbsp;\n');
+        return chunks.join(SEP);
       }
 
       return `${audioHtml}${groupLines(lines.slice(0, q1pos))}${q1}${groupLines(lines.slice(q1pos, q2pos))}${q2}${groupLines(lines.slice(q2pos))}`;
