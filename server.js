@@ -81,7 +81,7 @@ async function analyzeWithClaude(text) {
       max_tokens: 2000,
       messages: [{
         role: 'user',
-        content: `נתח את המאמר הבא והחזר JSON בלבד (ללא טקסט נוסף) עם השדות הבאים:
+        content: `נתח את המאמר הבא והחזר JSON בלבד (ללא טקסט נוסף, ללא הסברים). חשוב מאוד: אל תשתמש במרכאות כפולות (") בתוך ערכי המחרוזות — השתמש במרכאות בודדות ('). עם השדות הבאים:
 {
   "title": "כותרת המאמר",
   "author": "שם הכותב",
@@ -117,7 +117,20 @@ ${text}`
   const content = response.data.content[0].text;
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Claude לא החזיר JSON תקין');
-  return JSON.parse(jsonMatch[0]);
+  let jsonStr = jsonMatch[0];
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    // ניסיון תיקון: הסרת תווי בקרה ופסיקים מיותרים
+    jsonStr = jsonStr
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+      .replace(/,(\s*[}\]])/g, '$1');
+    try {
+      return JSON.parse(jsonStr);
+    } catch (e2) {
+      throw new Error(`JSON לא תקין: ${e2.message}. תוכן: ${jsonStr.slice(0, 200)}`);
+    }
+  }
 }
 
 const ALLOWED_CATEGORIES = ['התיישבות', 'זהות יהודית', 'חינוך', 'לאומיות', 'משפטים', 'פוליטיקה', 'פילוסופיה', 'צבא וביטחון', 'תקשורת'];
