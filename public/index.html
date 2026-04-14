@@ -207,8 +207,9 @@
       const q1 = `\n&nbsp;\n<blockquote>${quote1}</blockquote>\n&nbsp;\n`;
       const q2 = `\n&nbsp;\n<blockquote>${quote2}</blockquote>\n&nbsp;\n`;
 
-      // נסיון 1: מקטעים ממוספרים (1️⃣, 1., א. וכו')
+      // נסיון 1: מקטעים ממוספרים במספרים (1️⃣, 1. וכו') או אותיות עבריות (א. א' א)
       let sections = text.split(/\n(?=\d)/).filter(s => s.trim());
+      if (sections.length < 3) sections = text.split(/\n(?=[א-ת][.')\s])/).filter(s => s.trim());
       // נסיון 2: שורות ריקות כפולות
       if (sections.length < 3) sections = text.split(/\n{2,}/).filter(s => s.trim());
 
