@@ -822,6 +822,23 @@ app.post('/upload-generated', async (req, res) => {
     res.status(500).json({ success: false, error: error.message, logs });
   }
 });
+// רשימת תמונות שנוצרו לאחרונה (ללא לוגו)
+app.get('/recent-images', (req, res) => {
+  try {
+    const files = fs.readdirSync(GENERATED_DIR)
+      .filter(f => f.endsWith('_clean.png'))
+      .map(f => ({
+        filename: f,
+        url: `/generated/${f}`,
+        time: fs.statSync(path.join(GENERATED_DIR, f)).mtimeMs
+      }))
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 6); // 6 אחרונות
+    res.json({ success: true, images: files });
+  } catch(e) {
+    res.json({ success: true, images: [] });
+  }
+});
 // ────────────────────────────────────────────────────────────────────────────
 
 app.listen(3000, () => {

@@ -317,15 +317,15 @@
   </div>
 
   <div class="landing-grid">
-    <div class="landing-card" onclick="showPage('page-upload')">
-      <div class="icon">📤</div>
-      <h2>העלאת מאמר</h2>
-      <p>עיבוד מאמר עם AI, העלאת אודיו ותמונה, ופרסום לוורדפרס</p>
-    </div>
     <div class="landing-card" onclick="showPage('page-edit')">
       <div class="icon">✏️</div>
       <h2>עריכת מאמר</h2>
       <p>עריכה ושיפור טקסט, הוספת הדגשות, ושליחה לקבוצת וואטסאפ</p>
+    </div>
+    <div class="landing-card" onclick="showPage('page-upload')">
+      <div class="icon">📤</div>
+      <h2>פרסום מאמר</h2>
+      <p>עיבוד מאמר עם AI, יצירת תמונה, העלאת אודיו ופרסום לוורדפרס</p>
     </div>
   </div>
 
@@ -352,9 +352,15 @@
     </div>
 
     <div class="card">
-      <label>תמונה (ללא לוגו):</label>
+      <label>תמונה:</label>
       <input type="file" id="imageFile" accept="image/*" onchange="uploadImageNow(this)">
       <p class="upload-status" id="imageStatus"></p>
+      <div id="recentImagesWrap" style="margin-top:8px">
+        <a onclick="toggleRecentImages()" style="font-size:13px;color:#0073aa;cursor:pointer;text-decoration:underline">
+          🖼️ בחר מהתמונות האחרונות שנוצרו
+        </a>
+        <div id="recentImagesGrid" class="hidden" style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+      </div>
 
       <label>קובץ אודיו (MP3 / WAV / OGG):</label>
       <input type="file" id="audioFile" accept=".mp3,.wav,.ogg" onchange="uploadAudioNow(this)">
@@ -791,6 +797,64 @@
       }
     } catch(e) {
       alert('שגיאה: ' + e.message);
+    }
+  }
+
+  async function toggleRecentImages() {
+    const grid = document.getElementById('recentImagesGrid');
+    if (!grid.classList.contains('hidden')) { grid.classList.add('hidden'); return; }
+
+    grid.innerHTML = '<p style="color:#aaa;font-size:13px">טוען...</p>';
+    grid.classList.remove('hidden');
+
+    try {
+      const res = await fetch('/recent-images');
+      const data = await res.json();
+      if (!data.images.length) { grid.innerHTML = '<p style="color:#aaa;font-size:13px">אין תמונות שמורות</p>'; return; }
+
+      grid.innerHTML = '';
+      data.images.forEach(img => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;cursor:pointer;border:2px solid #ddd;border-radius:6px;overflow:hidden';
+        wrap.innerHTML = `<img src="${img.url}" style="width:100%;display:block">
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:11px;padding:3px 5px;text-align:center">לחץ לבחירה</div>`;
+        wrap.onclick = () => selectRecentImage(img.filename, img.url, wrap);
+        grid.appendChild(wrap);
+      });
+    } catch(e) {
+      grid.innerHTML = '<p style="color:#e74c3c;font-size:13px">שגיאה בטעינה</p>';
+    }
+  }
+
+  async function selectRecentImage(filename, url, el) {
+    // הדגשת הנבחרת
+    document.querySelectorAll('#recentImagesGrid > div').forEach(d => d.style.borderColor = '#ddd');
+    el.style.borderColor = '#0073aa';
+
+    // העלאה לוורדפרס ישירות
+    const status = document.getElementById('imageStatus');
+    status.className = 'upload-status';
+    status.textContent = 'מעלה תמונה לוורדפרס...';
+
+    try {
+      const res = await fetch('/upload-generated', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const data = await res.json();
+      if (data.success) {
+        uploadedMediaId = data.mediaId;
+        status.className = 'upload-status ok';
+        status.textContent = '✓ תמונה נבחרה והועלתה לוורדפרס';
+        document.getElementById('recentImagesGrid').classList.add('hidden');
+      } else {
+        status.className = 'upload-status err';
+        status.textContent = 'שגיאה: ' + data.error;
+      }
+    } catch(e) {
+      status.className = 'upload-status err';
+      status.textContent = 'שגיאה: ' + e.message;
     }
   }
 
