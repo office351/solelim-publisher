@@ -514,16 +514,28 @@
     </div>
 
     <div class="card">
-      <div class="field-row">
-        <div>
-          <label>שם הכותב:</label>
-          <input type="text" id="editAuthor" placeholder="לדוגמה: ישראל ישראלי">
-        </div>
-        <div>
-          <label>מספר טלפון:</label>
-          <input type="tel" id="editPhone" placeholder="לדוגמה: 050-1234567">
-        </div>
+      <div>
+        <label>כותב:</label>
+        <select id="editAuthorSelect" onchange="onAuthorSelect(this.value)">
+          <option value="">— בחר כותב —</option>
+          <option value="עזרא הימן|052-4228271">עזרא הימן</option>
+          <option value="אודי בן חמו|052-9241103">אודי בן חמו</option>
+          <option value="איתי אסמן|052-3577107">איתי אסמן</option>
+          <option value="בן יעקב סבו|050-6459849">בן יעקב סבו</option>
+          <option value="אריאל אוסטרבך|054-4822554">אריאל אוסטרבך</option>
+          <option value="__other__">אחר (הכנס ידנית)</option>
+        </select>
       </div>
+      <div id="customAuthorWrap" class="hidden" style="margin-top:10px">
+        <label>שם הכותב:</label>
+        <input type="text" id="editAuthorCustom" placeholder="שם הכותב">
+      </div>
+      <div style="margin-top:10px">
+        <label>מספר טלפון <span style="font-weight:normal;color:#888">(לא חובה)</span>:</label>
+        <input type="tel" id="editPhone" placeholder="לדוגמה: 050-1234567">
+      </div>
+      <!-- שדות נסתרים לשימוש בקוד -->
+      <input type="hidden" id="editAuthor">
       <label>קבוצת וואטסאפ לשליחה:</label>
       <select id="editGroup">
         <option value="">טוען קבוצות...</option>
@@ -647,6 +659,32 @@
 
     if (pageId === 'page-groups') loadGroupsPage();
     if (pageId === 'page-edit') loadGroupsDropdown();
+  }
+
+  /* ─────────── בחירת כותב ─────────── */
+  function onAuthorSelect(val) {
+    const customWrap = document.getElementById('customAuthorWrap');
+    const phoneInp   = document.getElementById('editPhone');
+    const authorHid  = document.getElementById('editAuthor');
+
+    if (!val) {
+      customWrap.classList.add('hidden');
+      authorHid.value = '';
+      phoneInp.value  = '';
+    } else if (val === '__other__') {
+      customWrap.classList.remove('hidden');
+      document.getElementById('editAuthorCustom').value = '';
+      authorHid.value = '';
+      phoneInp.value  = '';
+      document.getElementById('editAuthorCustom').oninput = () => {
+        authorHid.value = document.getElementById('editAuthorCustom').value.trim();
+      };
+    } else {
+      customWrap.classList.add('hidden');
+      const [name, phone] = val.split('|');
+      authorHid.value = name;
+      phoneInp.value  = phone || '';
+    }
   }
 
   /* ─────────── יצירת תמונות ─────────── */
@@ -989,15 +1027,17 @@
       editOriginalText  = text;
       editCorrectedText = data.correctedText;
 
-      // חילוץ שם כותב משורה ראשונה (אם לא הוזן ידנית)
-      const authorInp = document.getElementById('editAuthor');
-      if (!authorInp.value.trim()) {
-        const firstLine = text.split('\n')[0];
+      // עדכון שורת הכותב בטקסט המתוקן לפי הבחירה
+      const authorName = document.getElementById('editAuthor').value.trim();
+      const phone      = document.getElementById('editPhone').value.trim();
+      if (authorName) {
+        const lines = editCorrectedText.split('\n');
+        const firstLine = lines[0];
         const slashIdx  = firstLine.lastIndexOf('/');
-        if (slashIdx !== -1) {
-          const rawAuthor = firstLine.slice(slashIdx + 1).replace(/\(.*?\)/g, '').trim();
-          if (rawAuthor) authorInp.value = rawAuthor;
-        }
+        const titlePart = slashIdx !== -1 ? firstLine.slice(0, slashIdx).trim() : firstLine.trim();
+        const phoneSuffix = phone ? ` (לתגובות: ${phone})` : '';
+        lines[0] = `${titlePart} / ${authorName}${phoneSuffix}`;
+        editCorrectedText = lines.join('\n');
       }
 
       document.getElementById('editResult').value   = editCorrectedText;
@@ -1210,10 +1250,12 @@
     editCorrectedText = '';
     document.getElementById('edit-step2').classList.add('hidden');
     document.getElementById('edit-step1').classList.remove('hidden');
-    document.getElementById('editText').value   = '';
-    document.getElementById('editResult').value = '';
-    document.getElementById('editAuthor').value = '';
-    document.getElementById('editPhone').value  = '';
+    document.getElementById('editText').value         = '';
+    document.getElementById('editResult').value       = '';
+    document.getElementById('editAuthor').value       = '';
+    document.getElementById('editAuthorSelect').value = '';
+    document.getElementById('editPhone').value        = '';
+    document.getElementById('customAuthorWrap').classList.add('hidden');
     document.getElementById('waResult').classList.add('hidden');
     switchEditTab('corrected');
   }
