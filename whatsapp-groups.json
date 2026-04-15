@@ -1,0 +1,21 @@
+{
+  "defaultGroup": 8,
+  "groups": [
+    { "id": 1,  "name": "1",  "url": "https://chat.whatsapp.com/GCGHbe8jF99HkYaWk1JmY9" },
+    { "id": 2,  "name": "2",  "url": "https://chat.whatsapp.com/IZyKygF32KjGjJsAg3SZVL" },
+    { "id": 3,  "name": "3",  "url": "https://chat.whatsapp.com/Lw8pXVFCgk60Y3cLlVeTRf" },
+    { "id": 4,  "name": "4",  "url": "https://chat.whatsapp.com/DMLw19HoSebAvMhtzaZetd" },
+    { "id": 5,  "name": "5",  "url": "https://chat.whatsapp.com/K7PUlUfXTi9In9nfQhdaVg" },
+    { "id": 6,  "name": "6",  "url": "https://chat.whatsapp.com/Gxdo67Y3nIN7InAKjoc9v2" },
+    { "id": 7,  "name": "7",  "url": "https://chat.whatsapp.com/KiEMvJnreK05nzY7DWn1rg" },
+    { "id": 8,  "name": "8",  "url": "https://chat.whatsapp.com/JFdXffwjk2eKQHya5r3Kt1" },
+    { "id": 9,  "name": "9",  "url": "https://chat.whatsapp.com/Djfkzdhi5r15RFTkNfYxwo" },
+    { "id": 10, "name": "10", "url": "https://chat.whatsapp.com/BtbJCohtelKKc1xymQ9Xcj" },
+    { "id": 11, "name": "11", "url": "https://chat.whatsapp.com/FIsTDiqytaGBpm09ldWVuV" },
+    { "id": 12, "name": "12", "url": "https://chat.whatsapp.com/KTgmO8YfTn6GlAG5FkYALL" },
+    { "id": 13, "name": "13", "url": "https://chat.whatsapp.com/FKBFGMqhsHnB6EPo95D40Q" },
+    { "id": 14, "name": "14", "url": "https://chat.whatsapp.com/E11YMen2yMz3Tj6mt8885c" },
+    { "id": 15, "name": "15", "url": "https://chat.whatsapp.com/GFxqn9QBY5bGCnCTD3ugJ7" },
+    { "id": 16, "name": "16", "url": "https://chat.whatsapp.com/FPEgUzmsnzW69zEA10jYqT" }
+  ]
+}
