@@ -9,6 +9,7 @@ const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 const app = express();
 
@@ -604,6 +605,224 @@ app.post('/approve', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ─── יצירת תמונות עם AI ──────────────────────────────────────────────────────
+const GENERATED_DIR = path.join(__dirname, 'public', 'generated');
+const LOGO_PATH     = path.join(__dirname, 'public', 'logo.png');
+
+async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
+  const img  = sharp(imageBuffer);
+  const meta = await img.metadata();
+  const size = meta.width; // תמיד מרובע
+
+  const logoSize = Math.round(size * 0.10); // 10% מגודל התמונה
+  const padding  = Math.round(size * 0.05); // 5% ריווח מהקצה
+
+  // שינוי גודל הלוגו + הפחתת שקיפות ל-75%
+  const { data, info } = await sharp(LOGO_PATH)
+    .resize(logoSize, logoSize, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const pixels = new Uint8Array(data);
+  for (let i = 3; i < pixels.length; i += 4) {
+    pixels[i] = Math.round(pixels[i] * 0.75); // opacity 75%
+  }
+
+  const logoFinal = await sharp(Buffer.from(pixels), {
+    raw: { width: info.width, height: info.height, channels: 4 }
+  }).png().toBuffer();
+
+  // מיקום לפי פינה
+  let left, top;
+  switch (position) {
+    case 'top-left':     left = padding;                    top = padding;                    break;
+    case 'top-right':    left = size - logoSize - padding;  top = padding;                    break;
+    case 'bottom-right': left = size - logoSize - padding;  top = size - logoSize - padding;  break;
+    default:             left = padding;                    top = size - logoSize - padding;  break; // bottom-left
+  }
+
+  return img
+    .composite([{ input: logoFinal, top, left, blend: 'over' }])
+    .png()
+    .toBuffer();
+}
+
+// רעיונות לתמונה
+app.post('/image-ideas', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
+
+    addLog('שולח מאמר ל-GPT-4o לקבלת רעיונות תמונה...');
+
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o',
+        messages: [{
+          role: 'user',
+          content: `נחלק את העבודה לשלבים:
+א. קרא את המאמר הבא וכתוב את המסקנה המרכזית שלו בקיצור (משפט אחד-שניים בעברית).
+ב. תן 4 רעיונות לתמונה מרובעת שמתאימה למאמר. כל רעיון — תיאור מדויק באנגלית לתמונה חזקה, מעניינת, פשוטה וללא טקסט.
+
+החזר JSON בפורמט הבא בלבד, ללא הסברים:
+{
+  "summary": "סיכום קצר בעברית",
+  "ideas": [
+    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"},
+    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"},
+    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"},
+    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"}
+  ]
+}
+
+המאמר:
+${text.slice(0, 3000)}`
+        }],
+        max_tokens: 1200,
+        response_format: { type: 'json_object' }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const result = JSON.parse(response.data.choices[0].message.content);
+    addLog(`התקבלו ${result.ideas?.length || 0} רעיונות לתמונה`);
+    res.json({ success: true, ...result, logs });
+  } catch (error) {
+    addLog(`שגיאה ברעיונות תמונה: ${error.response?.data?.error?.message || error.message}`);
+    res.status(500).json({ success: false, error: error.response?.data?.error?.message || error.message, logs });
+  }
+});
+
+// יצירת תמונה עם DALL-E 3
+app.post('/generate-image', async (req, res) => {
+  try {
+    const { ideaEn, ideaHe, summary } = req.body;
+    if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
+
+    addLog('יוצר תמונה עם DALL-E 3...');
+
+    const prompt = `${ideaEn}. Square image, absolutely no text, no letters, no words, no symbols. Visually strong, simple, and powerful. ${summary ? 'Context: ' + summary : ''}`;
+
+    const dalleRes = await axios.post(
+      'https://api.openai.com/v1/images/generations',
+      {
+        model: 'dall-e-3',
+        prompt,
+        size: '1024x1024',
+        quality: 'standard',
+        n: 1,
+        response_format: 'url'
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 60000
+      }
+    );
+
+    const imageUrl = dalleRes.data.data[0].url;
+    addLog('תמונה נוצרה, מוריד ומוסיף לוגו...');
+
+    // הורדת התמונה
+    const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 30000 });
+    const imageBuffer = Buffer.from(imgRes.data);
+
+    // שמירת גרסה ללא לוגו
+    const ts = Date.now();
+    const noLogoFile   = `img_${ts}_clean.png`;
+    const withLogoFile = `img_${ts}_logo.png`;
+    const noLogoPath   = path.join(GENERATED_DIR, noLogoFile);
+    const withLogoPath = path.join(GENERATED_DIR, withLogoFile);
+
+    fs.writeFileSync(noLogoPath, imageBuffer);
+
+    // שמירת גרסה עם לוגו שמאל-תחתון
+    const withLogoBuffer = await applyLogoToImage(imageBuffer, 'bottom-left');
+    fs.writeFileSync(withLogoPath, withLogoBuffer);
+
+    addLog('שתי גרסאות התמונה מוכנות!');
+    res.json({
+      success: true,
+      noLogoFile,
+      withLogoFile,
+      noLogoUrl:   `/generated/${noLogoFile}`,
+      withLogoUrl: `/generated/${withLogoFile}`,
+      ideaHe,
+      logs
+    });
+  } catch (error) {
+    const msg = error.response?.data?.error?.message || error.message;
+    addLog(`שגיאה ביצירת תמונה: ${msg}`);
+    res.status(500).json({ success: false, error: msg, logs });
+  }
+});
+
+// הזזת לוגו לפינה אחרת
+app.post('/apply-logo', async (req, res) => {
+  try {
+    const { noLogoFile, position } = req.body;
+    if (!noLogoFile || !position) return res.status(400).json({ success: false, error: 'חסרים פרמטרים' });
+
+    const noLogoPath = path.join(GENERATED_DIR, noLogoFile);
+    if (!fs.existsSync(noLogoPath)) return res.status(404).json({ success: false, error: 'קובץ לא נמצא' });
+
+    const imageBuffer    = fs.readFileSync(noLogoPath);
+    const withLogoBuffer = await applyLogoToImage(imageBuffer, position);
+
+    const newFile = `img_${Date.now()}_${position}.png`;
+    fs.writeFileSync(path.join(GENERATED_DIR, newFile), withLogoBuffer);
+
+    res.json({ success: true, withLogoFile: newFile, withLogoUrl: `/generated/${newFile}` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// העלאת תמונה שנוצרה לוורדפרס
+app.post('/upload-generated', async (req, res) => {
+  try {
+    const { filename } = req.body;
+    if (!filename) return res.status(400).json({ success: false, error: 'שם קובץ חסר' });
+
+    const filePath = path.join(GENERATED_DIR, filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'קובץ לא נמצא' });
+
+    addLog(`מעלה תמונה שנוצרה לוורדפרס: ${filename}`);
+    const imageBuffer = fs.readFileSync(filePath);
+
+    const response = await axios.post(
+      `${process.env.WP_URL}/wp-json/wp/v2/media`,
+      imageBuffer,
+      {
+        headers: {
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Type': 'image/png'
+        },
+        auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD }
+      }
+    );
+
+    addLog(`תמונה הועלתה לוורדפרס. מזהה: ${response.data.id}`);
+    res.json({ success: true, mediaId: response.data.id, logs });
+  } catch (error) {
+    addLog(`שגיאה בהעלאת תמונה שנוצרה: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message, logs });
+  }
+});
+// ────────────────────────────────────────────────────────────────────────────
 
 app.listen(3000, () => {
   console.log('Server running on port 3000');

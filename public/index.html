@@ -250,6 +250,24 @@
     }
     .wa-result a { color: #1b5e20; font-weight: bold; }
 
+    /* ── אנימציית טעינה ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── כרטיס בחירת רעיון ── */
+    .idea-card {
+      padding: 12px 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1.5;
+      transition: border-color .15s, background .15s;
+    }
+    .idea-card:hover  { border-color: #7b2d8b; background: #faf0ff; }
+    .idea-card.chosen { border-color: #7b2d8b; background: #f3e5f5; }
+    .idea-card .idea-num { font-weight: bold; color: #7b2d8b; margin-left: 6px; }
+
     /* ── טאבים ── */
     .tab-btn {
       background: #c0c0c0;
@@ -376,6 +394,83 @@
     <div class="card">
       <h2 style="margin-top:0">קישור אודיו:</h2>
       <input type="text" id="audioUrl" placeholder="יתמלא אוטומטית לאחר העלאת אודיו">
+    </div>
+
+    <!-- יצירת תמונה עם AI -->
+    <div class="card" id="imageGenCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <h2 style="margin:0">🎨 יצירת תמונה עם AI</h2>
+        <span style="font-size:13px;color:#888">או העלה תמונה ידנית למעלה</span>
+      </div>
+
+      <!-- כפתור התחלה -->
+      <div id="imageGenStart">
+        <button onclick="getImageIdeas()" id="ideasBtn" style="background:#7b2d8b;margin-top:8px">
+          💡 קבל 4 רעיונות לתמונה
+        </button>
+      </div>
+
+      <!-- רעיונות -->
+      <div id="ideasSection" class="hidden" style="margin-top:14px">
+        <p id="summaryText" style="color:#555;font-size:14px;border-right:3px solid #7b2d8b;padding-right:10px;margin:0 0 14px 0"></p>
+        <p style="font-weight:bold;margin:0 0 8px 0">בחר רעיון לתמונה:</p>
+        <div id="ideaOptions"></div>
+      </div>
+
+      <!-- מצב טעינה -->
+      <div id="imageGenLoading" class="hidden" style="text-align:center;padding:20px">
+        <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">⏳</div>
+        <p id="imageGenLoadingText" style="color:#555;margin:8px 0 0">יוצר תמונה...</p>
+      </div>
+
+      <!-- תוצאות -->
+      <div id="imageGenResult" class="hidden" style="margin-top:14px">
+        <p id="ideaChosenLabel" style="color:#7b2d8b;font-weight:bold;font-size:14px;margin:0 0 12px 0"></p>
+
+        <div class="field-row" style="gap:16px;align-items:start">
+          <!-- ללא לוגו -->
+          <div style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;color:#888">📷 ללא לוגו</p>
+            <img id="noLogoImg" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer" title="לחץ להגדלה">
+            <button onclick="uploadAndSetImage('noLogo')" class="secondary" style="margin-top:8px;font-size:13px;padding:8px">
+              ✅ השתמש בתמונה זו
+            </button>
+          </div>
+          <!-- עם לוגו -->
+          <div style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;color:#888">🖼️ עם לוגו (שמאל-תחתון)</p>
+            <img id="withLogoImg" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer" title="לחץ להגדלה">
+            <button onclick="uploadAndSetImage('withLogo')" class="secondary" style="margin-top:8px;font-size:13px;padding:8px">
+              ✅ השתמש בתמונה זו
+            </button>
+          </div>
+        </div>
+
+        <!-- הזזת לוגו -->
+        <div style="margin-top:16px">
+          <p style="font-size:13px;font-weight:bold;margin:0 0 8px">הזז לוגו לפינה אחרת:</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="moveLogo('top-right')"    class="logo-pos-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px">↗ ימין-עליון</button>
+            <button onclick="moveLogo('top-left')"     class="logo-pos-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px">↖ שמאל-עליון</button>
+            <button onclick="moveLogo('bottom-right')" class="logo-pos-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px">↘ ימין-תחתון</button>
+            <button onclick="moveLogo('bottom-left')"  class="logo-pos-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px;border-color:#27ae60;color:#27ae60">↙ שמאל-תחתון ✓</button>
+          </div>
+        </div>
+
+        <!-- תמונה נוספת שנוצרה לאחר הזזה -->
+        <div id="extraLogoResult" class="hidden" style="margin-top:14px">
+          <p style="font-size:13px;color:#888;margin:0 0 6px" id="extraLogoLabel"></p>
+          <img id="extraLogoImg" style="width:50%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+          <br>
+          <button onclick="uploadAndSetImage('extraLogo')" class="secondary" style="margin-top:8px;font-size:13px;padding:8px;width:50%">
+            ✅ השתמש בתמונה זו
+          </button>
+        </div>
+
+        <button onclick="resetImageGen()" style="background:none;color:#888;border:1px solid #ddd;margin-top:14px;font-size:13px;width:auto;padding:7px 16px">
+          🔄 צור תמונה חדשה
+        </button>
+      </div>
     </div>
 
     <button onclick="publishArticle()" id="publishBtn">העלאה לוורדפרס ➜</button>
@@ -546,6 +641,169 @@
 
     if (pageId === 'page-groups') loadGroupsPage();
     if (pageId === 'page-edit') loadGroupsDropdown();
+  }
+
+  /* ─────────── יצירת תמונות ─────────── */
+  let imageGenData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+  let imageIdeasData = null;
+
+  async function getImageIdeas() {
+    const text = cleanedText || document.getElementById('articleText').value;
+    if (!text.trim()) { alert('נא לעבד מאמר תחילה'); return; }
+
+    const btn = document.getElementById('ideasBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ טוען רעיונות...';
+
+    try {
+      const res = await fetch('/image-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (!data.success) { alert('שגיאה: ' + data.error); btn.disabled = false; btn.textContent = '💡 קבל 4 רעיונות לתמונה'; return; }
+
+      imageIdeasData = data;
+      document.getElementById('summaryText').textContent = '📝 ' + data.summary;
+
+      const container = document.getElementById('ideaOptions');
+      container.innerHTML = '';
+      (data.ideas || []).forEach((idea, i) => {
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        card.innerHTML = `<span class="idea-num">${i + 1}.</span> ${escHtml(idea.he)}`;
+        card.onclick = () => {
+          document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('chosen'));
+          card.classList.add('chosen');
+          generateImage(idea.en, idea.he, data.summary);
+        };
+        container.appendChild(card);
+      });
+
+      document.getElementById('ideasSection').classList.remove('hidden');
+      document.getElementById('imageGenStart').classList.add('hidden');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '💡 קבל 4 רעיונות לתמונה';
+    }
+  }
+
+  async function generateImage(ideaEn, ideaHe, summary) {
+    document.getElementById('ideasSection').classList.add('hidden');
+    document.getElementById('imageGenResult').classList.add('hidden');
+    document.getElementById('extraLogoResult').classList.add('hidden');
+
+    const loading = document.getElementById('imageGenLoading');
+    document.getElementById('imageGenLoadingText').textContent = 'יוצר תמונה עם DALL-E 3... (עד 30 שניות)';
+    loading.classList.remove('hidden');
+
+    updateLogs([{ time: new Date().toISOString(), message: 'שולח בקשה ל-DALL-E 3...' }]);
+
+    try {
+      const res = await fetch('/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ideaEn, ideaHe, summary })
+      });
+      const data = await res.json();
+      updateLogs(data.logs || []);
+
+      if (!data.success) { alert('שגיאה ביצירת תמונה: ' + data.error); resetImageGen(); return; }
+
+      imageGenData.noLogoFile   = data.noLogoFile;
+      imageGenData.withLogoFile = data.withLogoFile;
+      imageGenData.extraLogoFile = '';
+
+      document.getElementById('noLogoImg').src   = data.noLogoUrl   + '?t=' + Date.now();
+      document.getElementById('withLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
+      document.getElementById('ideaChosenLabel').textContent = '✨ ' + (data.ideaHe || ideaHe);
+
+      document.querySelectorAll('.logo-pos-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+      const blBtn = document.querySelector('[onclick="moveLogo(\'bottom-left\')"]');
+      if (blBtn) { blBtn.style.borderColor = '#27ae60'; blBtn.style.color = '#27ae60'; }
+
+      loading.classList.add('hidden');
+      document.getElementById('imageGenResult').classList.remove('hidden');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      resetImageGen();
+    }
+  }
+
+  async function moveLogo(position) {
+    if (!imageGenData.noLogoFile) { alert('אין תמונה זמינה'); return; }
+    const labels = { 'top-right': 'ימין-עליון ↗', 'top-left': 'שמאל-עליון ↖', 'bottom-right': 'ימין-תחתון ↘', 'bottom-left': 'שמאל-תחתון ↙' };
+
+    document.querySelectorAll('.logo-pos-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+    const clickedBtn = document.querySelector(`[onclick="moveLogo('${position}')"]`);
+    if (clickedBtn) { clickedBtn.style.borderColor = '#27ae60'; clickedBtn.style.color = '#27ae60'; }
+
+    if (position === 'bottom-left') {
+      document.getElementById('extraLogoResult').classList.add('hidden');
+      return;
+    }
+
+    document.getElementById('extraLogoLabel').textContent = '⏳ יוצר גרסה עם לוגו ב' + labels[position] + '...';
+    document.getElementById('extraLogoResult').classList.remove('hidden');
+    document.getElementById('extraLogoImg').src = '';
+
+    try {
+      const res = await fetch('/apply-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noLogoFile: imageGenData.noLogoFile, position })
+      });
+      const data = await res.json();
+      if (!data.success) { alert('שגיאה: ' + data.error); return; }
+
+      imageGenData.extraLogoFile = data.withLogoFile;
+      document.getElementById('extraLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
+      document.getElementById('extraLogoLabel').textContent = '🖼️ לוגו ' + labels[position];
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    }
+  }
+
+  async function uploadAndSetImage(which) {
+    let filename = '';
+    if (which === 'noLogo')    filename = imageGenData.noLogoFile;
+    if (which === 'withLogo')  filename = imageGenData.withLogoFile;
+    if (which === 'extraLogo') filename = imageGenData.extraLogoFile;
+    if (!filename) { alert('תמונה לא זמינה'); return; }
+
+    try {
+      const res = await fetch('/upload-generated', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const data = await res.json();
+      updateLogs(data.logs || []);
+      if (data.success) {
+        uploadedMediaId = data.mediaId;
+        document.getElementById('imageStatus').textContent = '✓ תמונה שנוצרה הוגדרה כתמונה ראשית';
+        document.getElementById('imageStatus').className = 'upload-status ok';
+        alert('✅ התמונה הועלתה לוורדפרס והוגדרה כתמונה ראשית!');
+      } else {
+        alert('שגיאה: ' + data.error);
+      }
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    }
+  }
+
+  function resetImageGen() {
+    imageGenData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+    document.getElementById('imageGenLoading').classList.add('hidden');
+    document.getElementById('imageGenResult').classList.add('hidden');
+    document.getElementById('ideasSection').classList.add('hidden');
+    document.getElementById('extraLogoResult').classList.add('hidden');
+    document.getElementById('imageGenStart').classList.remove('hidden');
+    const btn = document.getElementById('ideasBtn');
+    btn.disabled = false;
+    btn.textContent = '💡 קבל 4 רעיונות לתמונה';
   }
 
   /* ─────────── קבוצות וואטסאפ ─────────── */
