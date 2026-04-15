@@ -5,3 +5,4 @@ uploads/
 *.ogg
 *.wav
 .claude/
+articles.json

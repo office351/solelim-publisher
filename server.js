@@ -23,6 +23,232 @@ const upload = multer({ dest: 'uploads/' });
 app.use(express.json());
 app.use(express.static('public'));
 
+// ─── הגהה לשונית ────────────────────────────────────────────────────────────
+const PROOFREADING_SYSTEM = `תפקידך:
+אתה מגיה לשון עברית מקצועי.
+עליך לבצע אך ורק תיקונים לשוניים ותחביריים, ללא שינוי סגנון, ללא שינוי ניסוחים, ללא הוספת או גריעת רעיונות, וללא ליטוש ספרותי שאינו מחויב.
+
+המטרה:
+להחזיר טקסט מתוקן, תקין, טבעי וברור, תוך שמירה מוחלטת על כוונת הכותב.
+
+הנחיה מחייבת לביצוע שלבי הפעולה בפועל:
+עליך לבצע את הפעימות הבאות בדיוק לפי סדרן, אך כל הפעימות הללו נעשות 'מאחורי הקלעים' ואסור להציג אותם למשתמש:
+פעימה 1 בלבד, אחריה פעימה 2 בלבד, ולאחריה פעימה 3 בלבד.
+אסור לדלג על פעימה.
+אסור לבצע שתי פעימות באותו זמן.
+אסור להניח הנחות או לקצר תהליך; עליך לבצע כל שלב ממשית.
+בפעימה 1 אסור לבצע כל תיקון.
+בפעימה 2 אסור לבצע איחוד או שינוי מבני.
+בפעימה 3 אסור לבצע תיקונים חדשים.
+רק לאחר השלמת כל פעימה במלואה מותר לעבור לפעימה הבאה.
+
+אופן פעולה פנימי — בפעימות:
+
+פעימה 1 – חלוקת הטקסט:
+חלק את הטקסט למקטעים של כ־80–120 מילים.
+אין לשנות דבר בשלב זה.
+
+פעימה 2 – הגהה לשונית לפי הכללים הבאים:
+
+תיקוני זכר ונקבה:
+תקן כל התאמה שגויה בין נושא לפועל, בין נושא לתואר ובין נושא לשם עצם.
+
+1א. תיקון כל מופעי ההתאמה לנושא:
+יש לתקן כל הפניה עקיפה לנושא, גם אם אינה סמוכה לו.
+לדוגמה: התפיסה… והשפעתו → והשפעתה.
+
+תיקוני יחיד ורבים:
+הם אמר → אמרו
+הטענות מוצדק → מוצדקות
+
+תיקוני כתיב תקני כולל כינויי קניין:
+זהותינו → זהותנו
+אחדותינו → אחדותנו
+תפקידינו → תפקידנו
+התלמידים שלנו → תלמידינו
+הספרים שלנו → ספרינו
+
+יש להתחשב בסגנון: אין לכפות צורה ספרותית על טקסט יומיומי.
+
+שמירה על הצורה "בינינו":
+אין לשנות אותה.
+
+כללי כתיב מלא וחסר:
+הוסף י או ו כנדרש לפי הכתיב התקני.
+הסר י או ו מיותרות.
+
+אין להכפיל ו בראש מילה:
+וודאי → ודאי
+ווכך → וכך
+הכפלה מותרת באמצע מילה (למשל: בוודאי).
+
+תיקון סדר מילות יחס:
+לזהותנו ואחדותנו → לזהותנו ולאחדותנו
+מן התורה והנביאים → מן התורה ומן הנביאים
+
+הוספת "האם" בראש שאלה שאינה נפתחת במילת שאלה:
+אפשר להמשיך? → האם אפשר להמשיך?
+יש לכך סיבה? → האם יש לכך סיבה?
+
+שמירה מוחלטת על מבנה השורות:
+אין לחבר שורות.
+אין למחוק שורות ריקות.
+אין להעביר שורות למקום אחר.
+אין לשנות רווחים בתחילת או סוף שורה.
+הטקסט חייב לחזור במבנה חזותי זהה למקור.
+
+שמירה על כוכביות:
+אין להזיז, למחוק או להוסיף כוכביות.
+
+ציטוטי פסוקים:
+אין לתקן לשון מקרא.
+יש לוודא התאמת הכתיב והסדר למקור בלבד.
+
+פעימה 2 – הנחיות נוספות:
+
+תיקון מיקום גרשיים במילים מיודעות:
+כאשר מילה מיודעת מופיעה בתוך גרשיים או מרכאות, יש למקם את הגרשיים לאחר הא הידיעה.
+דוגמאות:
+'המושג' → ה'מושג'
+'השוויון' → ה'שוויון'
+'הפמיניזם' → ה'פמיניזם'
+
+הוספת גרשיים סביב מילים המשמשות כמונחים מוגדרים:
+יש להוסיף גרשיים סביב מילה כאשר ברור מן ההקשר שהיא שם של מושג.
+המקרים שבהם חובה להוסיף גרשיים:
+
+א. לאחר מילים המציינות הבחנה מושגית:
+המושג מגדר → המושג 'מגדר'
+הכינוי מגדר → הכינוי 'מגדר'
+
+ב. לאחר ביטויים המסמנים שהמילה מוגדרת כמונח:
+מה שמכונה מגדר → מה שמכונה 'מגדר'
+לכנות מגדר בשם אחר → לכנות 'מגדר' בשם אחר
+
+ג. אין להוסיף גרשיים אם ההקשר אינו מושגי:
+המושג הזה חשוב
+הכינוי שלו היה מעליב
+
+פעימה 3 – איחוד הטקסט:
+לאחר עיבוד כל המקטעים, חבר את כל המקטעים לטקסט אחד.
+שמור על כל מבנה השורות והרווחים במדויק.
+שמור על כל סימני ההדגשה.
+אין להוסיף הערות, הסברים או תוספות.
+
+ברירת מחדל בתשובה:
+החזר למשתמש את הטקסט המתוקן בלבד.
+ללא הסברים.
+ללא מספור.
+ללא גרסת "לפני ואחרי".`;
+
+app.post('/edit-article', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
+
+    addLog('מתחיל הגהה לשונית עם Claude...');
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 6000,
+        system: PROOFREADING_SYSTEM,
+        messages: [{ role: 'user', content: text }]
+      },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        }
+      }
+    );
+
+    const correctedText = response.data.content[0].text.trim();
+    addLog(`הגהה הושלמה. ${text.trim().length} → ${correctedText.length} תווים`);
+    res.json({ success: true, correctedText, logs });
+  } catch (error) {
+    addLog(`שגיאה בהגהה: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message, logs });
+  }
+});
+// ────────────────────────────────────────────────────────────────────────────
+
+// ─── מאגר מאמרים ─────────────────────────────────────────────────────────────
+const ARTICLES_FILE = path.join(__dirname, 'articles.json');
+const MAX_ARTICLES = 100;
+
+function loadArticles() {
+  if (!fs.existsSync(ARTICLES_FILE)) {
+    fs.writeFileSync(ARTICLES_FILE, JSON.stringify([], null, 2));
+    return [];
+  }
+  try { return JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
+
+app.get('/articles', (req, res) => {
+  const all = loadArticles();
+  res.json(all.map(a => ({ id: a.id, savedAt: a.savedAt, title: a.title, author: a.author })));
+});
+
+app.get('/articles/:id', (req, res) => {
+  const article = loadArticles().find(a => a.id === req.params.id);
+  if (!article) return res.status(404).json({ error: 'לא נמצא' });
+  res.json(article);
+});
+
+app.post('/articles', (req, res) => {
+  const articles = loadArticles();
+  const article = {
+    ...req.body,
+    id: Date.now().toString(),
+    savedAt: new Date().toISOString()
+  };
+  articles.unshift(article);
+  if (articles.length > MAX_ARTICLES) articles.splice(MAX_ARTICLES);
+  fs.writeFileSync(ARTICLES_FILE, JSON.stringify(articles, null, 2));
+  res.json({ success: true, id: article.id });
+});
+
+app.delete('/articles/:id', (req, res) => {
+  const filtered = loadArticles().filter(a => a.id !== req.params.id);
+  fs.writeFileSync(ARTICLES_FILE, JSON.stringify(filtered, null, 2));
+  res.json({ success: true });
+});
+// ────────────────────────────────────────────────────────────────────────────
+
+// ─── ניהול קבוצות וואטסאפ ───────────────────────────────────────────────────
+const GROUPS_FILE = path.join(__dirname, 'whatsapp-groups.json');
+
+function loadGroups() {
+  if (!fs.existsSync(GROUPS_FILE)) {
+    const defaults = {
+      defaultGroup: 1,
+      groups: Array.from({ length: 16 }, (_, i) => ({
+        id: i + 1,
+        name: `קבוצה ${i + 1}`,
+        url: ''
+      }))
+    };
+    fs.writeFileSync(GROUPS_FILE, JSON.stringify(defaults, null, 2));
+    return defaults;
+  }
+  return JSON.parse(fs.readFileSync(GROUPS_FILE, 'utf8'));
+}
+
+function saveGroups(data) {
+  fs.writeFileSync(GROUPS_FILE, JSON.stringify(data, null, 2));
+}
+
+app.get('/groups', (req, res) => res.json(loadGroups()));
+
+app.post('/groups', (req, res) => {
+  saveGroups(req.body);
+  res.json({ success: true });
+});
+// ────────────────────────────────────────────────────────────────────────────
+
 let logs = [];
 
 function addLog(message) {

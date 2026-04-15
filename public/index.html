@@ -3,46 +3,342 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מערכת פרסום תוכן</title>
+  <title>מערכת פרסום תוכן – סוללים דרך</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-    h1 { color: #333; text-align: center; }
-    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    textarea { width: 100%; height: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-    input[type="file"], input[type="date"], input[type="text"], select {
-      width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;
+
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f0f2f5;
+      min-height: 100vh;
     }
-    button { background: #0073aa; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 100%; margin-top: 10px; }
+
+    /* ── כותרת עליונה ── */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .top-bar h1 {
+      font-size: 22px;
+      color: #222;
+      margin: 0;
+    }
+    .back-btn {
+      background: none;
+      border: 1.5px solid #aaa;
+      color: #555;
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+    .back-btn:hover { background: #eee; border-color: #888; }
+
+    /* ── כרטיסים ── */
+    .card {
+      background: white;
+      padding: 22px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* ── Landing ── */
+    .landing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 10px;
+    }
+    @media (max-width: 580px) {
+      .landing-grid { grid-template-columns: 1fr; }
+    }
+    .landing-card {
+      background: white;
+      border-radius: 14px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+      border: 2px solid transparent;
+      transition: border-color .2s, box-shadow .2s, transform .15s;
+    }
+    .landing-card:hover {
+      border-color: #0073aa;
+      box-shadow: 0 6px 20px rgba(0,115,170,0.18);
+      transform: translateY(-3px);
+    }
+    .landing-card .icon { font-size: 52px; margin-bottom: 14px; }
+    .landing-card h2 { color: #0073aa; font-size: 22px; margin: 0 0 8px 0; }
+    .landing-card p { color: #666; font-size: 15px; margin: 0; line-height: 1.5; }
+
+    .landing-footer {
+      text-align: center;
+      margin-top: 28px;
+    }
+    .landing-footer a {
+      color: #0073aa;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* ── טפסים ── */
+    label { font-weight: bold; display: block; margin-bottom: 4px; margin-top: 14px; }
+    label:first-child { margin-top: 0; }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      resize: vertical;
+    }
+    input[type="file"],
+    input[type="date"],
+    input[type="text"],
+    input[type="tel"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      margin-top: 2px;
+    }
+
+    /* ── כפתורים ── */
+    button {
+      background: #0073aa;
+      color: white;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 7px;
+      font-size: 17px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+      font-family: Arial, sans-serif;
+    }
     button:hover { background: #005f8d; }
-    button:disabled { background: #aaa; }
-    #logs { background: #333; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 100px; white-space: pre-line; }
-    label { font-weight: bold; display: block; margin-bottom: 5px; margin-top: 10px; }
-    .quote-option { padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
-    .quote-option.selected { border-color: #0073aa; background: #e8f4fb; }
-    .hidden { display: none; }
-    .opening-option { padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
-    .opening-option.selected { border-color: #0073aa; background: #e8f4fb; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    button.green { background: #27ae60; }
+    button.green:hover { background: #219653; }
+    button.secondary {
+      background: white;
+      color: #0073aa;
+      border: 2px solid #0073aa;
+    }
+    button.secondary:hover { background: #e8f4fb; }
+
+    /* ── סטטוס העלאה ── */
     .upload-status { font-size: 14px; margin-top: 5px; color: #888; }
-    .upload-status.ok { color: green; }
-    .upload-status.err { color: red; }
+    .upload-status.ok { color: #27ae60; }
+    .upload-status.err { color: #e74c3c; }
+
+    /* ── אפשרויות בחירה (ציטוטים / פתיחה) ── */
+    .quote-option, .opening-option {
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 7px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1.5;
+      transition: border-color .15s, background .15s;
+    }
+    .quote-option.selected,
+    .opening-option.selected { border-color: #0073aa; background: #e8f4fb; }
+    .quote-option:hover,
+    .opening-option:hover { border-color: #0073aa; }
+
+    /* ── לוג ── */
+    #logs {
+      background: #1e1e1e;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 7px;
+      font-family: monospace;
+      min-height: 80px;
+      white-space: pre-line;
+      font-size: 13px;
+    }
+
+    /* ── ניהול קבוצות ── */
+    .group-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr 80px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .group-row:last-child { border-bottom: none; }
+    .group-row .group-num {
+      font-weight: bold;
+      color: #888;
+      text-align: center;
+    }
+    .group-row input[type="text"] {
+      padding: 7px 10px;
+      font-size: 14px;
+      margin-top: 0;
+    }
+    .group-default-wrap {
+      text-align: center;
+    }
+    .group-default-wrap label {
+      font-weight: normal;
+      font-size: 13px;
+      color: #555;
+      display: block;
+      margin: 0;
+    }
+    .group-default-wrap input[type="radio"] {
+      width: auto;
+      margin: 0 4px 0 0;
+    }
+    .groups-header {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr 80px;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #888;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #ddd;
+      margin-bottom: 4px;
+    }
+
+    /* ── עריכת מאמר – שני שלבים ── */
+    .hidden { display: none !important; }
+
+    /* ── approve box ── */
+    .approve-box {
+      background: #e8f4fb;
+      border: 2px solid #0073aa;
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+    .approve-box p { margin: 0 0 10px 0; font-size: 16px; }
+
+    /* ── שדות שורה (author + phone) ── */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 500px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* ── WhatsApp send area ── */
+    .wa-result {
+      background: #e8f5e9;
+      border: 2px solid #43a047;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 15px;
+    }
+    .wa-result a { color: #1b5e20; font-weight: bold; }
+
+    /* ── טאבים ── */
+    .tab-btn {
+      background: #c0c0c0;
+      color: #333;
+      border: none;
+      cursor: pointer;
+      width: auto;
+      font-family: Arial, sans-serif;
+    }
+    .tab-btn.active { background: #0073aa; color: white; }
+    .tab-btn:hover:not(.active) { background: #aaa; }
+
+    /* ── היסטוריית מאמרים ── */
+    .article-history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background .15s;
+    }
+    .article-history-item:hover { background: #f0f7ff; }
+    .article-history-item:last-child { border-bottom: none; }
+    .article-history-meta { font-size: 12px; color: #888; }
+    .article-history-del {
+      color: #e74c3c;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      width: auto;
+      padding: 2px 6px;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
-  <h1>מערכת פרסום תוכן</h1>
+
+<!-- ═══════════════════════════════════════════════════
+     דף נחיתה
+═══════════════════════════════════════════════════ -->
+<div id="page-landing">
+  <div class="top-bar">
+    <h1>🗞️ מערכת פרסום תוכן</h1>
+  </div>
+
+  <div class="landing-grid">
+    <div class="landing-card" onclick="showPage('page-upload')">
+      <div class="icon">📤</div>
+      <h2>העלאת מאמר</h2>
+      <p>עיבוד מאמר עם AI, העלאת אודיו ותמונה, ופרסום לוורדפרס</p>
+    </div>
+    <div class="landing-card" onclick="showPage('page-edit')">
+      <div class="icon">✏️</div>
+      <h2>עריכת מאמר</h2>
+      <p>עריכה ושיפור טקסט, הוספת הדגשות, ושליחה לקבוצת וואטסאפ</p>
+    </div>
+  </div>
+
+  <div class="landing-footer">
+    <a onclick="showPage('page-groups')">⚙️ ניהול קבוצות וואטסאפ</a>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     דף העלאת מאמר (הקיים)
+═══════════════════════════════════════════════════ -->
+<div id="page-upload" class="hidden">
+  <div class="top-bar">
+    <h1>📤 העלאת מאמר</h1>
+    <button class="back-btn" onclick="showPage('page-landing')">← חזרה</button>
+  </div>
 
   <!-- שלב 1 - הזנה -->
   <div id="step1">
     <div class="card">
       <label>טקסט המאמר:</label>
-      <textarea id="articleText" placeholder="הדבק את טקסט המאמר כאן..."></textarea>
+      <textarea id="articleText" placeholder="הדבק את טקסט המאמר כאן...&#10;שורה ראשונה: כותרת / שם כותב (טלפון)"></textarea>
     </div>
 
     <div class="card">
       <label>תמונה (ללא לוגו):</label>
       <input type="file" id="imageFile" accept="image/*" onchange="uploadImageNow(this)">
       <p class="upload-status" id="imageStatus"></p>
-      <label>קובץ אודיו (MP3/WAV/OGG):</label>
+
+      <label>קובץ אודיו (MP3 / WAV / OGG):</label>
       <input type="file" id="audioFile" accept=".mp3,.wav,.ogg" onchange="uploadAudioNow(this)">
       <p class="upload-status" id="audioStatus"></p>
     </div>
@@ -58,7 +354,7 @@
   <!-- שלב 2 - בקרה -->
   <div id="step2" class="hidden">
     <div class="card">
-      <h2>פרטים שזוהו</h2>
+      <h2 style="margin-top:0">פרטים שזוהו</h2>
       <label>כותרת:</label>
       <input type="text" id="titleField">
       <label>כותב (בחר מהרשימה):</label>
@@ -66,28 +362,28 @@
     </div>
 
     <div class="card">
-      <h2>בחר משפט פתיחה (יהיה גם התקציר):</h2>
+      <h2 style="margin-top:0">בחר משפט פתיחה (יהיה גם התקציר):</h2>
       <div id="openingOptions"></div>
     </div>
 
     <div class="card">
-      <h2>בחר 2 ציטוטים:</h2>
-      <p style="color:#666;font-size:14px;">הציטוט הראשון יוכנס בין המקטע הראשון לשני, השני לפני המקטע האחרון.</p>
+      <h2 style="margin-top:0">בחר 2 ציטוטים:</h2>
+      <p style="color:#666;font-size:14px;margin-top:0">הציטוט הראשון יוכנס בין המקטע הראשון לשני, השני לפני המקטע האחרון.</p>
       <div id="quoteOptions"></div>
-      <p id="quoteCount" style="color:#e74c3c"></p>
+      <p id="quoteCount" style="color:#e74c3c;margin:0"></p>
     </div>
 
     <div class="card">
-      <h2>קישור אודיו:</h2>
-      <input type="text" id="audioUrl">
+      <h2 style="margin-top:0">קישור אודיו:</h2>
+      <input type="text" id="audioUrl" placeholder="יתמלא אוטומטית לאחר העלאת אודיו">
     </div>
 
     <button onclick="publishArticle()" id="publishBtn">העלאה לוורדפרס ➜</button>
 
-    <div id="approveSection" style="display:none; margin-top:15px;">
-      <div class="card" style="background:#e8f4fb; border: 2px solid #0073aa;">
-        <p style="margin:0 0 10px 0; font-size:16px;">✅ המאמר נשמר כטיוטה בוורדפרס</p>
-        <button onclick="approvePost()" id="approveBtn" style="background:#27ae60;">פרסם עכשיו ➜</button>
+    <div id="approveSection" class="hidden" style="margin-top:14px">
+      <div class="approve-box">
+        <p>✅ המאמר נשמר כטיוטה בוורדפרס</p>
+        <button class="green" onclick="approvePost()" id="approveBtn">פרסם עכשיו ➜</button>
       </div>
     </div>
   </div>
@@ -97,313 +393,812 @@
     <label>לוג:</label>
     <div id="logs">ממתין...</div>
   </div>
+</div>
 
-  <script>
-    let analysisData = null;
-    let cleanedText = '';
-    let selectedQuotes = [];
-    let selectedOpening = null;
-    document.getElementById('publishDate').value = new Date().toISOString().slice(0, 10);
 
-    let uploadedAudioUrl = '';
-    let publishedPostId = null;
-    let uploadedMediaId = null;
-    let buzzsproutEpisodeId = '';
-    let buzzsproutPodcastId = '';
+<!-- ═══════════════════════════════════════════════════
+     דף עריכת מאמר
+═══════════════════════════════════════════════════ -->
+<div id="page-edit" class="hidden">
+  <div class="top-bar">
+    <h1>✏️ עריכת מאמר</h1>
+    <button class="back-btn" onclick="showPage('page-landing')">← חזרה</button>
+  </div>
 
-    const stripPeriod = s => s ? s.replace(/\.+$/, '').trim() : s;
+  <!-- שלב א – הזנת טקסט -->
+  <div id="edit-step1">
+    <div class="card">
+      <label>טקסט המאמר (גלם מוואטסאפ):</label>
+      <textarea id="editText" style="height:260px" placeholder="הדבק כאן את הטקסט שהתקבל מוואטסאפ...&#10;שורה ראשונה: כותרת / שם כותב (טלפון)"></textarea>
+    </div>
 
-    function updateLogs(logs) {
-      const logsDiv = document.getElementById('logs');
-      logsDiv.innerHTML = logs.map(l => `[${new Date(l.time).toLocaleTimeString('he-IL')}] ${l.message}`).join('\n');
+    <div class="card">
+      <div class="field-row">
+        <div>
+          <label>שם הכותב:</label>
+          <input type="text" id="editAuthor" placeholder="לדוגמה: ישראל ישראלי">
+        </div>
+        <div>
+          <label>מספר טלפון:</label>
+          <input type="tel" id="editPhone" placeholder="לדוגמה: 050-1234567">
+        </div>
+      </div>
+      <label>קבוצת וואטסאפ לשליחה:</label>
+      <select id="editGroup">
+        <option value="">טוען קבוצות...</option>
+      </select>
+    </div>
+
+    <button onclick="submitEdit()" id="editBtn" style="background:#7b2d8b">
+      הגה מאמר עם AI ➜
+    </button>
+  </div>
+
+  <!-- שלב ב – תוצאה -->
+  <div id="edit-step2" class="hidden">
+
+    <!-- טאבים -->
+    <div class="card" style="padding-bottom:0">
+      <div style="display:flex;gap:0;margin-bottom:-22px">
+        <button class="tab-btn active" id="tab-btn-corrected" onclick="switchEditTab('corrected')"
+          style="flex:1;border-radius:7px 0 0 0;margin:0;padding:10px;font-size:15px">
+          ✏️ טקסט מתוקן
+        </button>
+        <button class="tab-btn" id="tab-btn-diff" onclick="switchEditTab('diff')"
+          style="flex:1;border-radius:0;margin:0;padding:10px;font-size:15px;border-right:1px solid #fff3">
+          🔍 שינויים
+        </button>
+        <button class="tab-btn" id="tab-btn-original" onclick="switchEditTab('original')"
+          style="flex:1;border-radius:0 7px 0 0;margin:0;padding:10px;font-size:15px;border-right:1px solid #fff3">
+          📄 מקור
+        </button>
+      </div>
+    </div>
+
+    <div class="card" style="padding-top:28px">
+      <!-- טקסט מתוקן -->
+      <div id="tab-corrected">
+        <textarea id="editResult" style="height:320px;font-size:15px;line-height:1.7"></textarea>
+      </div>
+      <!-- שינויים -->
+      <div id="tab-diff" class="hidden">
+        <div id="diffView"
+          style="height:320px;overflow-y:auto;font-family:Arial,sans-serif;font-size:14px;
+                 line-height:1.8;border:1px solid #eee;border-radius:6px;padding:10px;
+                 direction:rtl;text-align:right;background:#fafafa">
+        </div>
+        <p style="font-size:12px;color:#888;margin:8px 0 0">
+          <span style="background:#fff3cd;padding:2px 6px;border-right:3px solid #ffc107">שורה שונתה</span>
+          &nbsp;
+          <span style="background:#d4edda;padding:2px 6px;border-right:3px solid #28a745">שורה נוספה</span>
+          &nbsp;
+          <span style="background:#f8d7da;padding:2px 6px;border-right:3px solid #dc3545;text-decoration:line-through">שורה הוסרה</span>
+        </p>
+      </div>
+      <!-- מקור -->
+      <div id="tab-original" class="hidden">
+        <textarea id="editOriginal" style="height:320px;font-size:15px;line-height:1.7;background:#f8f8f8" readonly></textarea>
+      </div>
+    </div>
+
+    <!-- כפתורי פעולה -->
+    <div class="field-row" style="margin-bottom:10px">
+      <button class="secondary" onclick="copyEditResult()">📋 העתק טקסט</button>
+      <button onclick="saveArticleToHistory()" id="saveArticleBtn" style="background:#7b2d8b">💾 שמור במאגר</button>
+    </div>
+    <button onclick="sendToWhatsapp()" style="background:#25d366">📲 שלח לקבוצת וואטסאפ</button>
+
+    <div id="waResult" class="hidden wa-result" style="margin-top:12px"></div>
+
+    <!-- מאגר מאמרים -->
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h3 style="margin:0">📚 מאמרים שמורים</h3>
+        <button onclick="loadArticleHistory()" class="back-btn" style="font-size:13px;padding:5px 12px">רענן</button>
+      </div>
+      <div id="articleHistory" style="max-height:220px;overflow-y:auto">
+        <p style="color:#aaa;font-size:14px">טוען...</p>
+      </div>
+    </div>
+
+    <button class="back-btn" style="width:auto;margin-top:6px" onclick="resetEdit()">← עריכה חדשה</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     דף ניהול קבוצות וואטסאפ
+═══════════════════════════════════════════════════ -->
+<div id="page-groups" class="hidden">
+  <div class="top-bar">
+    <h1>⚙️ ניהול קבוצות וואטסאפ</h1>
+    <button class="back-btn" onclick="showPage('page-landing')">← חזרה</button>
+  </div>
+
+  <div class="card">
+    <p style="margin-top:0;color:#555;font-size:14px">
+      הגדר שם וקישור הצטרפות לכל קבוצת וואטסאפ. סמן קבוצת ברירת מחדל לשליחה.
+    </p>
+    <div class="groups-header">
+      <span>#</span>
+      <span>שם הקבוצה</span>
+      <span>קישור הצטרפות</span>
+      <span style="text-align:center">ברירת מחדל</span>
+    </div>
+    <div id="groupsList"></div>
+  </div>
+
+  <button onclick="saveGroups()" id="saveGroupsBtn">💾 שמור שינויים</button>
+  <p id="groupsSaveStatus" style="text-align:center;font-size:14px;color:#27ae60;display:none">✅ נשמר בהצלחה!</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     JavaScript
+═══════════════════════════════════════════════════ -->
+<script>
+  /* ─────────── ניווט בין דפים ─────────── */
+  function showPage(pageId) {
+    ['page-landing', 'page-upload', 'page-edit', 'page-groups'].forEach(id => {
+      document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(pageId).classList.remove('hidden');
+
+    if (pageId === 'page-groups') loadGroupsPage();
+    if (pageId === 'page-edit') loadGroupsDropdown();
+  }
+
+  /* ─────────── קבוצות וואטסאפ ─────────── */
+  let groupsData = null;
+
+  async function fetchGroups() {
+    const res = await fetch('/groups');
+    groupsData = await res.json();
+    return groupsData;
+  }
+
+  async function loadGroupsPage() {
+    const data = await fetchGroups();
+    const container = document.getElementById('groupsList');
+    container.innerHTML = '';
+    data.groups.forEach(g => {
+      const row = document.createElement('div');
+      row.className = 'group-row';
+      row.innerHTML = `
+        <span class="group-num">${g.id}</span>
+        <input type="text" data-gid="${g.id}" data-field="name" value="${escHtml(g.name)}" placeholder="שם הקבוצה">
+        <input type="text" data-gid="${g.id}" data-field="url" value="${escHtml(g.url)}" placeholder="https://chat.whatsapp.com/...">
+        <div class="group-default-wrap">
+          <label>
+            <input type="radio" name="defaultGroup" value="${g.id}" ${data.defaultGroup === g.id ? 'checked' : ''}>
+            ברירת מחדל
+          </label>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+    document.getElementById('groupsSaveStatus').style.display = 'none';
+  }
+
+  async function saveGroups() {
+    const btn = document.getElementById('saveGroupsBtn');
+    btn.disabled = true;
+    btn.textContent = 'שומר...';
+
+    // קריאת הערכים מהטופס
+    const nameInputs = document.querySelectorAll('#groupsList input[data-field="name"]');
+    const urlInputs  = document.querySelectorAll('#groupsList input[data-field="url"]');
+    const defaultRadio = document.querySelector('input[name="defaultGroup"]:checked');
+
+    const updated = { ...groupsData };
+    nameInputs.forEach(inp => {
+      const id = parseInt(inp.dataset.gid);
+      const g = updated.groups.find(x => x.id === id);
+      if (g) g.name = inp.value.trim() || `קבוצה ${id}`;
+    });
+    urlInputs.forEach(inp => {
+      const id = parseInt(inp.dataset.gid);
+      const g = updated.groups.find(x => x.id === id);
+      if (g) g.url = inp.value.trim();
+    });
+    if (defaultRadio) updated.defaultGroup = parseInt(defaultRadio.value);
+
+    try {
+      await fetch('/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+      groupsData = updated;
+      document.getElementById('groupsSaveStatus').style.display = 'block';
+      setTimeout(() => document.getElementById('groupsSaveStatus').style.display = 'none', 3000);
+    } catch(e) {
+      alert('שגיאה בשמירה: ' + e.message);
     }
 
-    async function uploadImageNow(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const status = document.getElementById('imageStatus');
-      status.className = 'upload-status';
-      status.textContent = 'מעלה תמונה לוורדפרס...';
-      const formData = new FormData();
-      formData.append('image', file);
-      try {
-        const res = await fetch('/upload-image', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          uploadedMediaId = data.mediaId;
-          status.className = 'upload-status ok';
-          status.textContent = 'תמונה הועלתה בהצלחה ✓';
+    btn.disabled = false;
+    btn.textContent = '💾 שמור שינויים';
+  }
+
+  async function loadGroupsDropdown() {
+    const sel = document.getElementById('editGroup');
+    sel.innerHTML = '<option value="">— בחר קבוצה —</option>';
+    try {
+      const data = await fetchGroups();
+      data.groups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = g.name + (g.url ? '' : ' (ללא קישור)');
+        if (data.defaultGroup === g.id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    } catch(e) {
+      sel.innerHTML = '<option value="">שגיאה בטעינת קבוצות</option>';
+    }
+  }
+
+  /* ─────────── עריכת מאמר ─────────── */
+  let editOriginalText = '';
+  let editCorrectedText = '';
+
+  async function submitEdit() {
+    const text = document.getElementById('editText').value.trim();
+    if (!text) { alert('נא להזין טקסט מאמר'); return; }
+
+    const btn = document.getElementById('editBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ מגיה עם AI...';
+
+    try {
+      const res = await fetch('/edit-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        alert('שגיאה בהגהה: ' + data.error);
+        btn.disabled = false;
+        btn.textContent = 'הגה מאמר עם AI ➜';
+        return;
+      }
+
+      editOriginalText  = text;
+      editCorrectedText = data.correctedText;
+
+      // חילוץ שם כותב משורה ראשונה (אם לא הוזן ידנית)
+      const authorInp = document.getElementById('editAuthor');
+      if (!authorInp.value.trim()) {
+        const firstLine = text.split('\n')[0];
+        const slashIdx  = firstLine.lastIndexOf('/');
+        if (slashIdx !== -1) {
+          const rawAuthor = firstLine.slice(slashIdx + 1).replace(/\(.*?\)/g, '').trim();
+          if (rawAuthor) authorInp.value = rawAuthor;
+        }
+      }
+
+      document.getElementById('editResult').value   = editCorrectedText;
+      document.getElementById('editOriginal').value = editOriginalText;
+      buildDiffView(editOriginalText, editCorrectedText);
+
+      switchEditTab('corrected');
+      document.getElementById('edit-step1').classList.add('hidden');
+      document.getElementById('edit-step2').classList.remove('hidden');
+      loadArticleHistory();
+
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'הגה מאמר עם AI ➜';
+  }
+
+  /* ── טאבים ── */
+  function switchEditTab(name) {
+    ['corrected','diff','original'].forEach(t => {
+      document.getElementById('tab-' + t).classList.add('hidden');
+      document.getElementById('tab-btn-' + t).classList.remove('active');
+    });
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    document.getElementById('tab-btn-' + name).classList.add('active');
+  }
+
+  /* ── diff לפי שורות ── */
+  function buildDiffView(original, corrected) {
+    const origLines = original.split('\n');
+    const corrLines = corrected.split('\n');
+    const maxLen = Math.max(origLines.length, corrLines.length);
+    let html = '';
+
+    // LCS-based line matching (greedy, good enough for proofreading)
+    // בנינו מיפוי: לכל שורה מתוקנת — מה המקורית המקבילה
+    let oi = 0, ci = 0;
+    while (oi < origLines.length || ci < corrLines.length) {
+      const orig = oi < origLines.length ? origLines[oi] : null;
+      const corr = ci < corrLines.length ? corrLines[ci] : null;
+
+      if (orig === null) {
+        // שורה שנוספה
+        html += `<div style="background:#d4edda;padding:2px 8px;border-right:3px solid #28a745">${escHtml(corr)}&nbsp;</div>`;
+        ci++;
+      } else if (corr === null) {
+        // שורה שהוסרה
+        html += `<div style="background:#f8d7da;padding:2px 8px;border-right:3px solid #dc3545;text-decoration:line-through;color:#721c24">${escHtml(orig)}&nbsp;</div>`;
+        oi++;
+      } else if (orig === corr) {
+        // זהה
+        html += `<div style="padding:2px 8px">${escHtml(corr) || '&nbsp;'}</div>`;
+        oi++; ci++;
+      } else {
+        // שונה — בדוק אם השורה הבאה תואמת (לגילוי הוספה/מחיקה)
+        const nextOrigMatch = origLines.slice(oi + 1, oi + 4).indexOf(corr);
+        const nextCorrMatch = corrLines.slice(ci + 1, ci + 4).indexOf(orig);
+
+        if (nextOrigMatch !== -1 && (nextCorrMatch === -1 || nextOrigMatch <= nextCorrMatch)) {
+          // השורה הנוכחית במקור הוסרה
+          html += `<div style="background:#f8d7da;padding:2px 8px;border-right:3px solid #dc3545;text-decoration:line-through;color:#721c24">${escHtml(orig)}&nbsp;</div>`;
+          oi++;
+        } else if (nextCorrMatch !== -1) {
+          // השורה הנוכחית במתוקן נוספה
+          html += `<div style="background:#d4edda;padding:2px 8px;border-right:3px solid #28a745">${escHtml(corr)}&nbsp;</div>`;
+          ci++;
         } else {
-          status.className = 'upload-status err';
-          status.textContent = 'שגיאה: ' + data.error;
+          // שורה שונתה — הצג לפני ואחרי
+          html += `<div style="background:#fff3cd;padding:2px 8px;border-right:3px solid #ffc107">${escHtml(corr)}&nbsp;</div>`;
+          html += `<div style="background:#fff3cd;padding:1px 8px 4px;color:#999;font-size:12px;text-decoration:line-through;border-right:3px solid #ffc107">${escHtml(orig)}&nbsp;</div>`;
+          oi++; ci++;
         }
-      } catch (e) {
+      }
+    }
+
+    document.getElementById('diffView').innerHTML = html || '<p style="color:#aaa">לא נמצאו שינויים</p>';
+  }
+
+  /* ── העתק ── */
+  function copyEditResult() {
+    const txt = document.getElementById('editResult').value;
+    navigator.clipboard.writeText(txt)
+      .then(() => alert('הטקסט הועתק ללוח!'))
+      .catch(() => {
+        document.getElementById('editResult').select();
+        document.execCommand('copy');
+        alert('הטקסט הועתק ללוח!');
+      });
+  }
+
+  /* ── שלח לוואטסאפ ── */
+  function sendToWhatsapp() {
+    const gid = parseInt(document.getElementById('editGroup').value);
+    if (!gid || !groupsData) { alert('נא לבחור קבוצת וואטסאפ'); return; }
+    const group = groupsData.groups.find(g => g.id === gid);
+    if (!group?.url) { alert('לקבוצה זו אין קישור הצטרפות. עדכן בניהול קבוצות.'); return; }
+
+    const text    = document.getElementById('editResult').value;
+    const encoded = encodeURIComponent(text);
+    const waUrl   = `https://wa.me/?text=${encoded}`;
+
+    const box = document.getElementById('waResult');
+    box.classList.remove('hidden');
+    box.innerHTML = `
+      <p style="margin:0 0 8px 0;font-weight:bold">📲 שליחה לקבוצה: ${escHtml(group.name)}</p>
+      <a href="${waUrl}" target="_blank" style="font-size:16px">לחץ כאן לפתיחת וואטסאפ עם הטקסט ←</a>
+      <br><br>
+      <small style="color:#555">קישור הצטרפות לקבוצה: <a href="${escHtml(group.url)}" target="_blank">${escHtml(group.url)}</a></small>
+    `;
+  }
+
+  /* ── שמור במאגר ── */
+  async function saveArticleToHistory() {
+    const btn = document.getElementById('saveArticleBtn');
+    btn.disabled = true;
+    btn.textContent = 'שומר...';
+
+    const firstLine = editCorrectedText.split('\n')[0] || '';
+    const slashIdx  = firstLine.lastIndexOf('/');
+    const title  = slashIdx !== -1 ? firstLine.slice(0, slashIdx).replace(/\*/g,'').trim() : firstLine.trim();
+    const author = document.getElementById('editAuthor').value.trim() ||
+                   (slashIdx !== -1 ? firstLine.slice(slashIdx + 1).replace(/\(.*?\)/g,'').trim() : '');
+
+    try {
+      await fetch('/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title:         title || 'ללא כותרת',
+          author:        author || '',
+          groupId:       document.getElementById('editGroup').value,
+          originalText:  editOriginalText,
+          correctedText: editCorrectedText
+        })
+      });
+      btn.textContent = '✅ נשמר!';
+      btn.style.background = '#27ae60';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '💾 שמור במאגר';
+        btn.style.background = '#7b2d8b';
+      }, 2500);
+      loadArticleHistory();
+    } catch(e) {
+      alert('שגיאה בשמירה: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '💾 שמור במאגר';
+    }
+  }
+
+  /* ── מאגר מאמרים ── */
+  async function loadArticleHistory() {
+    const container = document.getElementById('articleHistory');
+    try {
+      const res = await fetch('/articles');
+      const articles = await res.json();
+      if (!articles.length) {
+        container.innerHTML = '<p style="color:#aaa;font-size:14px;margin:0">אין מאמרים שמורים</p>';
+        return;
+      }
+      container.innerHTML = articles.map(a => `
+        <div class="article-history-item" onclick="loadArticleFromHistory('${a.id}')">
+          <div>
+            <div style="font-weight:bold;font-size:14px">${escHtml(a.title)}</div>
+            <div class="article-history-meta">${escHtml(a.author || '')} · ${new Date(a.savedAt).toLocaleDateString('he-IL')} ${new Date(a.savedAt).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</div>
+          </div>
+          <button class="article-history-del" onclick="event.stopPropagation();deleteArticle('${a.id}', this)" title="מחק">🗑</button>
+        </div>
+      `).join('');
+    } catch(e) {
+      container.innerHTML = '<p style="color:#e74c3c;font-size:14px">שגיאה בטעינה</p>';
+    }
+  }
+
+  async function loadArticleFromHistory(id) {
+    try {
+      const res = await fetch(`/articles/${id}`);
+      const a = await res.json();
+      editOriginalText  = a.originalText  || '';
+      editCorrectedText = a.correctedText || '';
+      document.getElementById('editResult').value   = editCorrectedText;
+      document.getElementById('editOriginal').value = editOriginalText;
+      document.getElementById('editAuthor').value   = a.author || '';
+      buildDiffView(editOriginalText, editCorrectedText);
+      switchEditTab('corrected');
+      // הצג שלב 2 אם צריך
+      document.getElementById('edit-step1').classList.add('hidden');
+      document.getElementById('edit-step2').classList.remove('hidden');
+      document.getElementById('waResult').classList.add('hidden');
+    } catch(e) {
+      alert('שגיאה בטעינת מאמר: ' + e.message);
+    }
+  }
+
+  async function deleteArticle(id, btn) {
+    if (!confirm('למחוק מאמר זה?')) return;
+    try {
+      await fetch(`/articles/${id}`, { method: 'DELETE' });
+      loadArticleHistory();
+    } catch(e) {
+      alert('שגיאה במחיקה: ' + e.message);
+    }
+  }
+
+  /* ── איפוס ── */
+  function resetEdit() {
+    editOriginalText = '';
+    editCorrectedText = '';
+    document.getElementById('edit-step2').classList.add('hidden');
+    document.getElementById('edit-step1').classList.remove('hidden');
+    document.getElementById('editText').value   = '';
+    document.getElementById('editResult').value = '';
+    document.getElementById('editAuthor').value = '';
+    document.getElementById('editPhone').value  = '';
+    document.getElementById('waResult').classList.add('hidden');
+    switchEditTab('corrected');
+  }
+
+  /* ─────────── העלאת מאמר (הקיים) ─────────── */
+  let analysisData = null;
+  let cleanedText = '';
+  let selectedQuotes = [];
+  let selectedOpening = null;
+  let uploadedAudioUrl = '';
+  let publishedPostId = null;
+  let uploadedMediaId = null;
+  let buzzsproutEpisodeId = '';
+  let buzzsproutPodcastId = '';
+
+  document.getElementById('publishDate').value = new Date().toISOString().slice(0, 10);
+
+  const stripPeriod = s => s ? s.replace(/\.+$/, '').trim() : s;
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function updateLogs(logs) {
+    const el = document.getElementById('logs');
+    el.innerHTML = logs.map(l => `[${new Date(l.time).toLocaleTimeString('he-IL')}] ${l.message}`).join('\n');
+  }
+
+  async function uploadImageNow(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('imageStatus');
+    status.className = 'upload-status';
+    status.textContent = 'מעלה תמונה לוורדפרס...';
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const res = await fetch('/upload-image', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        uploadedMediaId = data.mediaId;
+        status.className = 'upload-status ok';
+        status.textContent = '✓ תמונה הועלתה בהצלחה';
+      } else {
         status.className = 'upload-status err';
-        status.textContent = 'שגיאה: ' + e.message;
+        status.textContent = 'שגיאה: ' + data.error;
       }
+    } catch (e) {
+      status.className = 'upload-status err';
+      status.textContent = 'שגיאה: ' + e.message;
     }
+  }
 
-    async function uploadAudioNow(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const status = document.getElementById('audioStatus');
-      status.className = 'upload-status';
-      status.textContent = 'מעלה אודיו ל-Buzzsprout...';
-      const formData = new FormData();
-      formData.append('audio', file);
-      try {
-        const res = await fetch('/upload-audio', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          uploadedAudioUrl = data.audioData?.audio_url || '';
-          buzzsproutEpisodeId = String(data.audioData?.id || '');
-          buzzsproutPodcastId = data.podcastId || '';
-          status.className = 'upload-status ok';
-          status.textContent = 'אודיו הועלה בהצלחה ✓';
-        } else {
-          status.className = 'upload-status err';
-          status.textContent = 'שגיאה: ' + data.error;
-        }
-      } catch (e) {
+  async function uploadAudioNow(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('audioStatus');
+    status.className = 'upload-status';
+    status.textContent = 'מעלה אודיו ל-Buzzsprout...';
+    const formData = new FormData();
+    formData.append('audio', file);
+    try {
+      const res = await fetch('/upload-audio', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        uploadedAudioUrl = data.audioData?.audio_url || '';
+        buzzsproutEpisodeId = String(data.audioData?.id || '');
+        buzzsproutPodcastId = data.podcastId || '';
+        status.className = 'upload-status ok';
+        status.textContent = '✓ אודיו הועלה בהצלחה';
+      } else {
         status.className = 'upload-status err';
-        status.textContent = 'שגיאה: ' + e.message;
+        status.textContent = 'שגיאה: ' + data.error;
       }
+    } catch (e) {
+      status.className = 'upload-status err';
+      status.textContent = 'שגיאה: ' + e.message;
     }
+  }
 
-    async function loadWpUsers(detectedAuthor) {
-      const select = document.getElementById('authorField');
-      try {
-        const res = await fetch('/wp-users');
-        const data = await res.json();
-        if (data.success) {
-          select.innerHTML = '<option value="">— בחר כותב —</option>';
-          data.users.forEach(u => {
-            const opt = document.createElement('option');
-            opt.value = u.name;
-            opt.textContent = u.name;
-            if (detectedAuthor && u.name === detectedAuthor) opt.selected = true;
-            select.appendChild(opt);
-          });
-        }
-      } catch (e) {
-        select.innerHTML = `<option value="${detectedAuthor}">${detectedAuthor}</option>`;
-      }
-    }
-
-    function buildAudioEmbed(url) {
-      if (!url) return '';
-      if (url.includes('spotify.com')) {
-        const embedUrl = url.replace('open.spotify.com/episode/', 'open.spotify.com/embed/episode/');
-        return `<iframe style="border-radius:12px" src="${embedUrl}" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>\n&nbsp;\n`;
-      }
-      if (buzzsproutEpisodeId && buzzsproutPodcastId) {
-        return `<div id="buzzsprout-player-${buzzsproutEpisodeId}"></div><script src="https://www.buzzsprout.com/${buzzsproutPodcastId}/${buzzsproutEpisodeId}.js?container_id=buzzsprout-player-${buzzsproutEpisodeId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n&nbsp;\n`;
-      }
-      return `<p><a href="${url}">🎧 האזן לפרק</a></p>\n&nbsp;\n`;
-    }
-
-    function buildContent(text, quote1, quote2, audioUrl) {
-      const audioHtml = buildAudioEmbed(audioUrl);
-      const SEP = '\n<p>&nbsp;</p>\n';
-      const q1 = `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
-      const q2 = `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
-
-      // נסיון 1: מקטעים ממוספרים במספרים (1️⃣, 1. וכו') או אותיות עבריות (א. א' א)
-      let sections = text.split(/\n(?=\d)/).filter(s => s.trim());
-      if (sections.length < 3) sections = text.split(/\n(?=[א-ת][.')\s])/).filter(s => s.trim());
-      // נסיון 2: שורות ריקות כפולות
-      if (sections.length < 3) sections = text.split(/\n{2,}/).filter(s => s.trim());
-
-      if (sections.length >= 3) {
-        const first = sections[0];
-        const last = sections[sections.length - 1];
-        // רווח שורה בין כל סעיף
-        const middle = sections.slice(1, -1).join(SEP);
-        return `${audioHtml}${first}${q1}${middle}${q2}${last}`;
-      }
-
-      // אין מספור — פיצול לשלישים לפי שורות, עם רווחים בין כל 4 שורות
-      const lines = text.split('\n').filter(l => l.trim());
-      const total = lines.length;
-      if (total < 4) return `${audioHtml}${text}${q1}${q2}`;
-
-      const q1pos = Math.floor(total / 3);
-      const q2pos = Math.floor(2 * total / 3);
-
-      function groupLines(arr) {
-        const chunks = [];
-        for (let i = 0; i < arr.length; i += 4) chunks.push(arr.slice(i, i + 4).join('\n'));
-        return chunks.join(SEP);
-      }
-
-      return `${audioHtml}${groupLines(lines.slice(0, q1pos))}${q1}${groupLines(lines.slice(q1pos, q2pos))}${q2}${groupLines(lines.slice(q2pos))}`;
-    }
-
-    async function startProcess() {
-      const text = document.getElementById('articleText').value;
-      if (!text.trim()) { alert('נא להזין טקסט מאמר'); return; }
-
-      const btn = document.getElementById('processBtn');
-      btn.disabled = true;
-      btn.textContent = 'מעבד...';
-      document.getElementById('logs').innerHTML = 'מתחיל עיבוד...';
-
-      const formData = new FormData();
-      formData.append('text', text);
-
-      try {
-        const response = await fetch('/process', { method: 'POST', body: formData });
-        const data = await response.json();
-        updateLogs(data.logs || []);
-
-        if (!data.success) {
-          alert('שגיאה: ' + data.error);
-          btn.disabled = false;
-          btn.textContent = 'עבד מאמר ➜';
-          return;
-        }
-
-        analysisData = data.analysis;
-        cleanedText = data.cleanedText || '';
-
-        document.getElementById('titleField').value = analysisData.title || '';
-        document.getElementById('audioUrl').value = uploadedAudioUrl || '';
-
-        // עדכון כותרת ושם כותב ב-Buzzsprout
-        if (buzzsproutEpisodeId && analysisData.title) {
-          fetch('/update-episode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              episodeId: buzzsproutEpisodeId,
-              title: analysisData.title,
-              author: analysisData.author || ''
-            })
-          });
-        }
-
-        await loadWpUsers(analysisData.author || '');
-
-        // אופציות פתיחה
-        const openingDiv = document.getElementById('openingOptions');
-        openingDiv.innerHTML = '';
-        [analysisData.opening1, analysisData.opening2].forEach((op) => {
-          const div = document.createElement('div');
-          div.className = 'opening-option';
-          div.textContent = stripPeriod(op);
-          div.onclick = () => {
-            document.querySelectorAll('.opening-option').forEach(d => d.classList.remove('selected'));
-            div.classList.add('selected');
-            selectedOpening = stripPeriod(op);
-          };
-          openingDiv.appendChild(div);
+  async function loadWpUsers(detectedAuthor) {
+    const select = document.getElementById('authorField');
+    try {
+      const res = await fetch('/wp-users');
+      const data = await res.json();
+      if (data.success) {
+        select.innerHTML = '<option value="">— בחר כותב —</option>';
+        data.users.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.name;
+          opt.textContent = u.name;
+          if (detectedAuthor && u.name === detectedAuthor) opt.selected = true;
+          select.appendChild(opt);
         });
+      }
+    } catch (e) {
+      select.innerHTML = `<option value="${escHtml(detectedAuthor)}">${escHtml(detectedAuthor)}</option>`;
+    }
+  }
 
-        // ציטוטים
-        const quotesDiv = document.getElementById('quoteOptions');
-        quotesDiv.innerHTML = '';
-        selectedQuotes = [];
-        analysisData.quotes.forEach((q) => {
-          const div = document.createElement('div');
-          div.className = 'quote-option';
-          div.textContent = stripPeriod(q);
-          div.onclick = () => {
-            const clean = stripPeriod(q);
-            if (div.classList.contains('selected')) {
-              div.classList.remove('selected');
-              selectedQuotes = selectedQuotes.filter(sq => sq !== clean);
-            } else if (selectedQuotes.length < 2) {
-              div.classList.add('selected');
-              selectedQuotes.push(clean);
-            }
-            document.getElementById('quoteCount').textContent =
-              selectedQuotes.length < 2 ? `נבחרו ${selectedQuotes.length}/2 ציטוטים` : '';
-          };
-          quotesDiv.appendChild(div);
-        });
+  function buildAudioEmbed(url) {
+    if (!url) return '';
+    if (url.includes('spotify.com')) {
+      const embedUrl = url.replace('open.spotify.com/episode/', 'open.spotify.com/embed/episode/');
+      return `<iframe style="border-radius:12px" src="${embedUrl}" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>\n&nbsp;\n`;
+    }
+    if (buzzsproutEpisodeId && buzzsproutPodcastId) {
+      return `<div id="buzzsprout-player-${buzzsproutEpisodeId}"></div><script src="https://www.buzzsprout.com/${buzzsproutPodcastId}/${buzzsproutEpisodeId}.js?container_id=buzzsprout-player-${buzzsproutEpisodeId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n&nbsp;\n`;
+    }
+    return `<p><a href="${url}">🎧 האזן לפרק</a></p>\n&nbsp;\n`;
+  }
 
-        document.getElementById('step1').classList.add('hidden');
-        document.getElementById('step2').classList.remove('hidden');
+  function buildContent(text, quote1, quote2, audioUrl) {
+    const audioHtml = buildAudioEmbed(audioUrl);
+    const SEP = '\n<p>&nbsp;</p>\n';
+    const q1 = `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
+    const q2 = `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
 
-      } catch (err) {
-        alert('שגיאה: ' + err.message);
+    let sections = text.split(/\n(?=\d)/).filter(s => s.trim());
+    if (sections.length < 3) sections = text.split(/\n(?=[א-ת][.')\s])/).filter(s => s.trim());
+    if (sections.length < 3) sections = text.split(/\n{2,}/).filter(s => s.trim());
+
+    if (sections.length >= 3) {
+      const first = sections[0];
+      const last  = sections[sections.length - 1];
+      const middle = sections.slice(1, -1).join(SEP);
+      return `${audioHtml}${first}${q1}${middle}${q2}${last}`;
+    }
+
+    const lines = text.split('\n').filter(l => l.trim());
+    const total = lines.length;
+    if (total < 4) return `${audioHtml}${text}${q1}${q2}`;
+
+    const q1pos = Math.floor(total / 3);
+    const q2pos = Math.floor(2 * total / 3);
+
+    function groupLines(arr) {
+      const chunks = [];
+      for (let i = 0; i < arr.length; i += 4) chunks.push(arr.slice(i, i + 4).join('\n'));
+      return chunks.join(SEP);
+    }
+
+    return `${audioHtml}${groupLines(lines.slice(0, q1pos))}${q1}${groupLines(lines.slice(q1pos, q2pos))}${q2}${groupLines(lines.slice(q2pos))}`;
+  }
+
+  async function startProcess() {
+    const text = document.getElementById('articleText').value;
+    if (!text.trim()) { alert('נא להזין טקסט מאמר'); return; }
+
+    const btn = document.getElementById('processBtn');
+    btn.disabled = true;
+    btn.textContent = 'מעבד...';
+    document.getElementById('logs').innerHTML = 'מתחיל עיבוד...';
+
+    const formData = new FormData();
+    formData.append('text', text);
+
+    try {
+      const response = await fetch('/process', { method: 'POST', body: formData });
+      const data = await response.json();
+      updateLogs(data.logs || []);
+
+      if (!data.success) {
+        alert('שגיאה: ' + data.error);
         btn.disabled = false;
         btn.textContent = 'עבד מאמר ➜';
+        return;
       }
-    }
 
-    async function publishArticle() {
-      if (!selectedOpening) { alert('נא לבחור משפט פתיחה'); return; }
-      if (selectedQuotes.length < 2) { alert('נא לבחור 2 ציטוטים'); return; }
+      analysisData = data.analysis;
+      cleanedText = data.cleanedText || '';
 
-      const btn = document.getElementById('publishBtn');
-      btn.disabled = true;
-      btn.textContent = 'מפרסם...';
+      document.getElementById('titleField').value = analysisData.title || '';
+      document.getElementById('audioUrl').value = uploadedAudioUrl || '';
 
-      const audioUrl = document.getElementById('audioUrl').value;
-      const content = buildContent(cleanedText, selectedQuotes[0], selectedQuotes[1], audioUrl);
-
-      try {
-        const response = await fetch('/publish', {
+      if (buzzsproutEpisodeId && analysisData.title) {
+        fetch('/update-episode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: document.getElementById('titleField').value,
-            content,
-            excerpt: selectedOpening,
-            date: new Date(document.getElementById('publishDate').value).toISOString(),
-            audioUrl,
-            tags: analysisData.tags || [],
-            topics: analysisData.topics || [],
-            authorName: document.getElementById('authorField').value,
-            featuredMediaId: uploadedMediaId || null,
-          })
+          body: JSON.stringify({ episodeId: buzzsproutEpisodeId, title: analysisData.title, author: analysisData.author || '' })
         });
-
-        const data = await response.json();
-        updateLogs(data.logs || []);
-
-        if (data.success) {
-          publishedPostId = data.result.id;
-          document.getElementById('publishBtn').style.display = 'none';
-          document.getElementById('approveSection').style.display = 'block';
-        } else {
-          alert('שגיאה: ' + data.error);
-        }
-      } catch (err) {
-        alert('שגיאה: ' + err.message);
       }
 
+      await loadWpUsers(analysisData.author || '');
+
+      // אפשרויות פתיחה
+      const openingDiv = document.getElementById('openingOptions');
+      openingDiv.innerHTML = '';
+      [analysisData.opening1, analysisData.opening2].forEach(op => {
+        const div = document.createElement('div');
+        div.className = 'opening-option';
+        div.textContent = stripPeriod(op);
+        div.onclick = () => {
+          document.querySelectorAll('.opening-option').forEach(d => d.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedOpening = stripPeriod(op);
+        };
+        openingDiv.appendChild(div);
+      });
+
+      // ציטוטים
+      const quotesDiv = document.getElementById('quoteOptions');
+      quotesDiv.innerHTML = '';
+      selectedQuotes = [];
+      analysisData.quotes.forEach(q => {
+        const div = document.createElement('div');
+        div.className = 'quote-option';
+        div.textContent = stripPeriod(q);
+        div.onclick = () => {
+          const clean = stripPeriod(q);
+          if (div.classList.contains('selected')) {
+            div.classList.remove('selected');
+            selectedQuotes = selectedQuotes.filter(sq => sq !== clean);
+          } else if (selectedQuotes.length < 2) {
+            div.classList.add('selected');
+            selectedQuotes.push(clean);
+          }
+          document.getElementById('quoteCount').textContent =
+            selectedQuotes.length < 2 ? `נבחרו ${selectedQuotes.length}/2 ציטוטים` : '';
+        };
+        quotesDiv.appendChild(div);
+      });
+
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
+
+    } catch (err) {
+      alert('שגיאה: ' + err.message);
       btn.disabled = false;
-      btn.textContent = 'פרסם לוורדפרס ➜';
+      btn.textContent = 'עבד מאמר ➜';
     }
+  }
 
-    async function approvePost() {
-      const btn = document.getElementById('approveBtn');
-      btn.disabled = true;
-      btn.textContent = 'מפרסם...';
-      try {
-        const res = await fetch('/approve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ postId: publishedPostId })
-        });
-        const data = await res.json();
-        if (data.success) {
-          btn.textContent = '✅ פורסם!';
-          btn.style.background = '#888';
-          if (data.url) window.open(data.url, '_blank');
-        } else {
-          alert('שגיאה: ' + data.error);
-          btn.disabled = false;
-          btn.textContent = 'פרסם עכשיו ➜';
-        }
-      } catch (e) {
-        alert('שגיאה: ' + e.message);
+  async function publishArticle() {
+    if (!selectedOpening) { alert('נא לבחור משפט פתיחה'); return; }
+    if (selectedQuotes.length < 2) { alert('נא לבחור 2 ציטוטים'); return; }
+
+    const btn = document.getElementById('publishBtn');
+    btn.disabled = true;
+    btn.textContent = 'מפרסם...';
+
+    const audioUrl = document.getElementById('audioUrl').value;
+    const content  = buildContent(cleanedText, selectedQuotes[0], selectedQuotes[1], audioUrl);
+
+    try {
+      const response = await fetch('/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.getElementById('titleField').value,
+          content,
+          excerpt: selectedOpening,
+          date: new Date(document.getElementById('publishDate').value).toISOString(),
+          audioUrl,
+          tags: analysisData.tags || [],
+          topics: analysisData.topics || [],
+          authorName: document.getElementById('authorField').value,
+          featuredMediaId: uploadedMediaId || null,
+        })
+      });
+
+      const data = await response.json();
+      updateLogs(data.logs || []);
+
+      if (data.success) {
+        publishedPostId = data.result.id;
+        btn.style.display = 'none';
+        document.getElementById('approveSection').classList.remove('hidden');
+      } else {
+        alert('שגיאה: ' + data.error);
+        btn.disabled = false;
+        btn.textContent = 'העלאה לוורדפרס ➜';
+      }
+    } catch (err) {
+      alert('שגיאה: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'העלאה לוורדפרס ➜';
+    }
+  }
+
+  async function approvePost() {
+    const btn = document.getElementById('approveBtn');
+    btn.disabled = true;
+    btn.textContent = 'מפרסם...';
+    try {
+      const res = await fetch('/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: publishedPostId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = '✅ פורסם!';
+        btn.style.background = '#888';
+        if (data.url) window.open(data.url, '_blank');
+      } else {
+        alert('שגיאה: ' + data.error);
         btn.disabled = false;
         btn.textContent = 'פרסם עכשיו ➜';
       }
+    } catch (e) {
+      alert('שגיאה: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = 'פרסם עכשיו ➜';
     }
-  </script>
+  }
+</script>
 </body>
 </html>
