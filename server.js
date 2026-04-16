@@ -678,27 +678,42 @@ app.post('/image-ideas', async (req, res) => {
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-4o',
-        messages: [{
-          role: 'user',
-          content: `נחלק את העבודה לשלבים:
-א. קרא את המאמר הבא וכתוב את המסקנה המרכזית שלו בקיצור (משפט אחד-שניים בעברית).
-ב. תן 4 רעיונות לתמונה מרובעת שמתאימה למאמר. כל רעיון — תיאור מדויק באנגלית לתמונה חזקה, מעניינת, פשוטה וללא טקסט.
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert DALL-E 3 prompt engineer. Your job is to craft vivid, professional image prompts that produce stunning, publication-quality square images.
 
-החזר JSON בפורמט הבא בלבד, ללא הסברים:
+Rules for the English DALL-E prompts:
+- Be highly specific: describe lighting, color palette, composition, mood, and style
+- Use cinematic or fine-art language (e.g. "golden hour light", "shallow depth of field", "minimalist composition", "dramatic chiaroscuro")
+- Suggest a clear visual style: photo-realistic, oil painting, watercolor, digital illustration, etc.
+- Each of the 4 ideas must use a DIFFERENT visual style
+- NEVER include text, letters, words, or numbers in the image
+- Focus on powerful symbolism that connects to the article's theme
+- Make it square-composition friendly`
+          },
+          {
+            role: 'user',
+            content: `Read the article below. Then:
+1. Write a one-sentence Hebrew summary of the article's core message.
+2. Create 4 distinct image ideas — each with a different artistic style — that visually represent the article's theme.
+
+Return ONLY valid JSON in this exact format:
 {
-  "summary": "סיכום קצר בעברית",
+  "summary": "סיכום בעברית",
   "ideas": [
-    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"},
-    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"},
-    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"},
-    {"he": "תיאור הרעיון בעברית", "en": "detailed image description in English for DALL-E"}
+    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
+    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
+    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
+    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"}
   ]
 }
 
-המאמר:
+Article:
 ${text.slice(0, 3000)}`
-        }],
-        max_tokens: 1200,
+          }
+        ],
+        max_tokens: 1500,
         response_format: { type: 'json_object' }
       },
       {
@@ -726,7 +741,7 @@ app.post('/generate-image', async (req, res) => {
 
     addLog('יוצר תמונה עם DALL-E 3...');
 
-    const prompt = `${ideaEn}. Square image, absolutely no text, no letters, no words, no symbols. Visually strong, simple, and powerful. ${summary ? 'Context: ' + summary : ''}`;
+    const prompt = `${ideaEn}. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. ${summary ? 'Thematic context: ' + summary : ''}`;
 
     const dalleRes = await axios.post(
       'https://api.openai.com/v1/images/generations',
@@ -734,7 +749,7 @@ app.post('/generate-image', async (req, res) => {
         model: 'dall-e-3',
         prompt,
         size: '1024x1024',
-        quality: 'standard',
+        quality: 'hd',
         n: 1,
         response_format: 'url'
       },
