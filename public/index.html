@@ -1180,18 +1180,19 @@
   }
 
   function buildEditFinalText(title) {
-    const authorLine = editAuthorName
-      ? (editPhoneVal ? `${editAuthorName} (לתגובות: ${editPhoneVal})` : editAuthorName)
+    // שורה ראשונה: *כותרת* / שם (לתגובות: מספר)
+    const authorSuffix = editAuthorName
+      ? (' / ' + editAuthorName + (editPhoneVal ? ` (לתגובות: ${editPhoneVal})` : ''))
       : '';
+    const firstLine = `*${title}*${authorSuffix}`;
 
-    const parts = [`*${title}*`];
-    if (authorLine) parts.push(authorLine);
-    parts.push('');
-    parts.push(editFormattedBody);
-    parts.push('');
-    if (editSiteUrl) parts.push(`🌐 ${editSiteUrl}`);
-    if (editGroupUrl) parts.push(`📲 הצטרפות לקבוצה: ${editGroupUrl}`);
-    parts.push('*סוללים דרך*');
+    // URL לתצוגה ללא https:// וללא סלאש סופי
+    const displayUrl = (editSiteUrl || 'www.solelim-derech.co.il')
+      .replace(/^https?:\/\//i, '').replace(/\/$/, '');
+
+    const parts = [firstLine, '', editFormattedBody, ''];
+    parts.push(`למאמרים נוספים:  ${displayUrl}`);
+    if (editGroupUrl) parts.push(`להצטרפות לקבוצה: ${editGroupUrl}`);
 
     return parts.join('\n');
   }
