@@ -612,7 +612,7 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
   const meta = await img.metadata();
   const size = meta.width; // תמיד מרובע
 
-  const logoSize = Math.round(size * 0.10); // 10% מגודל התמונה
+  const logoSize = Math.round(size * 0.15); // 15% מגודל התמונה
   const padding  = Math.round(size * 0.05); // 5% ריווח מהקצה
 
   // שינוי גודל הלוגו + הפחתת שקיפות ל-75%

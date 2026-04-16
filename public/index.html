@@ -610,10 +610,12 @@
           <div style="text-align:center">
             <p style="margin:0 0 6px;font-size:13px;color:#888">📷 ללא לוגו</p>
             <img id="editNoLogoImg" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+            <a id="editDownloadNoLogo" download style="display:inline-block;margin-top:8px;font-size:13px;color:#7b2d8b;text-decoration:none;border:1px solid #7b2d8b;border-radius:6px;padding:5px 12px">⬇️ הורד</a>
           </div>
           <div style="text-align:center">
             <p style="margin:0 0 6px;font-size:13px;color:#888">🖼️ עם לוגו (שמאל-תחתון)</p>
             <img id="editWithLogoImg" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+            <a id="editDownloadWithLogo" download style="display:inline-block;margin-top:8px;font-size:13px;color:#7b2d8b;text-decoration:none;border:1px solid #7b2d8b;border-radius:6px;padding:5px 12px">⬇️ הורד</a>
           </div>
         </div>
 
@@ -630,11 +632,21 @@
         <div id="editExtraLogoResult" class="hidden" style="margin-top:12px">
           <p id="editExtraLogoLabel" style="font-size:13px;color:#888;margin:0 0 6px"></p>
           <img id="editExtraLogoImg" style="width:50%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+          <br>
+          <a id="editDownloadExtra" download style="display:inline-block;margin-top:8px;font-size:13px;color:#7b2d8b;text-decoration:none;border:1px solid #7b2d8b;border-radius:6px;padding:5px 12px">⬇️ הורד</a>
         </div>
 
-        <button onclick="resetEditImageGen()" style="background:none;color:#888;border:1px solid #ddd;margin-top:12px;font-size:13px;width:auto;padding:7px 16px">
-          🔄 צור תמונה חדשה
-        </button>
+        <!-- משוב ויצירה מחדש -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #eee">
+          <p style="font-size:13px;font-weight:bold;margin:0 0 8px">לא מרוצה? שפר או נסה שוב:</p>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="text" id="editImageFeedback" placeholder="הערה לשיפור (למשל: יותר אור, ללא דמויות...)" style="flex:1;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl">
+            <button onclick="improveEditImage()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px">שפר תמונה</button>
+          </div>
+          <button onclick="resetEditImageGen()" style="background:none;color:#888;border:1px solid #ddd;font-size:13px;width:auto;padding:7px 16px">
+            🔄 חזור לרעיונות
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1035,6 +1047,8 @@
   let editAuthorName = '';
   let editPhoneVal = '';
   let editImageData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+  let editCurrentIdeaEn = '';
+  let editCurrentSummary = '';
   let editLoadingInterval = null;
 
   // שני שלבים אמיתיים: הגהה → כותרות+הדגשות במקביל
@@ -1230,7 +1244,7 @@
     if (editGroupUrl) { parts.push(`להצטרפות לקבוצה: ${editGroupUrl}`); parts.push(''); }
     parts.push(editFormattedBody);
     parts.push('');
-    parts.push('*סוללים דרך*');
+    parts.push("*'סוללים דרך'*");
 
     return parts.join('\n');
   }
@@ -1387,6 +1401,8 @@
   }
 
   async function generateEditImage(ideaEn, ideaHe, summary) {
+    editCurrentIdeaEn  = ideaEn;
+    editCurrentSummary = summary || '';
     document.getElementById('editIdeasSection').classList.add('hidden');
     document.getElementById('editImageGenResult').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
@@ -1405,19 +1421,34 @@
       editImageData.withLogoFile  = data.withLogoFile;
       editImageData.extraLogoFile = '';
 
-      document.getElementById('editNoLogoImg').src   = data.noLogoUrl   + '?t=' + Date.now();
-      document.getElementById('editWithLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
+      const ts = '?t=' + Date.now();
+      document.getElementById('editNoLogoImg').src   = data.noLogoUrl  + ts;
+      document.getElementById('editWithLogoImg').src = data.withLogoUrl + ts;
+      document.getElementById('editDownloadNoLogo').href   = data.noLogoUrl;
+      document.getElementById('editDownloadNoLogo').download = data.noLogoFile;
+      document.getElementById('editDownloadWithLogo').href  = data.withLogoUrl;
+      document.getElementById('editDownloadWithLogo').download = data.withLogoFile;
 
       document.querySelectorAll('.edit-logo-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
       const blBtn = document.querySelector('[onclick="moveEditLogo(\'bottom-left\')"]');
       if (blBtn) { blBtn.style.borderColor = '#27ae60'; blBtn.style.color = '#27ae60'; }
 
+      document.getElementById('editImageFeedback').value = '';
       document.getElementById('editImageGenLoading').classList.add('hidden');
       document.getElementById('editImageGenResult').classList.remove('hidden');
     } catch(e) {
       alert('שגיאה: ' + e.message);
       resetEditImageGen();
     }
+  }
+
+  async function improveEditImage() {
+    const feedback = document.getElementById('editImageFeedback').value.trim();
+    if (!editCurrentIdeaEn) { alert('אין תמונה קיימת לשיפור'); return; }
+    const improvedPrompt = feedback
+      ? `${editCurrentIdeaEn}. Adjustments: ${feedback}`
+      : editCurrentIdeaEn;
+    generateEditImage(improvedPrompt, feedback || 'שיפור תמונה', editCurrentSummary);
   }
 
   async function moveEditLogo(position) {
@@ -1448,6 +1479,8 @@
       editImageData.extraLogoFile = data.withLogoFile;
       document.getElementById('editExtraLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
       document.getElementById('editExtraLogoLabel').textContent = '🖼️ לוגו ' + labels[position];
+      document.getElementById('editDownloadExtra').href     = data.withLogoUrl;
+      document.getElementById('editDownloadExtra').download = data.withLogoFile;
     } catch(e) {
       alert('שגיאה: ' + e.message);
     }
