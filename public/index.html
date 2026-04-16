@@ -1030,34 +1030,41 @@
   let editImageData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
   let editLoadingInterval = null;
 
+  // שני שלבים אמיתיים: הגהה → כותרות+הדגשות במקביל
   const EDIT_STAGES = [
-    { until: 30, stage: 'שלב 1 מתוך 3: הגהה לשונית',   note: 'מגיה שגיאות שפה ותחביר...', maxPct: 45 },
-    { until: 38, stage: 'שלב 2 מתוך 3: הצעות כותרת',   note: 'מציע כותרות חלופיות למאמר...', maxPct: 58 },
-    { until: Infinity, stage: 'שלב 3 מתוך 3: הוספת הדגשות', note: 'מדגיש ביטויי מפתח בטקסט...', maxPct: 88 }
+    { stage: 'שלב 1 מתוך 2: הגהה לשונית',           note: 'מגיה שגיאות שפה ותחביר...', targetPct: 50 },
+    { stage: 'שלב 2 מתוך 2: כותרות והדגשות',         note: 'מציע כותרות ומדגיש ביטויי מפתח...', targetPct: 90 }
   ];
+  let editLoadingStageIdx = 0;
 
   function startEditLoading() {
+    editLoadingStageIdx = 0;
     document.getElementById('editLoadingSection').classList.remove('hidden');
     const bar   = document.getElementById('editProgressBar');
     const stage = document.getElementById('editLoadingStage');
     const note  = document.getElementById('editLoadingNote');
-    let elapsed = 0;
 
     // הצגה מיידית של שלב 1
     stage.textContent = EDIT_STAGES[0].stage;
     note.textContent  = EDIT_STAGES[0].note;
     bar.style.width   = '0%';
 
+    // אנימציה עדינה — מתקדמת לאט לכיוון הסף של השלב הנוכחי
     editLoadingInterval = setInterval(() => {
-      elapsed += 0.5;
-      const s = EDIT_STAGES.find(x => elapsed < x.until) || EDIT_STAGES[EDIT_STAGES.length - 1];
-      stage.textContent = s.stage;
-      note.textContent  = s.note;
-      const prevUntil = EDIT_STAGES[EDIT_STAGES.indexOf(s) - 1]?.until || 0;
-      const prevMax   = EDIT_STAGES[EDIT_STAGES.indexOf(s) - 1]?.maxPct || 0;
-      const pct = prevMax + ((elapsed - prevUntil) / (s.until - prevUntil)) * (s.maxPct - prevMax);
-      bar.style.width = Math.min(pct, s.maxPct) + '%';
+      const s = EDIT_STAGES[editLoadingStageIdx] || EDIT_STAGES[EDIT_STAGES.length - 1];
+      const currentPct = parseFloat(bar.style.width) || 0;
+      const gap = s.targetPct - currentPct;
+      if (gap > 0.5) bar.style.width = (currentPct + gap * 0.04) + '%';
     }, 500);
+  }
+
+  function advanceEditLoading() {
+    editLoadingStageIdx = Math.min(editLoadingStageIdx + 1, EDIT_STAGES.length - 1);
+    const s = EDIT_STAGES[editLoadingStageIdx];
+    document.getElementById('editLoadingStage').textContent = s.stage;
+    document.getElementById('editLoadingNote').textContent  = s.note;
+    const prevPct = editLoadingStageIdx > 0 ? EDIT_STAGES[editLoadingStageIdx - 1].targetPct : 0;
+    document.getElementById('editProgressBar').style.width = prevPct + '%';
   }
 
   function stopEditLoading(success) {
@@ -1098,31 +1105,47 @@
     btn.style.display = 'none';
     startEditLoading();
 
-    try {
-      const res = await fetch('/edit-article', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      const data = await res.json();
+    const hdrs = { 'Content-Type': 'application/json' };
 
-      if (!data.success) {
+    try {
+      // ── שלב 1: הגהה לשונית (עד 55 שניות) ──
+      const res1 = await fetch('/edit-stage1', {
+        method: 'POST', headers: hdrs, body: JSON.stringify({ text })
+      });
+      const data1 = await res1.json();
+
+      if (!data1.success) {
         stopEditLoading(false);
-        btn.style.display = '';
-        btn.disabled = false;
-        alert('שגיאה בהגהה: ' + data.error);
+        btn.style.display = ''; btn.disabled = false;
+        alert('שגיאה בהגהה: ' + (data1.error || 'שגיאה לא ידועה'));
         return;
       }
 
       editOriginalText  = text;
-      editCorrectedText = data.correctedText;
-      editFormattedBody = data.formattedBody || data.correctedText.split('\n').slice(1).join('\n').trim();
-      editSiteUrl       = data.siteUrl || '';
+      editCorrectedText = data1.correctedText;
+      editSiteUrl       = data1.siteUrl || '';
+
+      // עדכון מד ההתקדמות לשלב 2
+      advanceEditLoading();
+
+      // ── שלבים 2+3 במקביל (כל אחד עד 20 שניות) ──
+      const [data2, data3] = await Promise.all([
+        fetch('/edit-stage2', {
+          method: 'POST', headers: hdrs,
+          body: JSON.stringify({ originalTitle: data1.originalTitle, bodyPreview: data1.body.slice(0, 600) })
+        }).then(r => r.json()),
+        fetch('/edit-stage3', {
+          method: 'POST', headers: hdrs,
+          body: JSON.stringify({ body: data1.body })
+        }).then(r => r.json())
+      ]);
+
+      editFormattedBody = data3.formattedBody || data1.body;
 
       // בניית אפשרויות כותרת
       const titleContainer = document.getElementById('editTitleOptions');
       titleContainer.innerHTML = '';
-      const allTitles = [data.originalTitle, ...(data.titles || [])].filter(Boolean);
+      const allTitles = [data1.originalTitle, ...(data2.titles || [])].filter(Boolean);
 
       allTitles.forEach((title, i) => {
         const card = document.createElement('div');
@@ -1151,8 +1174,7 @@
 
     } catch(e) {
       stopEditLoading(false);
-      btn.style.display = '';
-      btn.disabled = false;
+      btn.style.display = ''; btn.disabled = false;
       alert('שגיאה: ' + e.message);
     }
   }

@@ -142,90 +142,98 @@ const PROOFREADING_SYSTEM = `תפקידך:
 ללא מספור.
 ללא גרסת "לפני ואחרי".`;
 
-app.post('/edit-article', async (req, res) => {
+// שלב 1: הגהה לשונית (בקשה נפרדת – עד 55 שניות)
+app.post('/edit-stage1', async (req, res) => {
   try {
-    const { text, authorName, phone, groupUrl } = req.body;
+    const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
-    // שלב 1: הגהה לשונית
-    addLog('שלב 1: מגיה את הטקסט...');
     const proofRes = await axios.post(
       'https://api.anthropic.com/v1/messages',
       { model: 'claude-sonnet-4-6', max_tokens: 6000, system: PROOFREADING_SYSTEM,
         messages: [{ role: 'user', content: text }] },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 120000 }
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 55000 }
     );
     const correctedText = proofRes.data.content[0].text.trim();
 
-    // חילוץ כותרת וגוף
     const allLines = correctedText.split('\n');
     const firstLine = allLines[0];
     const slashIdx = firstLine.lastIndexOf('/');
     const originalTitle = (slashIdx !== -1 ? firstLine.slice(0, slashIdx) : firstLine).replace(/\*/g, '').trim();
-
     let bodyStart = 1;
     while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
     const body = allLines.slice(bodyStart).join('\n').trim();
 
-    // שלב 2a: הצעות כותרת (JSON קצר)
-    addLog('שלב 2: מציע כותרות חלופיות...');
-    let titles = [];
-    try {
-      const titlesRes = await axios.post(
-        'https://api.anthropic.com/v1/messages',
-        {
-          model: 'claude-sonnet-4-6',
-          max_tokens: 200,
-          messages: [{
-            role: 'user',
-            content: `הצע 2 כותרות קצרות ומעניינות למאמר הבא (שונות מ: "${originalTitle}").
-החזר JSON בלבד, ללא הסברים:
-{"titles":["כותרת 1","כותרת 2"]}
-
-תחילת המאמר (לצורך הצעת כותרת):
-${body.slice(0, 600)}`
-          }]
-        },
-        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 30000 }
-      );
-      const raw = titlesRes.data.content[0].text;
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) titles = (JSON.parse(match[0]).titles || []);
-    } catch(e) { addLog('שגיאה בהצעת כותרות — ממשיך ללא הצעות'); }
-
-    // שלב 2b: הדגשות (טקסט חופשי – ללא JSON)
-    addLog('שלב 2: מוסיף הדגשות...');
-    let formattedBody = body;
-    try {
-      const fmtRes = await axios.post(
-        'https://api.anthropic.com/v1/messages',
-        {
-          model: 'claude-sonnet-4-6',
-          max_tokens: 8000,
-          messages: [{
-            role: 'user',
-            content: `הוסף הדגשות בפורמט וואטסאפ (*ביטוי*) לביטויים המרכזיים בטקסט הבא.
-חוקים:
-- הדגש רק ביטויים מפתח קצרים (2-4 מילים), לא משפטים שלמים
-- לא יותר מ-6 הדגשות בסך הכל
-- אל תשנה דבר אחר בטקסט (לא מילים, לא סדר, לא שורות ריקות)
-- החזר את הטקסט המלא כפי שהוא, עם ההדגשות בלבד
-
-הטקסט:
-${body}`
-          }]
-        },
-        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
-      );
-      formattedBody = fmtRes.data.content[0].text.trim();
-    } catch(e) { addLog('שגיאה בהדגשות — משתמש בטקסט ללא הדגשות'); }
-
-    addLog('עיבוד הושלם בהצלחה!');
-    res.json({ success: true, correctedText, originalTitle, titles, formattedBody,
-      siteUrl: process.env.SITE_URL || process.env.WP_URL || '', logs });
+    res.json({ success: true, correctedText, originalTitle, body,
+      siteUrl: process.env.SITE_URL || process.env.WP_URL || '' });
   } catch (error) {
-    addLog(`שגיאה: ${error.message}`);
-    res.status(500).json({ success: false, error: error.message, logs });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// שלב 2: הצעות כותרת (Haiku – מהיר, עד 20 שניות)
+app.post('/edit-stage2', async (req, res) => {
+  try {
+    const { originalTitle, bodyPreview } = req.body;
+    const titlesRes = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: `הצע 2 כותרות קצרות ומעניינות למאמר הבא (שונות מ: "${originalTitle}").
+החזר JSON בלבד: {"titles":["כותרת 1","כותרת 2"]}
+
+תחילת המאמר:
+${bodyPreview}`
+        }]
+      },
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
+    );
+    const raw = titlesRes.data.content[0].text;
+    const match = raw.match(/\{[\s\S]*\}/);
+    const titles = match ? (JSON.parse(match[0]).titles || []) : [];
+    res.json({ success: true, titles });
+  } catch (error) {
+    res.json({ success: true, titles: [] }); // fallback – ממשיך ללא הצעות
+  }
+});
+
+// שלב 3: הדגשות – מחזיר רשימת ביטויים (Haiku – מהיר, עד 20 שניות)
+app.post('/edit-stage3', async (req, res) => {
+  try {
+    const { body } = req.body;
+    const phrasesRes = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: `זהה 4-6 ביטויי מפתח קצרים (2-5 מילים) שכדאי להדגיש במאמר הבא.
+הביטויים חייבים להופיע בטקסט כמות שהם בדיוק.
+החזר JSON בלבד: {"phrases":["ביטוי 1","ביטוי 2","ביטוי 3","ביטוי 4"]}
+
+המאמר:
+${body.slice(0, 2500)}`
+        }]
+      },
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
+    );
+    const raw = phrasesRes.data.content[0].text;
+    const match = raw.match(/\{[\s\S]*\}/);
+    let formattedBody = body;
+    if (match) {
+      const phrases = (JSON.parse(match[0]).phrases || []).filter(p => p && p.length > 2);
+      phrases.forEach(phrase => {
+        if (!formattedBody.includes(`*${phrase}*`))
+          formattedBody = formattedBody.split(phrase).join(`*${phrase}*`);
+      });
+    }
+    res.json({ success: true, formattedBody });
+  } catch (error) {
+    res.json({ success: true, formattedBody: req.body.body }); // fallback – ללא הדגשות
   }
 });
 // ────────────────────────────────────────────────────────────────────────────
