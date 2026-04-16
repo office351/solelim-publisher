@@ -687,9 +687,13 @@ STRICT CULTURAL RULES — never violate these:
 - The audience is Jewish and Israeli-nationalist. All imagery must reflect Jewish/Israeli identity.
 - NEVER include crosses, churches, Christian iconography, or any Christian symbols.
 - NEVER include crescents, mosques, Arabic script, or any Islamic symbols.
-- If the image includes a religious woman, she must be visibly Jewish (tichel/mitpachat head covering, modest Jewish dress) — never a hijab or nun's habit.
+- If the image includes a HAREDI woman: long dark modest dress, hair fully covered with a sheitel (wig) or tight tichel, covered arms and legs. Never a hijab.
+- If the image includes a DATI (religious-Zionist) woman: colorful mitpachat/tichel, modest but modern Israeli dress — NOT haredi black.
+- If the image includes a HAREDI man: black suit, white dress shirt, black fedora hat (kapelush), beard — traditional Eastern European Jewish look.
+- If the image includes a DATI (religious-Zionist) man: knitted kippah (kippah sruga), button-up shirt, modern Israeli casual-religious look — NOT a black hat.
+- If the image includes soldiers or military: must be IDF (Israel Defense Forces) — olive/green Israeli military uniforms, Israeli military equipment, IDF insignia. NOT generic or American military.
 - If a national flag appears, it must be the Israeli flag (blue Star of David on white) — never any other flag.
-- Jewish symbols that are welcome: Menorah, Star of David, Israeli landscapes (Jerusalem, Kotel, Negev), olive trees, pomegranates, wheat, Torah scrolls.
+- Jewish symbols that are welcome: Menorah, Star of David, Israeli landscapes (Jerusalem, Kotel, Negev, Galilee), olive trees, pomegranates, wheat, Torah scrolls.
 - The spirit of the images must reflect Jewish heritage, Israeli strength, national pride, and love of the land.
 
 VISUAL QUALITY RULES:
