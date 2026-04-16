@@ -320,12 +320,12 @@
     <div class="landing-card" onclick="showPage('page-edit')">
       <div class="icon">✏️</div>
       <h2>עריכת מאמר</h2>
-      <p>עריכה ושיפור טקסט, הוספת הדגשות, ושליחה לקבוצת וואטסאפ</p>
+      <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
     </div>
     <div class="landing-card" onclick="showPage('page-upload')">
       <div class="icon">📤</div>
       <h2>פרסום מאמר</h2>
-      <p>עיבוד מאמר עם AI, יצירת תמונה, העלאת אודיו ופרסום לוורדפרס</p>
+      <p>עיבוד מאמר עם AI, העלאת תמונה ואודיו, פרסום לוורדפרס</p>
     </div>
   </div>
 
@@ -550,71 +550,80 @@
   <!-- שלב ב – תוצאה -->
   <div id="edit-step2" class="hidden">
 
-    <!-- טאבים -->
-    <div class="card" style="padding-bottom:0">
-      <div style="display:flex;gap:0;margin-bottom:-22px">
-        <button class="tab-btn active" id="tab-btn-corrected" onclick="switchEditTab('corrected')"
-          style="flex:1;border-radius:7px 0 0 0;margin:0;padding:10px;font-size:15px">
-          ✏️ טקסט מתוקן
-        </button>
-        <button class="tab-btn" id="tab-btn-diff" onclick="switchEditTab('diff')"
-          style="flex:1;border-radius:0;margin:0;padding:10px;font-size:15px;border-right:1px solid #fff3">
-          🔍 שינויים
-        </button>
-        <button class="tab-btn" id="tab-btn-original" onclick="switchEditTab('original')"
-          style="flex:1;border-radius:0 7px 0 0;margin:0;padding:10px;font-size:15px;border-right:1px solid #fff3">
-          📄 מקור
-        </button>
-      </div>
+    <!-- בחירת כותרת -->
+    <div class="card">
+      <h2 style="margin-top:0">בחר כותרת:</h2>
+      <p style="color:#666;font-size:13px;margin-top:-8px">הכותרת תופיע מודגשת בראש הטקסט</p>
+      <div id="editTitleOptions"></div>
     </div>
 
-    <div class="card" style="padding-top:28px">
-      <!-- טקסט מתוקן -->
-      <div id="tab-corrected">
-        <textarea id="editResult" style="height:320px;font-size:15px;line-height:1.7"></textarea>
+    <!-- טקסט מוכן -->
+    <div class="card">
+      <h2 style="margin-top:0">טקסט מוכן לשליחה:</h2>
+      <textarea id="editResult" style="height:360px;font-size:15px;line-height:1.8"></textarea>
+      <button class="secondary" onclick="copyEditResult()" style="margin-top:8px">📋 העתק טקסט</button>
+    </div>
+
+    <!-- יצירת תמונה -->
+    <div class="card">
+      <h2 style="margin-top:0">🎨 יצירת תמונה</h2>
+
+      <div id="editImageGenStart">
+        <button onclick="getEditImageIdeas()" id="editIdeasBtn" style="background:#7b2d8b">
+          💡 קבל 4 רעיונות לתמונה
+        </button>
       </div>
-      <!-- שינויים -->
-      <div id="tab-diff" class="hidden">
-        <div id="diffView"
-          style="height:320px;overflow-y:auto;font-family:Arial,sans-serif;font-size:14px;
-                 line-height:1.8;border:1px solid #eee;border-radius:6px;padding:10px;
-                 direction:rtl;text-align:right;background:#fafafa">
+
+      <div id="editIdeasSection" class="hidden" style="margin-top:14px">
+        <p id="editSummaryText" style="color:#555;font-size:14px;border-right:3px solid #7b2d8b;padding-right:10px;margin:0 0 12px 0"></p>
+        <p style="font-weight:bold;margin:0 0 8px">בחר רעיון לתמונה:</p>
+        <div id="editIdeaOptions"></div>
+      </div>
+
+      <div id="editImageGenLoading" class="hidden" style="text-align:center;padding:20px">
+        <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">⏳</div>
+        <p style="color:#555;margin:8px 0 0">יוצר תמונה עם DALL-E 3...</p>
+      </div>
+
+      <div id="editImageGenResult" class="hidden" style="margin-top:14px">
+        <div class="field-row" style="gap:16px;align-items:start">
+          <div style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;color:#888">📷 ללא לוגו</p>
+            <img id="editNoLogoImg" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+          </div>
+          <div style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;color:#888">🖼️ עם לוגו (שמאל-תחתון)</p>
+            <img id="editWithLogoImg" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+          </div>
         </div>
-        <p style="font-size:12px;color:#888;margin:8px 0 0">
-          <span style="background:#fff3cd;padding:2px 6px;border-right:3px solid #ffc107">שורה שונתה</span>
-          &nbsp;
-          <span style="background:#d4edda;padding:2px 6px;border-right:3px solid #28a745">שורה נוספה</span>
-          &nbsp;
-          <span style="background:#f8d7da;padding:2px 6px;border-right:3px solid #dc3545;text-decoration:line-through">שורה הוסרה</span>
-        </p>
-      </div>
-      <!-- מקור -->
-      <div id="tab-original" class="hidden">
-        <textarea id="editOriginal" style="height:320px;font-size:15px;line-height:1.7;background:#f8f8f8" readonly></textarea>
-      </div>
-    </div>
 
-    <!-- כפתורי פעולה -->
-    <div class="field-row" style="margin-bottom:10px">
-      <button class="secondary" onclick="copyEditResult()">📋 העתק טקסט</button>
-      <button onclick="saveArticleToHistory()" id="saveArticleBtn" style="background:#7b2d8b">💾 שמור במאגר</button>
-    </div>
-    <button onclick="sendToWhatsapp()" style="background:#25d366">📲 שלח לקבוצת וואטסאפ</button>
+        <div style="margin-top:14px">
+          <p style="font-size:13px;font-weight:bold;margin:0 0 8px">הזז לוגו לפינה אחרת:</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="moveEditLogo('top-right')"    class="edit-logo-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px">↗ ימין-עליון</button>
+            <button onclick="moveEditLogo('top-left')"     class="edit-logo-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px">↖ שמאל-עליון</button>
+            <button onclick="moveEditLogo('bottom-right')" class="edit-logo-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px">↘ ימין-תחתון</button>
+            <button onclick="moveEditLogo('bottom-left')"  class="edit-logo-btn secondary" style="flex:1;padding:8px;font-size:13px;min-width:110px;border-color:#27ae60;color:#27ae60">↙ שמאל-תחתון ✓</button>
+          </div>
+        </div>
 
-    <div id="waResult" class="hidden wa-result" style="margin-top:12px"></div>
+        <div id="editExtraLogoResult" class="hidden" style="margin-top:12px">
+          <p id="editExtraLogoLabel" style="font-size:13px;color:#888;margin:0 0 6px"></p>
+          <img id="editExtraLogoImg" style="width:50%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)">
+        </div>
 
-    <!-- מאגר מאמרים -->
-    <div class="card" style="margin-top:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <h3 style="margin:0">📚 מאמרים שמורים</h3>
-        <button onclick="loadArticleHistory()" class="back-btn" style="font-size:13px;padding:5px 12px">רענן</button>
-      </div>
-      <div id="articleHistory" style="max-height:220px;overflow-y:auto">
-        <p style="color:#aaa;font-size:14px">טוען...</p>
+        <button onclick="resetEditImageGen()" style="background:none;color:#888;border:1px solid #ddd;margin-top:12px;font-size:13px;width:auto;padding:7px 16px">
+          🔄 צור תמונה חדשה
+        </button>
       </div>
     </div>
 
-    <button class="back-btn" style="width:auto;margin-top:6px" onclick="resetEdit()">← עריכה חדשה</button>
+    <!-- שליחה -->
+    <button onclick="sendToMainGroup()" style="background:#25d366;font-size:18px;padding:16px">
+      📲 שלח לקבוצה הראשית
+    </button>
+
+    <button class="back-btn" style="width:auto;margin-top:10px" onclick="resetEdit()">← עריכה חדשה</button>
   </div>
 </div>
 
@@ -1000,10 +1009,27 @@
   /* ─────────── עריכת מאמר ─────────── */
   let editOriginalText = '';
   let editCorrectedText = '';
+  let editFormattedBody = '';
+  let editSiteUrl = '';
+  let editGroupUrl = '';
+  let editAuthorName = '';
+  let editPhoneVal = '';
+  let editImageData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
 
   async function submitEdit() {
     const text = document.getElementById('editText').value.trim();
     if (!text) { alert('נא להזין טקסט מאמר'); return; }
+
+    editAuthorName = document.getElementById('editAuthor').value.trim();
+    editPhoneVal   = document.getElementById('editPhone').value.trim();
+
+    // קישור הקבוצה הנבחרת להטמעה בטקסט
+    const gid = parseInt(document.getElementById('editGroup').value);
+    editGroupUrl = '';
+    if (gid && groupsData) {
+      const grp = groupsData.groups.find(g => g.id === gid);
+      if (grp?.url) editGroupUrl = grp.url;
+    }
 
     const btn = document.getElementById('editBtn');
     btn.disabled = true;
@@ -1026,28 +1052,37 @@
 
       editOriginalText  = text;
       editCorrectedText = data.correctedText;
+      editFormattedBody = data.formattedBody || data.correctedText.split('\n').slice(1).join('\n').trim();
+      editSiteUrl       = data.siteUrl || '';
 
-      // עדכון שורת הכותב בטקסט המתוקן לפי הבחירה
-      const authorName = document.getElementById('editAuthor').value.trim();
-      const phone      = document.getElementById('editPhone').value.trim();
-      if (authorName) {
-        const lines = editCorrectedText.split('\n');
-        const firstLine = lines[0];
-        const slashIdx  = firstLine.lastIndexOf('/');
-        const titlePart = slashIdx !== -1 ? firstLine.slice(0, slashIdx).trim() : firstLine.trim();
-        const phoneSuffix = phone ? ` (לתגובות: ${phone})` : '';
-        lines[0] = `${titlePart} / ${authorName}${phoneSuffix}`;
-        editCorrectedText = lines.join('\n');
-      }
+      // בניית אפשרויות כותרת
+      const titleContainer = document.getElementById('editTitleOptions');
+      titleContainer.innerHTML = '';
+      const allTitles = [data.originalTitle, ...(data.titles || [])].filter(Boolean);
 
-      document.getElementById('editResult').value   = editCorrectedText;
-      document.getElementById('editOriginal').value = editOriginalText;
-      buildDiffView(editOriginalText, editCorrectedText);
+      allTitles.forEach((title, i) => {
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        card.style.cssText = i === 0
+          ? 'border-color:#0073aa;background:#e8f4fb'
+          : 'border-color:#ddd';
+        card.innerHTML = `<span style="font-weight:bold;color:#0073aa;margin-left:6px">${i === 0 ? '✓' : i + '.'}</span> ${escHtml(title)}`;
+        card.onclick = () => {
+          document.querySelectorAll('#editTitleOptions .idea-card').forEach(c => {
+            c.style.borderColor = '#ddd'; c.style.background = '';
+          });
+          card.style.borderColor = '#0073aa';
+          card.style.background  = '#e8f4fb';
+          document.getElementById('editResult').value = buildEditFinalText(title);
+        };
+        titleContainer.appendChild(card);
+      });
 
-      switchEditTab('corrected');
+      // הצגת הטקסט הראשוני עם הכותרת הראשונה
+      document.getElementById('editResult').value = buildEditFinalText(allTitles[0] || '');
+
       document.getElementById('edit-step1').classList.add('hidden');
       document.getElementById('edit-step2').classList.remove('hidden');
-      loadArticleHistory();
 
     } catch(e) {
       alert('שגיאה: ' + e.message);
@@ -1055,6 +1090,23 @@
 
     btn.disabled = false;
     btn.textContent = 'הגה מאמר עם AI ➜';
+  }
+
+  function buildEditFinalText(title) {
+    const authorLine = editAuthorName
+      ? (editPhoneVal ? `${editAuthorName} (לתגובות: ${editPhoneVal})` : editAuthorName)
+      : '';
+
+    const parts = [`*${title}*`];
+    if (authorLine) parts.push(authorLine);
+    parts.push('');
+    parts.push(editFormattedBody);
+    parts.push('');
+    if (editSiteUrl) parts.push(`🌐 ${editSiteUrl}`);
+    if (editGroupUrl) parts.push(`📲 הצטרפות לקבוצה: ${editGroupUrl}`);
+    parts.push('*סוללים דרך*');
+
+    return parts.join('\n');
   }
 
   /* ── טאבים ── */
@@ -1130,7 +1182,148 @@
       });
   }
 
-  /* ── שלח לוואטסאפ ── */
+  /* ── שלח לקבוצה הראשית ── */
+  function sendToMainGroup() {
+    const text = document.getElementById('editResult').value;
+    if (!text.trim()) { alert('הטקסט ריק'); return; }
+
+    // העתקה ללוח
+    navigator.clipboard.writeText(text).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+
+    // פתיחת הקבוצה הראשית
+    window.open('https://chat.whatsapp.com/Kf14YFcLQVTKVePF95gzWq', '_blank');
+  }
+
+  /* ── רעיונות תמונה (עריכה) ── */
+  async function getEditImageIdeas() {
+    const text = document.getElementById('editResult').value;
+    if (!text.trim()) { alert('נא לבצע הגהה תחילה'); return; }
+
+    const btn = document.getElementById('editIdeasBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ טוען רעיונות...';
+
+    try {
+      const res = await fetch('/image-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (!data.success) { alert('שגיאה: ' + data.error); btn.disabled = false; btn.textContent = '💡 קבל 4 רעיונות לתמונה'; return; }
+
+      document.getElementById('editSummaryText').textContent = '📝 ' + data.summary;
+
+      const container = document.getElementById('editIdeaOptions');
+      container.innerHTML = '';
+      (data.ideas || []).forEach((idea, i) => {
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        card.innerHTML = `<span class="idea-num">${i + 1}.</span> ${escHtml(idea.he)}`;
+        card.onclick = () => {
+          document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
+          card.classList.add('chosen');
+          generateEditImage(idea.en, idea.he, data.summary);
+        };
+        container.appendChild(card);
+      });
+
+      document.getElementById('editIdeasSection').classList.remove('hidden');
+      document.getElementById('editImageGenStart').classList.add('hidden');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '💡 קבל 4 רעיונות לתמונה';
+    }
+  }
+
+  async function generateEditImage(ideaEn, ideaHe, summary) {
+    document.getElementById('editIdeasSection').classList.add('hidden');
+    document.getElementById('editImageGenResult').classList.add('hidden');
+    document.getElementById('editExtraLogoResult').classList.add('hidden');
+    document.getElementById('editImageGenLoading').classList.remove('hidden');
+
+    try {
+      const res = await fetch('/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ideaEn, ideaHe, summary })
+      });
+      const data = await res.json();
+      if (!data.success) { alert('שגיאה ביצירת תמונה: ' + data.error); resetEditImageGen(); return; }
+
+      editImageData.noLogoFile    = data.noLogoFile;
+      editImageData.withLogoFile  = data.withLogoFile;
+      editImageData.extraLogoFile = '';
+
+      document.getElementById('editNoLogoImg').src   = data.noLogoUrl   + '?t=' + Date.now();
+      document.getElementById('editWithLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
+
+      document.querySelectorAll('.edit-logo-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+      const blBtn = document.querySelector('[onclick="moveEditLogo(\'bottom-left\')"]');
+      if (blBtn) { blBtn.style.borderColor = '#27ae60'; blBtn.style.color = '#27ae60'; }
+
+      document.getElementById('editImageGenLoading').classList.add('hidden');
+      document.getElementById('editImageGenResult').classList.remove('hidden');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      resetEditImageGen();
+    }
+  }
+
+  async function moveEditLogo(position) {
+    if (!editImageData.noLogoFile) { alert('אין תמונה זמינה'); return; }
+    const labels = { 'top-right': 'ימין-עליון ↗', 'top-left': 'שמאל-עליון ↖', 'bottom-right': 'ימין-תחתון ↘', 'bottom-left': 'שמאל-תחתון ↙' };
+
+    document.querySelectorAll('.edit-logo-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+    const clickedBtn = document.querySelector(`[onclick="moveEditLogo('${position}')"]`);
+    if (clickedBtn) { clickedBtn.style.borderColor = '#27ae60'; clickedBtn.style.color = '#27ae60'; }
+
+    if (position === 'bottom-left') {
+      document.getElementById('editExtraLogoResult').classList.add('hidden');
+      return;
+    }
+
+    document.getElementById('editExtraLogoLabel').textContent = '⏳ יוצר גרסה עם לוגו ב' + labels[position] + '...';
+    document.getElementById('editExtraLogoResult').classList.remove('hidden');
+    document.getElementById('editExtraLogoImg').src = '';
+
+    try {
+      const res = await fetch('/apply-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noLogoFile: editImageData.noLogoFile, position })
+      });
+      const data = await res.json();
+      if (!data.success) { alert('שגיאה: ' + data.error); return; }
+      editImageData.extraLogoFile = data.withLogoFile;
+      document.getElementById('editExtraLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
+      document.getElementById('editExtraLogoLabel').textContent = '🖼️ לוגו ' + labels[position];
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    }
+  }
+
+  function resetEditImageGen() {
+    editImageData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+    document.getElementById('editImageGenLoading').classList.add('hidden');
+    document.getElementById('editImageGenResult').classList.add('hidden');
+    document.getElementById('editIdeasSection').classList.add('hidden');
+    document.getElementById('editExtraLogoResult').classList.add('hidden');
+    document.getElementById('editImageGenStart').classList.remove('hidden');
+    const btn = document.getElementById('editIdeasBtn');
+    btn.disabled = false;
+    btn.textContent = '💡 קבל 4 רעיונות לתמונה';
+  }
+
+  /* ── שלח לוואטסאפ (ישן – לא בשימוש) ── */
   function sendToWhatsapp() {
     const gid = parseInt(document.getElementById('editGroup').value);
     if (!gid || !groupsData) { alert('נא לבחור קבוצת וואטסאפ'); return; }
@@ -1246,8 +1439,15 @@
 
   /* ── איפוס ── */
   function resetEdit() {
-    editOriginalText = '';
+    editOriginalText  = '';
     editCorrectedText = '';
+    editFormattedBody = '';
+    editSiteUrl       = '';
+    editGroupUrl      = '';
+    editAuthorName    = '';
+    editPhoneVal      = '';
+    editImageData     = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+
     document.getElementById('edit-step2').classList.add('hidden');
     document.getElementById('edit-step1').classList.remove('hidden');
     document.getElementById('editText').value         = '';
@@ -1256,8 +1456,15 @@
     document.getElementById('editAuthorSelect').value = '';
     document.getElementById('editPhone').value        = '';
     document.getElementById('customAuthorWrap').classList.add('hidden');
-    document.getElementById('waResult').classList.add('hidden');
-    switchEditTab('corrected');
+
+    // איפוס יצירת תמונה
+    document.getElementById('editImageGenLoading').classList.add('hidden');
+    document.getElementById('editImageGenResult').classList.add('hidden');
+    document.getElementById('editIdeasSection').classList.add('hidden');
+    document.getElementById('editExtraLogoResult').classList.add('hidden');
+    document.getElementById('editImageGenStart').classList.remove('hidden');
+    const ideasBtn = document.getElementById('editIdeasBtn');
+    if (ideasBtn) { ideasBtn.disabled = false; ideasBtn.textContent = '💡 קבל 4 רעיונות לתמונה'; }
   }
 
   /* ─────────── העלאת מאמר (הקיים) ─────────── */
