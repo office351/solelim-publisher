@@ -657,7 +657,7 @@ app.post('/translate-idea', async (req, res) => {
     const result = await axios.post(
       'https://api.anthropic.com/v1/messages',
       { model: 'claude-haiku-4-5-20251001', max_tokens: 200,
-        messages: [{ role: 'user', content: `Translate this image idea to detailed English for DALL-E image generation. Return only the English description:\n${idea}` }] },
+        messages: [{ role: 'user', content: `Translate this Hebrew image idea to a detailed English prompt for DALL-E 3. The audience is Jewish-Israeli nationalist: no crosses/churches/crescents/mosques, religious women must look Jewish (tichel head covering), flags must be Israeli. Return only the English prompt:\n${idea}` }] },
       { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
     );
     res.json({ success: true, en: result.data.content[0].text.trim() });
@@ -681,26 +681,32 @@ app.post('/image-ideas', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert DALL-E 3 prompt engineer. Your job is to craft vivid, professional image prompts that produce stunning, publication-quality square images.
+            content: `You are an expert DALL-E 3 prompt engineer creating images for a Jewish-Israeli nationalist publication. Your images must be high-quality, visually striking, and culturally appropriate.
 
-Rules for the English DALL-E prompts:
-- Be highly specific: describe lighting, color palette, composition, mood, and style
-- Use cinematic or fine-art language (e.g. "golden hour light", "shallow depth of field", "minimalist composition", "dramatic chiaroscuro")
-- Suggest a clear visual style: photo-realistic, oil painting, watercolor, digital illustration, etc.
-- Each of the 4 ideas must use a DIFFERENT visual style
-- NEVER include text, letters, words, or numbers in the image
-- Focus on powerful symbolism that connects to the article's theme
-- Make it square-composition friendly`
+STRICT CULTURAL RULES — never violate these:
+- The audience is Jewish and Israeli-nationalist. All imagery must reflect Jewish/Israeli identity.
+- NEVER include crosses, churches, Christian iconography, or any Christian symbols.
+- NEVER include crescents, mosques, Arabic script, or any Islamic symbols.
+- If the image includes a religious woman, she must be visibly Jewish (tichel/mitpachat head covering, modest Jewish dress) — never a hijab or nun's habit.
+- If a national flag appears, it must be the Israeli flag (blue Star of David on white) — never any other flag.
+- Jewish symbols that are welcome: Menorah, Star of David, Israeli landscapes (Jerusalem, Kotel, Negev), olive trees, pomegranates, wheat, Torah scrolls.
+- The spirit of the images must reflect Jewish heritage, Israeli strength, national pride, and love of the land.
+
+VISUAL QUALITY RULES:
+- Be highly specific: describe lighting, color palette, composition, mood, and style.
+- Use cinematic or fine-art language: "golden hour", "dramatic chiaroscuro", "shallow depth of field", "painterly texture".
+- Each of the 4 ideas must use a DIFFERENT artistic style (e.g. photo-realistic, oil painting, watercolor, digital art).
+- NEVER include text, letters, words, numbers, or symbols in the image.
+- Make it square-composition friendly (1:1 ratio).
+- Aim for powerful, emotionally resonant, publication-quality imagery.`
           },
           {
             role: 'user',
-            content: `Read the article below. Then:
-1. Write a one-sentence Hebrew summary of the article's core message.
-2. Create 4 distinct image ideas — each with a different artistic style — that visually represent the article's theme.
+            content: `Read the article below and create 4 image ideas that visually represent its theme in the spirit of Jewish-Israeli national identity.
 
-Return ONLY valid JSON in this exact format:
+Return ONLY valid JSON:
 {
-  "summary": "סיכום בעברית",
+  "summary": "סיכום בעברית במשפט אחד",
   "ideas": [
     {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
     {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
