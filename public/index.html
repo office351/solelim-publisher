@@ -323,14 +323,14 @@
       <h2>עריכת מאמר</h2>
       <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
     </div>
-    <div class="landing-card" onclick="showPage('page-upload')">
+    <div class="landing-card admin-only" onclick="showPage('page-upload')">
       <div class="icon">📤</div>
       <h2>פרסום מאמר</h2>
       <p>עיבוד מאמר עם AI, העלאת תמונה ואודיו, פרסום לוורדפרס</p>
     </div>
   </div>
 
-  <div class="landing-footer">
+  <div class="landing-footer admin-only">
     <a onclick="showPage('page-groups')">⚙️ ניהול קבוצות וואטסאפ</a>
   </div>
 </div>
@@ -622,6 +622,27 @@
      JavaScript
 ═══════════════════════════════════════════════════ -->
 <script>
+  /* ─────────── הרשאות משתמש ─────────── */
+  let currentUser = null;
+
+  async function initUserRole() {
+    try {
+      const res = await fetch('/api/me');
+      const data = await res.json();
+      currentUser = data.username;
+    } catch (e) { currentUser = null; }
+
+    if (currentUser !== (window._adminUser || 'admin')) {
+      // משתמש מוגבל — מסתיר אלמנטים של admin בלבד
+      document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+      // מצמצם את הגריד לעמודה אחת כשרק כרטיס אחד נראה
+      const grid = document.querySelector('.landing-grid');
+      if (grid) grid.style.gridTemplateColumns = '1fr';
+    }
+  }
+
+  initUserRole();
+
   /* ─────────── ניווט בין דפים ─────────── */
   function showPage(pageId) {
     ['page-landing', 'page-upload', 'page-edit', 'page-groups'].forEach(id => {

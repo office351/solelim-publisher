@@ -13,16 +13,34 @@ const sharp = require('sharp');
 
 const app = express();
 
+// אוסף המשתמשים: admin + solelim (עריכה בלבד)
+const USERS = {
+  [process.env.APP_USER || 'admin']: process.env.APP_PASSWORD || 'changeme',
+  'solelim': 'solelim'
+};
+
 app.use(basicAuth({
-  users: { [process.env.APP_USER || 'admin']: process.env.APP_PASSWORD || 'changeme' },
+  users: USERS,
   challenge: true,
   realm: 'solelim-publisher'
 }));
+
+// middleware שמגביל לadmin בלבד
+function requireAdmin(req, res, next) {
+  const adminUser = process.env.APP_USER || 'admin';
+  if (req.auth && req.auth.user === adminUser) return next();
+  res.status(403).json({ error: 'אין הרשאה' });
+}
 
 const upload = multer({ dest: 'uploads/' });
 
 app.use(express.json());
 app.use(express.static('public'));
+
+// מי אני — מחזיר את שם המשתמש הנוכחי
+app.get('/api/me', (req, res) => {
+  res.json({ username: req.auth ? req.auth.user : null });
+});
 
 // ─── הגהה לשונית ────────────────────────────────────────────────────────────
 const PROOFREADING_SYSTEM = `אתה מגיה לשון עברית מקצועי. בצע תיקונים לשוניים ותחביריים בלבד — ללא שינוי סגנון, ניסוח, רעיונות או ליטוש ספרותי.
@@ -238,9 +256,9 @@ function saveGroups(data) {
   fs.writeFileSync(GROUPS_FILE, JSON.stringify(data, null, 2));
 }
 
-app.get('/groups', (req, res) => res.json(loadGroups()));
+app.get('/groups', requireAdmin, (req, res) => res.json(loadGroups()));
 
-app.post('/groups', (req, res) => {
+app.post('/groups', requireAdmin, (req, res) => {
   saveGroups(req.body);
   res.json({ success: true });
 });
@@ -254,7 +272,7 @@ function addLog(message) {
 }
 
 // קבלת לוגים
-app.get('/logs', (req, res) => {
+app.get('/logs', requireAdmin, (req, res) => {
   res.json(logs);
 });
 
@@ -440,7 +458,7 @@ async function publishToWordPress(data) {
 }
 
 // העלאת תמונה לוורדפרס
-app.post('/upload-image', upload.single('image'), async (req, res) => {
+app.post('/upload-image', requireAdmin, upload.single('image'), async (req, res) => {
   try {
     addLog('מעלה תמונה לוורדפרס...');
     const imageBuffer = fs.readFileSync(req.file.path);
@@ -464,7 +482,7 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
 });
 
 // עדכון פרק ב-Buzzsprout
-app.post('/update-episode', async (req, res) => {
+app.post('/update-episode', requireAdmin, async (req, res) => {
   const { episodeId, title, author } = req.body;
   try {
     await axios.put(
@@ -482,7 +500,7 @@ app.post('/update-episode', async (req, res) => {
 });
 
 // רשימת כותבים מוורדפרס
-app.get('/wp-users', async (req, res) => {
+app.get('/wp-users', requireAdmin, async (req, res) => {
   try {
     const response = await axios.get(`${process.env.WP_URL}/wp-json/wp/v2/users?per_page=100`, {
       auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD }
@@ -494,7 +512,7 @@ app.get('/wp-users', async (req, res) => {
 });
 
 // נתיב העלאת אודיו מיידית
-app.post('/upload-audio', upload.single('audio'), async (req, res) => {
+app.post('/upload-audio', requireAdmin, upload.single('audio'), async (req, res) => {
   logs = [];
   try {
     addLog('קובץ אודיו התקבל, המרה והעלאה ל-Buzzsprout החלו');
@@ -512,7 +530,7 @@ app.post('/upload-audio', upload.single('audio'), async (req, res) => {
 });
 
 // נתיב ראשי - עיבוד מאמר
-app.post('/process', upload.fields([
+app.post('/process', requireAdmin, upload.fields([
   { name: 'audio', maxCount: 1 },
   { name: 'image', maxCount: 1 }
 ]), async (req, res) => {
@@ -575,7 +593,7 @@ analysis.author = authorPart || analysis.author;
 });
 
 // נתיב פרסום סופי
-app.post('/publish', async (req, res) => {
+app.post('/publish', requireAdmin, async (req, res) => {
   try {
     const result = await publishToWordPress(req.body);
     res.json({ success: true, result, logs });
@@ -586,7 +604,7 @@ app.post('/publish', async (req, res) => {
 });
 
 // אישור ופרסום טיוטה
-app.post('/approve', async (req, res) => {
+app.post('/approve', requireAdmin, async (req, res) => {
   try {
     const { postId } = req.body;
     addLog(`מאשר פרסום פוסט ${postId}...`);
@@ -833,7 +851,7 @@ app.post('/apply-logo', async (req, res) => {
 });
 
 // העלאת תמונה שנוצרה לוורדפרס
-app.post('/upload-generated', async (req, res) => {
+app.post('/upload-generated', requireAdmin, async (req, res) => {
   try {
     const { filename } = req.body;
     if (!filename) return res.status(400).json({ success: false, error: 'שם קובץ חסר' });
@@ -864,7 +882,7 @@ app.post('/upload-generated', async (req, res) => {
   }
 });
 // רשימת תמונות שנוצרו לאחרונה (ללא לוגו)
-app.get('/recent-images', (req, res) => {
+app.get('/recent-images', requireAdmin, (req, res) => {
   try {
     const files = fs.readdirSync(GENERATED_DIR)
       .filter(f => f.endsWith('_clean.png'))
