@@ -1109,11 +1109,20 @@
     const hdrs = { 'Content-Type': 'application/json' };
 
     try {
-      // ── שלב 1: הגהה לשונית (עד 55 שניות) ──
+      // ── שלב 1: הגהה לשונית – שולח ברקע, מצביע כל 3 שניות ──
       const res1 = await fetch('/edit-stage1', {
         method: 'POST', headers: hdrs, body: JSON.stringify({ text })
       });
-      const data1 = await res1.json();
+      const { jobId } = await res1.json();
+
+      // polling עד שהשרת מסיים
+      let data1;
+      while (true) {
+        await new Promise(r => setTimeout(r, 3000));
+        const pollRes = await fetch(`/edit-poll/${jobId}`);
+        const poll = await pollRes.json();
+        if (poll.done) { data1 = poll; break; }
+      }
 
       if (!data1.success) {
         stopEditLoading(false);
