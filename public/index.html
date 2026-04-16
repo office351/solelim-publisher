@@ -591,6 +591,13 @@
         <p id="editSummaryText" style="color:#555;font-size:14px;border-right:3px solid #7b2d8b;padding-right:10px;margin:0 0 12px 0"></p>
         <p style="font-weight:bold;margin:0 0 8px">בחר רעיון לתמונה:</p>
         <div id="editIdeaOptions"></div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid #eee">
+          <p style="font-weight:bold;margin:0 0 8px;font-size:14px">או כתוב רעיון משלך:</p>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="editCustomIdea" placeholder="תאר את התמונה שאתה רוצה..." style="flex:1;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl">
+            <button onclick="generateEditCustomIdea()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px">צור תמונה</button>
+          </div>
+        </div>
       </div>
 
       <div id="editImageGenLoading" class="hidden" style="text-align:center;padding:20px">
@@ -1360,6 +1367,22 @@
       alert('שגיאה: ' + e.message);
       btn.disabled = false;
       btn.textContent = '💡 קבל 4 רעיונות לתמונה';
+    }
+  }
+
+  async function generateEditCustomIdea() {
+    const idea = document.getElementById('editCustomIdea').value.trim();
+    if (!idea) { alert('נא להזין תיאור רעיון'); return; }
+    try {
+      const res = await fetch('/translate-idea', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea })
+      });
+      const data = await res.json();
+      generateEditImage(data.en || idea, idea, '');
+    } catch(e) {
+      generateEditImage(idea, idea, ''); // fallback: שלח עברית ישירות
     }
   }
 

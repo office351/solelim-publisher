@@ -149,7 +149,7 @@ app.post('/edit-stage3', async (req, res) => {
 החזר JSON בלבד: {"phrases":["טקסט 1","טקסט 2","טקסט 3"]}
 
 המאמר:
-${body.slice(0, 2500)}`
+${body.slice(0, 6000)}`
         }]
       },
       { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
@@ -605,6 +605,7 @@ app.post('/approve', async (req, res) => {
 // ─── יצירת תמונות עם AI ──────────────────────────────────────────────────────
 const GENERATED_DIR = path.join(__dirname, 'public', 'generated');
 const LOGO_PATH     = path.join(__dirname, 'public', 'logo.png');
+if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
 async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
   const img  = sharp(imageBuffer);
@@ -647,6 +648,23 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .png()
     .toBuffer();
 }
+
+// תרגום רעיון אישי לאנגלית עבור DALL-E
+app.post('/translate-idea', async (req, res) => {
+  try {
+    const { idea } = req.body;
+    if (!idea?.trim()) return res.status(400).json({ success: false, error: 'חסר רעיון' });
+    const result = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 200,
+        messages: [{ role: 'user', content: `Translate this image idea to detailed English for DALL-E image generation. Return only the English description:\n${idea}` }] },
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
+    );
+    res.json({ success: true, en: result.data.content[0].text.trim() });
+  } catch (error) {
+    res.json({ success: true, en: req.body.idea }); // fallback: שלח עברית
+  }
+});
 
 // רעיונות לתמונה
 app.post('/image-ideas', async (req, res) => {
