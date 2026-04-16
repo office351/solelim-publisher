@@ -545,6 +545,19 @@
     <button onclick="submitEdit()" id="editBtn" style="background:#7b2d8b">
       הגה מאמר עם AI ➜
     </button>
+
+    <!-- אינדיקטור טעינה -->
+    <div id="editLoadingSection" class="hidden" style="margin-top:16px">
+      <div class="card" style="text-align:center;padding:36px 24px">
+        <div style="font-size:36px;animation:spin 2s linear infinite;display:inline-block">⚙️</div>
+        <p id="editLoadingStage" style="font-size:17px;color:#7b2d8b;font-weight:bold;margin:18px 0 5px"></p>
+        <p id="editLoadingNote" style="font-size:13px;color:#888;margin:0 0 20px"></p>
+        <div style="background:#eee;border-radius:6px;height:8px;overflow:hidden">
+          <div id="editProgressBar" style="height:100%;background:linear-gradient(90deg,#7b2d8b,#a855c0);width:0%;transition:width 0.8s ease;border-radius:6px"></div>
+        </div>
+        <p style="font-size:12px;color:#bbb;margin:12px 0 0">התהליך עשוי לקחת עד דקה</p>
+      </div>
+    </div>
   </div>
 
   <!-- שלב ב – תוצאה -->
@@ -1015,6 +1028,54 @@
   let editAuthorName = '';
   let editPhoneVal = '';
   let editImageData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+  let editLoadingInterval = null;
+
+  const EDIT_STAGES = [
+    { until: 28, stage: 'שלב 1 מתוך 2: הגהה לשונית', note: 'מגיה שגיאות שפה ותחביר...', maxPct: 46 },
+    { until: Infinity, stage: 'שלב 2 מתוך 2: הדגשות ורעיונות', note: 'מוסיף הדגשות ומציע כותרות חלופיות...', maxPct: 88 }
+  ];
+
+  function startEditLoading() {
+    document.getElementById('editLoadingSection').classList.remove('hidden');
+    const bar   = document.getElementById('editProgressBar');
+    const stage = document.getElementById('editLoadingStage');
+    const note  = document.getElementById('editLoadingNote');
+    let elapsed = 0;
+
+    // הצגה מיידית של שלב 1
+    stage.textContent = EDIT_STAGES[0].stage;
+    note.textContent  = EDIT_STAGES[0].note;
+    bar.style.width   = '0%';
+
+    editLoadingInterval = setInterval(() => {
+      elapsed += 0.5;
+      const s = EDIT_STAGES.find(x => elapsed < x.until) || EDIT_STAGES[EDIT_STAGES.length - 1];
+      stage.textContent = s.stage;
+      note.textContent  = s.note;
+      const prevUntil = EDIT_STAGES[EDIT_STAGES.indexOf(s) - 1]?.until || 0;
+      const prevMax   = EDIT_STAGES[EDIT_STAGES.indexOf(s) - 1]?.maxPct || 0;
+      const pct = prevMax + ((elapsed - prevUntil) / (s.until - prevUntil)) * (s.maxPct - prevMax);
+      bar.style.width = Math.min(pct, s.maxPct) + '%';
+    }, 500);
+  }
+
+  function stopEditLoading(success) {
+    clearInterval(editLoadingInterval);
+    editLoadingInterval = null;
+    const bar     = document.getElementById('editProgressBar');
+    const section = document.getElementById('editLoadingSection');
+    if (success) {
+      bar.style.transition = 'width 0.4s ease';
+      bar.style.width = '100%';
+      setTimeout(() => {
+        section.classList.add('hidden');
+        bar.style.width = '0%';
+      }, 500);
+    } else {
+      section.classList.add('hidden');
+      bar.style.width = '0%';
+    }
+  }
 
   async function submitEdit() {
     const text = document.getElementById('editText').value.trim();
@@ -1033,7 +1094,8 @@
 
     const btn = document.getElementById('editBtn');
     btn.disabled = true;
-    btn.textContent = '⏳ מגיה עם AI...';
+    btn.style.display = 'none';
+    startEditLoading();
 
     try {
       const res = await fetch('/edit-article', {
@@ -1044,9 +1106,10 @@
       const data = await res.json();
 
       if (!data.success) {
-        alert('שגיאה בהגהה: ' + data.error);
+        stopEditLoading(false);
+        btn.style.display = '';
         btn.disabled = false;
-        btn.textContent = 'הגה מאמר עם AI ➜';
+        alert('שגיאה בהגהה: ' + data.error);
         return;
       }
 
@@ -1081,15 +1144,16 @@
       // הצגת הטקסט הראשוני עם הכותרת הראשונה
       document.getElementById('editResult').value = buildEditFinalText(allTitles[0] || '');
 
+      stopEditLoading(true);
       document.getElementById('edit-step1').classList.add('hidden');
       document.getElementById('edit-step2').classList.remove('hidden');
 
     } catch(e) {
+      stopEditLoading(false);
+      btn.style.display = '';
+      btn.disabled = false;
       alert('שגיאה: ' + e.message);
     }
-
-    btn.disabled = false;
-    btn.textContent = 'הגה מאמר עם AI ➜';
   }
 
   function buildEditFinalText(title) {
@@ -1448,6 +1512,7 @@
     editPhoneVal      = '';
     editImageData     = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
 
+    stopEditLoading(false);
     document.getElementById('edit-step2').classList.add('hidden');
     document.getElementById('edit-step1').classList.remove('hidden');
     document.getElementById('editText').value         = '';
@@ -1456,6 +1521,9 @@
     document.getElementById('editAuthorSelect').value = '';
     document.getElementById('editPhone').value        = '';
     document.getElementById('customAuthorWrap').classList.add('hidden');
+    const editBtn = document.getElementById('editBtn');
+    editBtn.disabled = false;
+    editBtn.style.display = '';
 
     // איפוס יצירת תמונה
     document.getElementById('editImageGenLoading').classList.add('hidden');
