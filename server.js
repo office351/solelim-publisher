@@ -153,7 +153,7 @@ app.post('/edit-article', async (req, res) => {
       'https://api.anthropic.com/v1/messages',
       { model: 'claude-sonnet-4-6', max_tokens: 6000, system: PROOFREADING_SYSTEM,
         messages: [{ role: 'user', content: text }] },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } }
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 120000 }
     );
     const correctedText = proofRes.data.content[0].text.trim();
 
@@ -167,39 +167,58 @@ app.post('/edit-article', async (req, res) => {
     while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
     const body = allLines.slice(bodyStart).join('\n').trim();
 
-    // שלב 2: הדגשות + הצעות כותרת
-    addLog('שלב 2: מוסיף הדגשות ומציע כותרות...');
-    const formatRes = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: `בהינתן גוף מאמר עברי מוגהה, בצע שני דברים:
-1. הצע 2 כותרות קצרות ומעניינות (שונות מ: "${originalTitle}")
-2. הוסף הדגשות בפורמט וואטסאפ (*ביטוי*) לביטויים המרכזיים — בצמצום, לא להדגיש משפטים שלמים, רק ביטויים מפתח
-
-אל תשנה את תוכן הטקסט כלל. החזר JSON בלבד, השתמש במרכאות בודדות בתוך הערכים:
-{"titles":["כותרת 1","כותרת 2"],"formattedBody":"גוף עם *הדגשות*"}
-
-גוף המאמר:
-${body}`
-        }]
-      },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } }
-    );
-
-    let titles = [], formattedBody = body;
+    // שלב 2a: הצעות כותרת (JSON קצר)
+    addLog('שלב 2: מציע כותרות חלופיות...');
+    let titles = [];
     try {
-      const raw = formatRes.data.content[0].text;
+      const titlesRes = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: 'claude-sonnet-4-6',
+          max_tokens: 200,
+          messages: [{
+            role: 'user',
+            content: `הצע 2 כותרות קצרות ומעניינות למאמר הבא (שונות מ: "${originalTitle}").
+החזר JSON בלבד, ללא הסברים:
+{"titles":["כותרת 1","כותרת 2"]}
+
+תחילת המאמר (לצורך הצעת כותרת):
+${body.slice(0, 600)}`
+          }]
+        },
+        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 30000 }
+      );
+      const raw = titlesRes.data.content[0].text;
       const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ').replace(/,(\s*[}\]])/g, '$1'));
-        titles = parsed.titles || [];
-        formattedBody = parsed.formattedBody || body;
-      }
-    } catch(e) { addLog('שגיאה בפענוח פורמט — משתמש בטקסט ללא הדגשות'); }
+      if (match) titles = (JSON.parse(match[0]).titles || []);
+    } catch(e) { addLog('שגיאה בהצעת כותרות — ממשיך ללא הצעות'); }
+
+    // שלב 2b: הדגשות (טקסט חופשי – ללא JSON)
+    addLog('שלב 2: מוסיף הדגשות...');
+    let formattedBody = body;
+    try {
+      const fmtRes = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          messages: [{
+            role: 'user',
+            content: `הוסף הדגשות בפורמט וואטסאפ (*ביטוי*) לביטויים המרכזיים בטקסט הבא.
+חוקים:
+- הדגש רק ביטויים מפתח קצרים (2-4 מילים), לא משפטים שלמים
+- לא יותר מ-6 הדגשות בסך הכל
+- אל תשנה דבר אחר בטקסט (לא מילים, לא סדר, לא שורות ריקות)
+- החזר את הטקסט המלא כפי שהוא, עם ההדגשות בלבד
+
+הטקסט:
+${body}`
+          }]
+        },
+        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
+      );
+      formattedBody = fmtRes.data.content[0].text.trim();
+    } catch(e) { addLog('שגיאה בהדגשות — משתמש בטקסט ללא הדגשות'); }
 
     addLog('עיבוד הושלם בהצלחה!');
     res.json({ success: true, correctedText, originalTitle, titles, formattedBody,

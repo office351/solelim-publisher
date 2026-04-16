@@ -1031,8 +1031,9 @@
   let editLoadingInterval = null;
 
   const EDIT_STAGES = [
-    { until: 28, stage: 'שלב 1 מתוך 2: הגהה לשונית', note: 'מגיה שגיאות שפה ותחביר...', maxPct: 46 },
-    { until: Infinity, stage: 'שלב 2 מתוך 2: הדגשות ורעיונות', note: 'מוסיף הדגשות ומציע כותרות חלופיות...', maxPct: 88 }
+    { until: 30, stage: 'שלב 1 מתוך 3: הגהה לשונית',   note: 'מגיה שגיאות שפה ותחביר...', maxPct: 45 },
+    { until: 38, stage: 'שלב 2 מתוך 3: הצעות כותרת',   note: 'מציע כותרות חלופיות למאמר...', maxPct: 58 },
+    { until: Infinity, stage: 'שלב 3 מתוך 3: הוספת הדגשות', note: 'מדגיש ביטויי מפתח בטקסט...', maxPct: 88 }
   ];
 
   function startEditLoading() {
