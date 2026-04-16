@@ -1088,6 +1088,7 @@
   async function submitEdit() {
     const text = document.getElementById('editText').value.trim();
     if (!text) { alert('נא להזין טקסט מאמר'); return; }
+    if (text.length > 8000) { alert('המאמר ארוך מדי (מעל 8000 תווים). נא לקצר לפני הגהה.'); return; }
 
     editAuthorName = document.getElementById('editAuthor').value.trim();
     editPhoneVal   = document.getElementById('editPhone').value.trim();
