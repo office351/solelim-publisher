@@ -142,11 +142,11 @@ app.post('/edit-stage3', async (req, res) => {
         max_tokens: 700,
         messages: [{
           role: 'user',
-          content: `קרא את המאמר הבא וזהה קטעים חזקים שכדאי להדגיש.
-ההדגשות יכולות להיות ביטוי קצר (2-5 מילים) או משפט שלם חזק ומרשים — לפי שיקולך.
-כלל: לפחות הדגשה אחת לכל פסקה.
-כל הדגשה חייבת להופיע בטקסט כמות שהיא בדיוק — אל תשנה אף מילה.
-החזר JSON בלבד: {"phrases":["טקסט 1","טקסט 2","טקסט 3"]}
+          content: `קרא את המאמר הבא וזהה משפטים שלמים חזקים שכדאי להדגיש.
+משפט שלם = מתחיל אחרי נקודה (או בתחילת פסקה) ומסתיים בנקודה.
+כלל: לפחות משפט אחד לכל פסקה.
+כל משפט חייב להופיע בטקסט כמות שהוא בדיוק — אל תשנה אף מילה.
+החזר JSON בלבד: {"phrases":["משפט 1","משפט 2","משפט 3"]}
 
 המאמר:
 ${body.slice(0, 6000)}`
@@ -741,7 +741,8 @@ app.post('/generate-image', async (req, res) => {
 
     addLog('יוצר תמונה עם DALL-E 3...');
 
-    const prompt = `${ideaEn}. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. ${summary ? 'Thematic context: ' + summary : ''}`;
+    // אין לכלול תוכן מהמאמר ישירות — רק הפרומפט האמנותי, ללא קונטקסט טקסטואלי
+    const prompt = `${ideaEn}. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. No written language of any kind.`;
 
     const dalleRes = await axios.post(
       'https://api.openai.com/v1/images/generations',

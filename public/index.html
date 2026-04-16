@@ -568,6 +568,13 @@
       <h2 style="margin-top:0">בחר כותרת:</h2>
       <p style="color:#666;font-size:13px;margin-top:-8px">הכותרת תופיע מודגשת בראש הטקסט</p>
       <div id="editTitleOptions"></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee">
+        <p style="font-size:13px;font-weight:bold;margin:0 0 8px">או כתוב כותרת משלך:</p>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="editCustomTitle" placeholder="כתוב כותרת..." style="flex:1;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl">
+          <button onclick="applyCustomTitle()" style="background:#0073aa;white-space:nowrap;padding:8px 14px">החל</button>
+        </div>
+      </div>
     </div>
 
     <!-- טקסט מוכן -->
@@ -1226,6 +1233,16 @@
     }
   }
 
+  function applyCustomTitle() {
+    const title = document.getElementById('editCustomTitle').value.trim();
+    if (!title) { alert('נא להזין כותרת'); return; }
+    // בטל סימון מכל הכרטיסים הקיימים
+    document.querySelectorAll('#editTitleOptions .idea-card').forEach(c => {
+      c.style.borderColor = '#ddd'; c.style.background = '';
+    });
+    document.getElementById('editResult').value = buildEditFinalText(title);
+  }
+
   function buildEditFinalText(title) {
     // שורה ראשונה: *כותרת* / שם (לתגובות: מספר)
     const authorSuffix = editAuthorName
@@ -1244,7 +1261,7 @@
     if (editGroupUrl) { parts.push(`להצטרפות לקבוצה: ${editGroupUrl}`); parts.push(''); }
     parts.push(editFormattedBody);
     parts.push('');
-    parts.push("*'סוללים דרך'*");
+    parts.push("*\u2018סוללים דרך\u2019*");
 
     return parts.join('\n');
   }
