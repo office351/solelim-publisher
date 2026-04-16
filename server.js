@@ -150,9 +150,9 @@ app.post('/edit-stage1', async (req, res) => {
 
     const proofRes = await axios.post(
       'https://api.anthropic.com/v1/messages',
-      { model: 'claude-sonnet-4-6', max_tokens: 6000, system: PROOFREADING_SYSTEM,
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 6000, system: PROOFREADING_SYSTEM,
         messages: [{ role: 'user', content: text }] },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 55000 }
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 50000 }
     );
     const correctedText = proofRes.data.content[0].text.trim();
 
