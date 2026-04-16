@@ -1113,12 +1113,28 @@
       const res1 = await fetch('/edit-stage1', {
         method: 'POST', headers: hdrs, body: JSON.stringify({ text })
       });
-      const { jobId } = await res1.json();
+      const startResp = await res1.json();
 
-      // polling עד שהשרת מסיים
+      // אם השרת ישן ועדיין מחזיר את התוצאה ישר (ללא jobId)
+      if (!startResp.jobId) {
+        stopEditLoading(false);
+        btn.style.display = ''; btn.disabled = false;
+        alert('השרת לא עודכן עדיין — נא לעשות Manual Deploy ב-Render ולנסות שוב.');
+        return;
+      }
+      const jobId = startResp.jobId;
+
+      // polling עד שהשרת מסיים (מקסימום 3 דקות)
       let data1;
+      const pollDeadline = Date.now() + 3 * 60 * 1000;
       while (true) {
         await new Promise(r => setTimeout(r, 3000));
+        if (Date.now() > pollDeadline) {
+          stopEditLoading(false);
+          btn.style.display = ''; btn.disabled = false;
+          alert('ההגהה לקחה יותר מדי זמן — נסה מאמר קצר יותר.');
+          return;
+        }
         const pollRes = await fetch(`/edit-poll/${jobId}`);
         const poll = await pollRes.json();
         if (poll.done) { data1 = poll; break; }
