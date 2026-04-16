@@ -741,8 +741,8 @@ app.post('/generate-image', async (req, res) => {
 
     addLog('יוצר תמונה עם DALL-E 3...');
 
-    // אין לכלול תוכן מהמאמר ישירות — רק הפרומפט האמנותי, ללא קונטקסט טקסטואלי
-    const prompt = `${ideaEn}. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. No written language of any kind.`;
+    // הקדמה שמונעת מ-DALL-E לשכתב את הפרומפט (טריק ידוע)
+    const prompt = `I NEED you to generate EXACTLY this image without any modifications or reinterpretation: ${ideaEn}. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
 
     const dalleRes = await axios.post(
       'https://api.openai.com/v1/images/generations',
