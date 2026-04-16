@@ -1190,9 +1190,14 @@
     const displayUrl = (editSiteUrl || 'www.solelim-derech.co.il')
       .replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
-    const parts = [firstLine, '', editFormattedBody, ''];
+    // מבנה: כותרת+שם / קישור אתר / קישור קבוצה / מאמר / חתימה
+    const parts = [firstLine, ''];
     parts.push(`למאמרים נוספים:  ${displayUrl}`);
-    if (editGroupUrl) parts.push(`להצטרפות לקבוצה: ${editGroupUrl}`);
+    parts.push('');
+    if (editGroupUrl) { parts.push(`להצטרפות לקבוצה: ${editGroupUrl}`); parts.push(''); }
+    parts.push(editFormattedBody);
+    parts.push('');
+    parts.push('*סוללים דרך*');
 
     return parts.join('\n');
   }
