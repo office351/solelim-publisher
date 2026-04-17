@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/solelimderechco/solelim-repo
+    - /bin/sh -c "cd $DEPLOYPATH && npm install --production 2>&1"
+    - /bin/sh -c "touch $DEPLOYPATH/tmp/restart.txt"
