@@ -681,8 +681,10 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
-// ─── בסיס סגנון קבוע לכל תמונה ─────────────────────────────────────────────
-const DALL_E_STYLE_BASE = `Israeli-Jewish visual identity, authentic and meaningful. Natural lighting with warm sunlight or golden hour tones, soft shadows. Color palette: deep blue, off-white, natural earth tones. No harsh contrast, no oversaturated colors. Scenes feel real and candid — not staged, not stock-photo. Human subjects look like real Israelis: modest natural clothing, authentic appearance, thoughtful calm expressions. Jewish identity present only subtly (e.g. kippah, mezuzah, soft candlelight) — never large central symbols. Israeli national elements (flag, IDF soldiers) presented in a natural human way — not heroic poses, not combat focus, not dramatic. Connected to Israeli landscape, light, people, or texture (stone, fields, authentic urban). Composition minimal and focused. Tone: reflective, intelligent, emotionally grounded. Avoid: propaganda style, loud nationalism, religious clichés, heavy symbolism, artificial AI look, plastic textures, overly dramatic scenes, anything generic or not locally grounded. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. Square 1:1 composition.`;
+// ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
+const DALL_E_STYLE_SUFFIX = `
+
+Photographic style: warm natural light, golden hour tones, cinematic and documentary feel. Color palette: deep blue, off-white, natural earth tones. Real and candid — never staged or stock-photo. If people are shown: real Israelis, modest natural clothing, calm authentic expressions. Jewish identity present subtly only (kippah, mezuzah, soft candlelight). Israeli national elements (flag, soldiers) shown in a natural human way — not heroic, not dramatic. Connected to Israeli landscape, light, or texture. Tone: reflective, intelligent, emotionally grounded. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
 
 // תרגום רעיון אישי לאנגלית עבור DALL-E
 app.post('/translate-idea', async (req, res) => {
@@ -716,41 +718,37 @@ app.post('/image-ideas', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert DALL-E 3 prompt engineer creating images for a Jewish-Israeli publication ("סוללים דרך"). Your task is to create 4 highly varied, publication-quality image ideas that visually represent the article's theme.
+            content: `You are a visual storyteller and DALL-E 3 expert creating images for "סוללים דרך", a Jewish-Israeli publication. Your job is to create 4 vivid, evocative image prompts that will produce stunning, publication-quality photographs.
 
-CORE VISUAL IDENTITY (apply to every image):
-Create images in a consistent Israeli-Jewish visual identity that feels authentic, calm, and meaningful. Each image must be thoughtfully adapted to the article's topic, message, and tone. The style must convey quiet confidence, not propaganda or political messaging. Prefer realism or semi-realism with a cinematic, documentary-like quality when relevant. Use natural lighting (especially warm sunlight, golden hour tones), soft shadows, and a color palette based on deep blue, off-white, and natural earth tones. Avoid harsh contrast, overly saturated colors, or artificial filters. Scenes should feel real and not staged — candid moments, natural compositions, emotional depth, and a sense of presence. Avoid stock-photo aesthetics, exaggerated expressions, or overly polished looks. Human subjects should look like real Israelis: modest, natural clothing, authentic appearance, subtle expressions (thoughtful, calm, serious). Jewish identity should be present only subtly (e.g., a kippah, mezuzah, soft candle light, or cultural atmosphere), never as large or central symbols. When including Israeli national elements (Israeli flag or IDF soldiers), present them in a natural, human, and non-dramatic way — not heroic poses, not combat scenes, not weapon focus. The flag should appear as part of the environment, not as a dominant graphic element. Every image must feel connected to Israel — through landscape, light, people, or texture (stone, fields, or authentic urban environments). Composition should be minimal and focused, with a clear subject and no unnecessary visual clutter. Tone: reflective, intelligent, and emotionally grounded.
+Each prompt must paint a specific, cinematic scene — describe exactly what the camera sees: the subject, their action, the setting, the light, the mood, the details. Write as if directing a photographer on location in Israel.
 
-STRICT CULTURAL RULES — never violate:
-- NEVER include crosses, churches, Christian iconography, or any Christian symbols.
-- NEVER include crescents, mosques, Arabic script, or any Islamic symbols.
-- HAREDI woman: long dark modest dress, sheitel (wig) or tight tichel, covered arms/legs. Never a hijab.
-- DATI (religious-Zionist) woman: colorful mitpachat/tichel, modest but modern Israeli dress — NOT haredi black.
-- HAREDI man: black suit, white shirt, black fedora (kapelush), beard.
-- DATI man: knitted kippah (kippah sruga), modern Israeli casual-religious look — NOT a black hat.
-- Soldiers/military: must be IDF — olive/green Israeli uniforms, Israeli equipment. NOT American or generic military.
-- Any national flag: must be the Israeli flag (blue Star of David on white) — never any other flag.
+VISUAL APPROACH — 4 different types:
+1. Human scene: specific people in a real Israeli moment (describe their appearance, action, emotion, environment)
+2. Landscape / symbolic: a specific Israeli place, time of day, season, or symbolic scene with rich sensory detail
+3. Close-up / detail: hands, objects, textures, or a single evocative detail that captures the article's essence
+4. Painterly / illustrative: semi-realistic, cinematic illustration style with specific artistic quality
 
-DIVERSITY REQUIREMENT — the 4 ideas must use 4 DIFFERENT visual approaches:
-1. Realistic human scene (people in a real Israeli moment)
-2. Landscape or symbolic scene (Israeli nature, city, or symbolic visual)
-3. Close-up / detail / texture (object, hands, light — evocative and minimal)
-4. Illustrative or painterly style (semi-realistic illustration, watercolor, or cinematic graphic art)
-
-Each approach must still maintain the core Israeli-Jewish visual identity. Avoid: propaganda style, loud nationalism, religious clichés, heavy symbolism, artificial AI look, plastic textures, overly dramatic scenes, or anything generic. NEVER include text, letters, words, or numbers in the image.`
+CULTURAL RULES (critical — never break):
+- People shown: real Israelis. Religious women: tichel or sheitel (not hijab). Haredi men: black hat, black suit. Dati-leumi men: knitted kippah, modern Israeli look.
+- Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only.
+- No crosses, churches, crescents, mosques, or Arabic script.
+- No text, letters, numbers, or symbols in the image.
+- Jewish identity: subtle only (kippah, mezuzah, candles) — never large central symbols.`
           },
           {
             role: 'user',
-            content: `Read the article below. Analyze its core theme, message, and tone. Then create 4 image ideas — each using a different visual approach (human scene / landscape-symbolic / close-up-detail / illustrative) — all adapted to this specific article while maintaining the Israeli-Jewish visual identity.
+            content: `Read the article below carefully. Understand its specific theme, message, emotion, and setting. Then create 4 vivid image prompts — each a different visual approach — that beautifully capture the heart of this article.
+
+Each English prompt must be a rich, specific scene description (3-5 sentences). Describe: the exact subject and action, the precise location in Israel, the time of day and lighting, the mood and atmosphere, relevant textures and colors, and the overall feeling the image should evoke. Be cinematic and specific — as if directing a photographer.
 
 Return ONLY valid JSON:
 {
   "summary": "סיכום בעברית במשפט אחד",
   "ideas": [
-    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English (be very specific about lighting, composition, mood, style, and every visual element)"},
-    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
-    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
-    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"}
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3 — specific subject, location, lighting, mood, atmosphere, and feeling"},
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"}
   ]
 }
 
@@ -787,7 +785,7 @@ app.post('/generate-image', async (req, res) => {
     addLog('יוצר תמונה עם DALL-E 3...');
 
     // בניית פרומפט: בסיס סגנון + רעיון ספציפי
-    const prompt = `${DALL_E_STYLE_BASE}\n\nSpecific image to create: ${ideaEn}`;
+    const prompt = `${ideaEn}${DALL_E_STYLE_SUFFIX}`;
 
     const dalleRes = await axios.post(
       'https://api.openai.com/v1/images/generations',
