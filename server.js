@@ -1,4 +1,5 @@
-require('dotenv').config({ override: true });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env'), override: true });
 const express = require('express');
 const basicAuth = require('express-basic-auth');
 const multer = require('multer');
@@ -8,7 +9,6 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const fs = require('fs');
-const path = require('path');
 const sharp = require('sharp');
 
 const app = express();
