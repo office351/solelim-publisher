@@ -518,6 +518,11 @@
         <button onclick="getEditImageIdeas()" id="editIdeasBtn" style="background:#7b2d8b">
           💡 קבל 4 רעיונות לתמונה
         </button>
+        <div style="text-align:center;margin:10px 0;color:#aaa;font-size:13px">— או —</div>
+        <button onclick="document.getElementById('editUploadImageFile').click()" style="background:#555">
+          📁 העלה תמונה משלך
+        </button>
+        <input type="file" id="editUploadImageFile" accept="image/*" style="display:none" onchange="uploadEditImage(this)">
       </div>
 
       <div id="editIdeasSection" class="hidden" style="margin-top:14px">
@@ -572,7 +577,7 @@
         </div>
 
         <!-- משוב ויצירה מחדש -->
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #eee">
+        <div id="editImageImproveSection" style="margin-top:16px;padding-top:14px;border-top:1px solid #eee">
           <p style="font-size:13px;font-weight:bold;margin:0 0 8px">לא מרוצה? שפר או נסה שוב:</p>
           <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
             <div style="flex:1;min-width:0">
@@ -1368,12 +1373,63 @@
     }
   }
 
+  // העלאת תמונה מוכנה מהמשתמש
+  async function uploadEditImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    document.getElementById('editImageGenStart').classList.add('hidden');
+    document.getElementById('editImageGenResult').classList.add('hidden');
+    document.getElementById('editExtraLogoResult').classList.add('hidden');
+    const loadingEl = document.getElementById('editImageGenLoading');
+    loadingEl.classList.remove('hidden');
+    loadingEl.querySelector('p').textContent = 'מעלה תמונה ומוסיף לוגו...';
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res  = await fetch('/upload-edit-image', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      loadingEl.classList.add('hidden');
+      if (!data.success) { alert('שגיאה: ' + data.error); resetEditImageGen(); return; }
+
+      editCurrentIdeaEn = '';   // לא AI — שיפור לא רלוונטי
+      editImageData.noLogoFile   = data.noLogoFile;
+      editImageData.withLogoFile = data.withLogoFile;
+      editImageData.extraLogoFile = '';
+
+      const ts = '?t=' + Date.now();
+      document.getElementById('editNoLogoImg').src    = data.noLogoUrl  + ts;
+      document.getElementById('editWithLogoImg').src  = data.withLogoUrl + ts;
+      document.getElementById('editDownloadNoLogo').href     = data.noLogoUrl;
+      document.getElementById('editDownloadNoLogo').download = data.noLogoFile;
+      document.getElementById('editDownloadWithLogo').href     = data.withLogoUrl;
+      document.getElementById('editDownloadWithLogo').download = data.withLogoFile;
+
+      // לוגו כפתורים — סמן bottom-left כברירת מחדל
+      document.querySelectorAll('.edit-logo-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+      const blBtn = document.querySelector('[onclick="moveEditLogo(\'bottom-left\')"]');
+      if (blBtn) { blBtn.style.borderColor = '#27ae60'; blBtn.style.color = '#27ae60'; }
+
+      // הסתרת אזור שיפור AI (לא רלוונטי לתמונה שהועלתה)
+      document.getElementById('editImageImproveSection').style.display = 'none';
+
+      document.getElementById('editImageGenResult').classList.remove('hidden');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      resetEditImageGen();
+    }
+  }
+
   async function generateEditImage(ideaEn, ideaHe, summary) {
     editCurrentIdeaEn  = ideaEn;
     editCurrentSummary = summary || '';
     document.getElementById('editIdeasSection').classList.add('hidden');
     document.getElementById('editImageGenResult').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
+    document.getElementById('editImageImproveSection').style.display = ''; // הצג אזור שיפור
     document.getElementById('editImageGenLoading').classList.remove('hidden');
 
     try {
@@ -1460,6 +1516,7 @@
     document.getElementById('editImageGenResult').classList.add('hidden');
     document.getElementById('editIdeasSection').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
+    document.getElementById('editImageImproveSection').style.display = ''; // שחזר אזור שיפור
     document.getElementById('editImageGenStart').classList.remove('hidden');
     const btn = document.getElementById('editIdeasBtn');
     btn.disabled = false;

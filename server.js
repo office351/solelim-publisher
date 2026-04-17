@@ -866,6 +866,37 @@ app.post('/apply-logo', async (req, res) => {
   }
 });
 
+// העלאת תמונה מהמשתמש (עריכת מאמר) + הוספת לוגו
+app.post('/upload-edit-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'קובץ חסר' });
+
+    const rawBuffer = fs.readFileSync(req.file.path);
+    fs.unlinkSync(req.file.path);
+
+    // המרה ל-PNG (תומך ב-JPG/PNG/WEBP וכו')
+    const pngBuffer = await sharp(rawBuffer).png().toBuffer();
+
+    const ts          = Date.now();
+    const noLogoFile  = `img_${ts}_clean.png`;
+    const withLogoFile = `img_${ts}_logo.png`;
+    fs.writeFileSync(path.join(GENERATED_DIR, noLogoFile),  pngBuffer);
+
+    const withLogoBuffer = await applyLogoToImage(pngBuffer, 'bottom-left');
+    fs.writeFileSync(path.join(GENERATED_DIR, withLogoFile), withLogoBuffer);
+
+    res.json({
+      success: true,
+      noLogoFile,
+      withLogoFile,
+      noLogoUrl:   `/generated/${noLogoFile}`,
+      withLogoUrl: `/generated/${withLogoFile}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // העלאת תמונה שנוצרה לוורדפרס
 app.post('/upload-generated', requireAdmin, async (req, res) => {
   try {
