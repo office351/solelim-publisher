@@ -434,7 +434,7 @@
   <div id="edit-step1">
     <div class="card">
       <label>טקסט המאמר (גלם מוואטסאפ):</label>
-      <textarea id="editText" style="height:260px" placeholder="הדבק כאן את הטקסט שהתקבל מוואטסאפ...&#10;שורה ראשונה: כותרת / שם כותב (טלפון)"></textarea>
+      <textarea id="editText" style="height:260px" placeholder="הדבק כאן את המאמר"></textarea>
     </div>
 
     <div class="card">
@@ -494,9 +494,11 @@
       <div id="editTitleOptions"></div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee">
         <p style="font-size:13px;font-weight:bold;margin:0 0 8px">או כתוב כותרת משלך:</p>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="editCustomTitle" placeholder="כתוב כותרת..." style="flex:1;width:auto;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl">
-          <button onclick="applyCustomTitle()" style="background:#0073aa;white-space:nowrap;padding:8px 14px">החל</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="flex:1;min-width:0">
+            <input type="text" id="editCustomTitle" placeholder="כתוב כותרת..." style="width:100%;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl;margin:0;box-sizing:border-box">
+          </div>
+          <button onclick="applyCustomTitle()" style="background:#0073aa;white-space:nowrap;padding:8px 14px;width:auto;margin:0">החל</button>
         </div>
       </div>
     </div>
@@ -524,9 +526,11 @@
         <div id="editIdeaOptions"></div>
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid #eee">
           <p style="font-weight:bold;margin:0 0 8px;font-size:14px">או כתוב רעיון משלך:</p>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="editCustomIdea" placeholder="תאר את התמונה שאתה רוצה..." style="flex:1;width:auto;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl">
-            <button onclick="generateEditCustomIdea()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px">צור תמונה</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0">
+              <input type="text" id="editCustomIdea" placeholder="תאר את התמונה שאתה רוצה..." style="width:100%;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl;margin:0;box-sizing:border-box">
+            </div>
+            <button onclick="generateEditCustomIdea()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px;width:auto;margin:0">צור תמונה</button>
           </div>
         </div>
       </div>
@@ -570,9 +574,11 @@
         <!-- משוב ויצירה מחדש -->
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid #eee">
           <p style="font-size:13px;font-weight:bold;margin:0 0 8px">לא מרוצה? שפר או נסה שוב:</p>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <input type="text" id="editImageFeedback" placeholder="הערה לשיפור (למשל: יותר אור, ללא דמויות...)" style="flex:1;width:auto;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl">
-            <button onclick="improveEditImage()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px">שפר תמונה</button>
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+            <div style="flex:1;min-width:0">
+              <input type="text" id="editImageFeedback" placeholder="הערה לשיפור (למשל: יותר אור, ללא דמויות...)" style="width:100%;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl;margin:0;box-sizing:border-box">
+            </div>
+            <button onclick="improveEditImage()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px;width:auto;margin:0">שפר תמונה</button>
           </div>
           <button onclick="resetEditImageGen()" style="background:none;color:#888;border:1px solid #ddd;font-size:13px;width:auto;padding:7px 16px">
             🔄 חזור לרעיונות
