@@ -703,73 +703,109 @@ app.post('/translate-idea', async (req, res) => {
   }
 });
 
-// רעיונות לתמונה
+// רעיונות לתמונה — שני שלבים: ניתוח מאמר → רעיונות תמונה
 app.post('/image-ideas', async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
-    addLog('שולח מאמר ל-GPT-4o לקבלת רעיונות תמונה...');
+    // ── שלב 1: ניתוח המאמר ─────────────────────────────────────────────────
+    addLog('שלב 1: מנתח את המאמר לעומק...');
 
-    const response = await axios.post(
+    const analysisRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: `You are a visual storyteller and DALL-E 3 expert creating images for "סוללים דרך", a Jewish-Israeli publication. Your job is to create 4 vivid, evocative image prompts that will produce stunning, publication-quality photographs.
-
-Each prompt must paint a specific, cinematic scene — describe exactly what the camera sees: the subject, their action, the setting, the light, the mood, the details. Write as if directing a photographer on location in Israel.
-
-VISUAL APPROACH — 4 different types:
-1. Human scene: specific people in a real Israeli moment (describe their appearance, action, emotion, environment)
-2. Landscape / symbolic: a specific Israeli place, time of day, season, or symbolic scene with rich sensory detail
-3. Close-up / detail: hands, objects, textures, or a single evocative detail that captures the article's essence
-4. Painterly / illustrative: semi-realistic, cinematic illustration style with specific artistic quality
-
-CULTURAL RULES (critical — never break):
-- People shown: real Israelis. Religious women: tichel or sheitel (not hijab). Haredi men: black hat, black suit. Dati-leumi men: knitted kippah, modern Israeli look.
-- Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only.
-- No crosses, churches, crescents, mosques, or Arabic script.
-- No text, letters, numbers, or symbols in the image.
-- Jewish identity: subtle only (kippah, mezuzah, candles) — never large central symbols.`
+            content: `You are a thoughtful literary analyst. Read the article and produce a deep analysis that will later be used to generate visual images. Focus on: the core message and conclusion, the emotional tone, the key human moments or scenes described, the setting (time, place, context), and the underlying values or ideas the author conveys.`
           },
           {
             role: 'user',
-            content: `Read the article below carefully. Understand its specific theme, message, emotion, and setting. Then create 4 vivid image prompts — each a different visual approach — that beautifully capture the heart of this article.
-
-Each English prompt must be a rich, specific scene description (3-5 sentences). Describe: the exact subject and action, the precise location in Israel, the time of day and lighting, the mood and atmosphere, relevant textures and colors, and the overall feeling the image should evoke. Be cinematic and specific — as if directing a photographer.
+            content: `Analyze this Hebrew article deeply. Extract what truly matters — the heart of what the author is saying, the emotions they evoke, the specific scenes or moments they describe, and the visual world this article lives in.
 
 Return ONLY valid JSON:
 {
-  "summary": "סיכום בעברית במשפט אחד",
-  "ideas": [
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3 — specific subject, location, lighting, mood, atmosphere, and feeling"},
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"}
-  ]
+  "summary": "סיכום בעברית של המסר המרכזי (2-3 משפטים)",
+  "coreMessage": "The single most important idea or conclusion of the article (English)",
+  "emotionalTone": "The dominant emotion or atmosphere (English)",
+  "keyScenes": ["specific scene or moment 1", "specific scene or moment 2", "specific scene or moment 3"],
+  "visualWorld": "Description of the physical/visual world this article inhabits — place, time, people, textures, light (English)",
+  "underlyingValues": "The deeper values, themes, or ideas (English)"
 }
 
 Article:
 ${text.slice(0, 3000)}`
           }
         ],
+        max_tokens: 800,
+        response_format: { type: 'json_object' }
+      },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
+    );
+
+    const analysis = JSON.parse(analysisRes.data.choices[0].message.content);
+    addLog('ניתוח הושלם, יוצר רעיונות תמונה...');
+
+    // ── שלב 2: יצירת רעיונות תמונה על בסיס הניתוח ─────────────────────────
+    const ideasRes = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a DALL-E 3 visual director creating images for "סוללים דרך", a Jewish-Israeli publication. You receive a deep analysis of an article and create 4 stunning, publication-quality image prompts.
+
+Each prompt must be a rich, cinematic scene description — paint exactly what the camera sees. Be specific about: the subject and their action, the precise location in Israel, the time of day and quality of light, the mood and atmosphere, textures, colors, and the emotional feeling.
+
+VISUAL APPROACH — 4 different types:
+1. Human scene: specific people in a real Israeli moment
+2. Landscape / symbolic: a specific Israeli place or symbolic visual
+3. Close-up / detail: hands, objects, or a single evocative texture
+4. Painterly / illustrative: semi-realistic or watercolor cinematic style
+
+CULTURAL RULES (never break):
+- People: real Israelis. Religious women: tichel or sheitel (never hijab). Haredi men: black hat, black suit. Dati-leumi: knitted kippah, modern Israeli look.
+- Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only.
+- No crosses, churches, crescents, mosques, or Arabic script.
+- No text, letters, numbers, or symbols in the image.
+- Jewish identity: subtle only (kippah, mezuzah, candles).`
+          },
+          {
+            role: 'user',
+            content: `Based on this article analysis, create 4 vivid DALL-E 3 image prompts that capture the soul of the article.
+
+ARTICLE ANALYSIS:
+- Core message: ${analysis.coreMessage}
+- Emotional tone: ${analysis.emotionalTone}
+- Key scenes: ${analysis.keyScenes?.join(' | ')}
+- Visual world: ${analysis.visualWorld}
+- Underlying values: ${analysis.underlyingValues}
+
+Each English prompt: 3-5 sentences, cinematic and specific, as if directing a photographer on location in Israel.
+
+Return ONLY valid JSON:
+{
+  "ideas": [
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
+    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"}
+  ]
+}`
+          }
+        ],
         max_tokens: 1500,
         response_format: { type: 'json_object' }
       },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
     );
 
-    const result = JSON.parse(response.data.choices[0].message.content);
+    const result = JSON.parse(ideasRes.data.choices[0].message.content);
     addLog(`התקבלו ${result.ideas?.length || 0} רעיונות לתמונה`);
-    res.json({ success: true, ...result, logs });
+    res.json({ success: true, summary: analysis.summary, ideas: result.ideas, logs });
   } catch (error) {
     addLog(`שגיאה ברעיונות תמונה: ${error.response?.data?.error?.message || error.message}`);
     res.status(500).json({ success: false, error: error.response?.data?.error?.message || error.message, logs });
