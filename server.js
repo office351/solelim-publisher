@@ -55,8 +55,14 @@ const PROOFREADING_SYSTEM = `אתה מגיה לשון עברית מקצועי. �
 - גרשיים סביב מונחים מוגדרים בהקשר מושגי: המושג מגדר → המושג 'מגדר'
 - אין לתקן לשון מקרא
 
+טיפול בשורה הראשונה:
+- אם השורה הראשונה מכילה "/" — מה שלפני ה-/ הוא הכותרת, מה שאחריו הוא שם הכותב/טלפון. הגה את הכותרת בלבד, השאר את שם הכותב כפי שהוא ואת ה-/ במקומו.
+
+טיפול בשורה האחרונה:
+- אם השורה האחרונה (או אחת השורות האחרונות) מכילה רק את המילים "סוללים דרך" — עם או בלי נקודה, גרש, כוכבית או סמלים אחרים — מחק שורה זו לחלוטין. חתימה זו תתווסף באופן אוטומטי לאחר מכן.
+
 חובה לשמור:
-- מבנה שורות ורווחים זהה למקור לחלוטין
+- מבנה שורות ורווחים זהה למקור לחלוטין (למעט השורה שנמחקה כנ"ל)
 - כוכביות (*) במקומן המדויק — אין להזיז, למחוק או להוסיף
 - סגנון הכותב
 
@@ -91,13 +97,20 @@ app.post('/edit-stage1', (req, res) => {
         { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 180000 }
       );
       const correctedText = proofRes.data.content[0].text.trim();
-      const allLines = correctedText.split('\n');
+      let allLines = correctedText.split('\n');
       const firstLine = allLines[0];
-      const slashIdx = firstLine.lastIndexOf('/');
+      const slashIdx = firstLine.search(/[/|\\]/);
       const originalTitle = (slashIdx !== -1 ? firstLine.slice(0, slashIdx) : firstLine).replace(/\*/g, '').trim();
       let bodyStart = 1;
       while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
-      const body = allLines.slice(bodyStart).join('\n').trim();
+      let bodyLines = allLines.slice(bodyStart);
+      // מחיקת שורת "סוללים דרך" מהסוף (אם AI לא מחק)
+      while (bodyLines.length > 0) {
+        const last = bodyLines[bodyLines.length - 1].replace(/[*.'"״,\s]/g, '');
+        if (last === 'סוללים דרך' || last === 'סולליםדרך') bodyLines.pop();
+        else break;
+      }
+      const body = bodyLines.join('\n').trim();
       editJobs.set(jobId, {
         status: 'done', createdAt: Date.now(),
         data: { success: true, correctedText, originalTitle, body,
@@ -668,6 +681,9 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
+// ─── בסיס סגנון קבוע לכל תמונה ─────────────────────────────────────────────
+const DALL_E_STYLE_BASE = `Israeli-Jewish visual identity, authentic and meaningful. Natural lighting with warm sunlight or golden hour tones, soft shadows. Color palette: deep blue, off-white, natural earth tones. No harsh contrast, no oversaturated colors. Scenes feel real and candid — not staged, not stock-photo. Human subjects look like real Israelis: modest natural clothing, authentic appearance, thoughtful calm expressions. Jewish identity present only subtly (e.g. kippah, mezuzah, soft candlelight) — never large central symbols. Israeli national elements (flag, IDF soldiers) presented in a natural human way — not heroic poses, not combat focus, not dramatic. Connected to Israeli landscape, light, people, or texture (stone, fields, authentic urban). Composition minimal and focused. Tone: reflective, intelligent, emotionally grounded. Avoid: propaganda style, loud nationalism, religious clichés, heavy symbolism, artificial AI look, plastic textures, overly dramatic scenes, anything generic or not locally grounded. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. Square 1:1 composition.`;
+
 // תרגום רעיון אישי לאנגלית עבור DALL-E
 app.post('/translate-idea', async (req, res) => {
   try {
@@ -675,8 +691,8 @@ app.post('/translate-idea', async (req, res) => {
     if (!idea?.trim()) return res.status(400).json({ success: false, error: 'חסר רעיון' });
     const result = await axios.post(
       'https://api.anthropic.com/v1/messages',
-      { model: 'claude-haiku-4-5-20251001', max_tokens: 200,
-        messages: [{ role: 'user', content: `Translate this Hebrew image idea to a detailed English prompt for DALL-E 3. The audience is Jewish-Israeli nationalist: no crosses/churches/crescents/mosques, religious women must look Jewish (tichel head covering), flags must be Israeli. Return only the English prompt:\n${idea}` }] },
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+        messages: [{ role: 'user', content: `Translate this Hebrew image idea to a detailed English prompt for DALL-E 3, for a Jewish-Israeli publication.\nRules: no crosses/churches/crescents/mosques, religious women must look Jewish (tichel/sheitel), any flag must be Israeli, any soldiers must be IDF.\nAdapt the idea to feel authentic, cinematic, and emotionally grounded in Israeli reality.\nReturn only the English prompt (no preamble):\n${idea}` }] },
       { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
     );
     res.json({ success: true, en: result.data.content[0].text.trim() });
@@ -700,38 +716,38 @@ app.post('/image-ideas', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert DALL-E 3 prompt engineer creating images for a Jewish-Israeli nationalist publication. Your images must be high-quality, visually striking, and culturally appropriate.
+            content: `You are an expert DALL-E 3 prompt engineer creating images for a Jewish-Israeli publication ("סוללים דרך"). Your task is to create 4 highly varied, publication-quality image ideas that visually represent the article's theme.
 
-STRICT CULTURAL RULES — never violate these:
-- The audience is Jewish and Israeli-nationalist. All imagery must reflect Jewish/Israeli identity.
+CORE VISUAL IDENTITY (apply to every image):
+Create images in a consistent Israeli-Jewish visual identity that feels authentic, calm, and meaningful. Each image must be thoughtfully adapted to the article's topic, message, and tone. The style must convey quiet confidence, not propaganda or political messaging. Prefer realism or semi-realism with a cinematic, documentary-like quality when relevant. Use natural lighting (especially warm sunlight, golden hour tones), soft shadows, and a color palette based on deep blue, off-white, and natural earth tones. Avoid harsh contrast, overly saturated colors, or artificial filters. Scenes should feel real and not staged — candid moments, natural compositions, emotional depth, and a sense of presence. Avoid stock-photo aesthetics, exaggerated expressions, or overly polished looks. Human subjects should look like real Israelis: modest, natural clothing, authentic appearance, subtle expressions (thoughtful, calm, serious). Jewish identity should be present only subtly (e.g., a kippah, mezuzah, soft candle light, or cultural atmosphere), never as large or central symbols. When including Israeli national elements (Israeli flag or IDF soldiers), present them in a natural, human, and non-dramatic way — not heroic poses, not combat scenes, not weapon focus. The flag should appear as part of the environment, not as a dominant graphic element. Every image must feel connected to Israel — through landscape, light, people, or texture (stone, fields, or authentic urban environments). Composition should be minimal and focused, with a clear subject and no unnecessary visual clutter. Tone: reflective, intelligent, and emotionally grounded.
+
+STRICT CULTURAL RULES — never violate:
 - NEVER include crosses, churches, Christian iconography, or any Christian symbols.
 - NEVER include crescents, mosques, Arabic script, or any Islamic symbols.
-- If the image includes a HAREDI woman: long dark modest dress, hair fully covered with a sheitel (wig) or tight tichel, covered arms and legs. Never a hijab.
-- If the image includes a DATI (religious-Zionist) woman: colorful mitpachat/tichel, modest but modern Israeli dress — NOT haredi black.
-- If the image includes a HAREDI man: black suit, white dress shirt, black fedora hat (kapelush), beard — traditional Eastern European Jewish look.
-- If the image includes a DATI (religious-Zionist) man: knitted kippah (kippah sruga), button-up shirt, modern Israeli casual-religious look — NOT a black hat.
-- If the image includes soldiers or military: must be IDF (Israel Defense Forces) — olive/green Israeli military uniforms, Israeli military equipment, IDF insignia. NOT generic or American military.
-- If a national flag appears, it must be the Israeli flag (blue Star of David on white) — never any other flag.
-- Jewish symbols that are welcome: Menorah, Star of David, Israeli landscapes (Jerusalem, Kotel, Negev, Galilee), olive trees, pomegranates, wheat, Torah scrolls.
-- The spirit of the images must reflect Jewish heritage, Israeli strength, national pride, and love of the land.
+- HAREDI woman: long dark modest dress, sheitel (wig) or tight tichel, covered arms/legs. Never a hijab.
+- DATI (religious-Zionist) woman: colorful mitpachat/tichel, modest but modern Israeli dress — NOT haredi black.
+- HAREDI man: black suit, white shirt, black fedora (kapelush), beard.
+- DATI man: knitted kippah (kippah sruga), modern Israeli casual-religious look — NOT a black hat.
+- Soldiers/military: must be IDF — olive/green Israeli uniforms, Israeli equipment. NOT American or generic military.
+- Any national flag: must be the Israeli flag (blue Star of David on white) — never any other flag.
 
-VISUAL QUALITY RULES:
-- Be highly specific: describe lighting, color palette, composition, mood, and style.
-- Use cinematic or fine-art language: "golden hour", "dramatic chiaroscuro", "shallow depth of field", "painterly texture".
-- Each of the 4 ideas must use a DIFFERENT artistic style (e.g. photo-realistic, oil painting, watercolor, digital art).
-- NEVER include text, letters, words, numbers, or symbols in the image.
-- Make it square-composition friendly (1:1 ratio).
-- Aim for powerful, emotionally resonant, publication-quality imagery.`
+DIVERSITY REQUIREMENT — the 4 ideas must use 4 DIFFERENT visual approaches:
+1. Realistic human scene (people in a real Israeli moment)
+2. Landscape or symbolic scene (Israeli nature, city, or symbolic visual)
+3. Close-up / detail / texture (object, hands, light — evocative and minimal)
+4. Illustrative or painterly style (semi-realistic illustration, watercolor, or cinematic graphic art)
+
+Each approach must still maintain the core Israeli-Jewish visual identity. Avoid: propaganda style, loud nationalism, religious clichés, heavy symbolism, artificial AI look, plastic textures, overly dramatic scenes, or anything generic. NEVER include text, letters, words, or numbers in the image.`
           },
           {
             role: 'user',
-            content: `Read the article below and create 4 image ideas that visually represent its theme in the spirit of Jewish-Israeli national identity.
+            content: `Read the article below. Analyze its core theme, message, and tone. Then create 4 image ideas — each using a different visual approach (human scene / landscape-symbolic / close-up-detail / illustrative) — all adapted to this specific article while maintaining the Israeli-Jewish visual identity.
 
 Return ONLY valid JSON:
 {
   "summary": "סיכום בעברית במשפט אחד",
   "ideas": [
-    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
+    {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English (be very specific about lighting, composition, mood, style, and every visual element)"},
     {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
     {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"},
     {"he": "תיאור קצר בעברית", "en": "Highly detailed DALL-E 3 prompt in English"}
@@ -770,8 +786,8 @@ app.post('/generate-image', async (req, res) => {
 
     addLog('יוצר תמונה עם DALL-E 3...');
 
-    // הקדמה שמונעת מ-DALL-E לשכתב את הפרומפט (טריק ידוע)
-    const prompt = `I NEED you to generate EXACTLY this image without any modifications or reinterpretation: ${ideaEn}. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
+    // בניית פרומפט: בסיס סגנון + רעיון ספציפי
+    const prompt = `${DALL_E_STYLE_BASE}\n\nSpecific image to create: ${ideaEn}`;
 
     const dalleRes = await axios.post(
       'https://api.openai.com/v1/images/generations',
