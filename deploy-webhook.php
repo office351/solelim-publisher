@@ -15,23 +15,13 @@ if (($data['ref'] ?? '') !== 'refs/heads/main') {
 }
 
 $repoPath = '/home/solelimderechco/solelim-repo';
-$appPath  = '/home/solelimderechco/solelim';
 $output   = [];
 
-// 1. משוך שינויים מגיטהאב לתיקיית ה-repo
+// 1. משוך שינויים מגיטהאב
 exec("cd {$repoPath} && git pull origin main 2>&1", $output);
 
-// 2. סנכרן קבצים לתיקיית האפליקציה (ללא node_modules, .git, uploads, generated)
-exec("rsync -av --delete \
-  --exclude='node_modules' \
-  --exclude='.git' \
-  --exclude='uploads' \
-  --exclude='public/generated' \
-  --exclude='.env' \
-  {$repoPath}/ {$appPath}/ 2>&1", $output);
-
-// 3. הפעל מחדש את האפליקציה
-exec("touch {$appPath}/tmp/restart.txt 2>&1", $output);
+// 2. הפעל מחדש את האפליקציה
+exec("touch {$repoPath}/tmp/restart.txt 2>&1", $output);
 
 http_response_code(200);
 echo implode("\n", $output);
