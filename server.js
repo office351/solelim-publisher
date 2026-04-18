@@ -883,7 +883,11 @@ app.post('/generate-image', async (req, res) => {
       result.gemini = await saveImagePair(geminiSettled.value, 'gemini');
       addLog('תמונת Gemini נשמרה');
     } else {
-      addLog(`Gemini נכשל: ${geminiSettled.reason?.message}`);
+      const geminiErr = geminiSettled.reason?.response?.data
+        ? JSON.stringify(geminiSettled.reason.response.data)
+        : geminiSettled.reason?.message;
+      addLog(`Gemini נכשל: ${geminiErr}`);
+      console.error('Gemini error:', geminiErr);
     }
 
     if (!result.dalle && !result.gemini) {
