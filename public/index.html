@@ -515,6 +515,10 @@
       <h2 style="margin-top:0">🎨 יצירת תמונה</h2>
 
       <div id="editImageGenStart">
+        <div style="margin-bottom:12px">
+          <p style="font-size:13px;font-weight:bold;margin:0 0 6px;color:#555">כיוון כללי לתמונה (אופציונלי):</p>
+          <input type="text" id="editImageDirection" placeholder="למשל: משפחה בשבת, נוף ירושלמי, ידיים של קשיש, ילדים משחקים..." style="width:100%;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl;box-sizing:border-box">
+        </div>
         <button onclick="getEditImageIdeas()" id="editIdeasBtn" style="background:#7b2d8b">
           💡 קבל 4 רעיונות לתמונה
         </button>
@@ -542,7 +546,27 @@
 
       <div id="editImageGenLoading" class="hidden" style="text-align:center;padding:20px">
         <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">⏳</div>
-        <p style="color:#555;margin:8px 0 0">יוצר תמונה עם DALL-E 3...</p>
+        <p id="editImageGenLoadingText" style="color:#555;margin:8px 0 0">יוצר תמונות...</p>
+      </div>
+
+      <div id="editImageCompare" class="hidden" style="margin-top:14px">
+        <p style="font-weight:bold;margin:0 0 12px;text-align:center;font-size:15px">בחר את התמונה המועדפת:</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div id="editCompareDalle" style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#7b2d8b">🎨 DALL-E 3</p>
+            <img id="editDalleImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('dalle')">
+            <button onclick="selectEditImage('dalle')" style="margin-top:8px;background:#7b2d8b;width:100%;padding:9px">✓ בחר תמונה זו</button>
+          </div>
+          <div id="editCompareGemini" style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#1a73e8">✨ Gemini</p>
+            <img id="editGeminiImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('gemini')">
+            <button onclick="selectEditImage('gemini')" style="margin-top:8px;background:#1a73e8;width:100%;padding:9px">✓ בחר תמונה זו</button>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:12px">
+          <button onclick="regenerateEditImages()" style="background:none;color:#888;border:1px solid #ddd;font-size:13px;width:auto;padding:7px 16px">🔄 צור שתיהן מחדש</button>
+          <button onclick="backToEditIdeas()" style="background:none;color:#888;border:1px solid #ddd;font-size:13px;width:auto;padding:7px 16px;margin-right:8px">↩ חזור לרעיונות</button>
+        </div>
       </div>
 
       <div id="editImageGenResult" class="hidden" style="margin-top:14px">
@@ -1319,6 +1343,8 @@
     const text = document.getElementById('editResult').value;
     if (!text.trim()) { alert('נא לבצע הגהה תחילה'); return; }
 
+    const direction = document.getElementById('editImageDirection')?.value?.trim() || '';
+
     const btn = document.getElementById('editIdeasBtn');
     btn.disabled = true;
     btn.textContent = '⏳ טוען רעיונות...';
@@ -1327,7 +1353,7 @@
       const res = await fetch('/image-ideas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, direction })
       });
       const data = await res.json();
       if (!data.success) { alert('שגיאה: ' + data.error); btn.disabled = false; btn.textContent = '💡 קבל 4 רעיונות לתמונה'; return; }
@@ -1423,13 +1449,17 @@
     }
   }
 
+  let editBothData = {}; // שמירת שתי התמונות לבחירה
+
   async function generateEditImage(ideaEn, ideaHe, summary) {
     editCurrentIdeaEn  = ideaEn;
     editCurrentSummary = summary || '';
     document.getElementById('editIdeasSection').classList.add('hidden');
     document.getElementById('editImageGenResult').classList.add('hidden');
+    document.getElementById('editImageCompare').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
-    document.getElementById('editImageImproveSection').style.display = ''; // הצג אזור שיפור
+    document.getElementById('editImageImproveSection').style.display = '';
+    document.getElementById('editImageGenLoadingText').textContent = 'יוצר תמונות עם DALL-E 3 ו-Gemini במקביל...';
     document.getElementById('editImageGenLoading').classList.remove('hidden');
 
     try {
@@ -1441,29 +1471,63 @@
       const data = await res.json();
       if (!data.success) { alert('שגיאה ביצירת תמונה: ' + data.error); resetEditImageGen(); return; }
 
-      editImageData.noLogoFile    = data.noLogoFile;
-      editImageData.withLogoFile  = data.withLogoFile;
-      editImageData.extraLogoFile = '';
-
-      const ts = '?t=' + Date.now();
-      document.getElementById('editNoLogoImg').src   = data.noLogoUrl  + ts;
-      document.getElementById('editWithLogoImg').src = data.withLogoUrl + ts;
-      document.getElementById('editDownloadNoLogo').href   = data.noLogoUrl;
-      document.getElementById('editDownloadNoLogo').download = data.noLogoFile;
-      document.getElementById('editDownloadWithLogo').href  = data.withLogoUrl;
-      document.getElementById('editDownloadWithLogo').download = data.withLogoFile;
-
-      document.querySelectorAll('.edit-logo-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
-      const blBtn = document.querySelector('[onclick="moveEditLogo(\'bottom-left\')"]');
-      if (blBtn) { blBtn.style.borderColor = '#27ae60'; blBtn.style.color = '#27ae60'; }
-
-      document.getElementById('editImageFeedback').value = '';
       document.getElementById('editImageGenLoading').classList.add('hidden');
-      document.getElementById('editImageGenResult').classList.remove('hidden');
+      editBothData = data;
+
+      // אם יש שתי תמונות — הצג השוואה
+      if (data.dalle && data.gemini) {
+        const ts = '?t=' + Date.now();
+        document.getElementById('editDalleImg').src  = data.dalle.withLogoUrl  + ts;
+        document.getElementById('editGeminiImg').src = data.gemini.withLogoUrl + ts;
+        document.getElementById('editCompareDalle').style.display  = '';
+        document.getElementById('editCompareGemini').style.display = '';
+        document.getElementById('editImageCompare').classList.remove('hidden');
+      } else {
+        // רק תמונה אחת — הצג ישירות
+        const chosen = data.dalle || data.gemini;
+        showEditImageResult(chosen);
+      }
     } catch(e) {
       alert('שגיאה: ' + e.message);
       resetEditImageGen();
     }
+  }
+
+  function selectEditImage(source) {
+    const chosen = editBothData[source];
+    if (!chosen) return;
+    document.getElementById('editImageCompare').classList.add('hidden');
+    showEditImageResult(chosen);
+  }
+
+  function showEditImageResult(imageData) {
+    editImageData.noLogoFile    = imageData.noLogoFile;
+    editImageData.withLogoFile  = imageData.withLogoFile;
+    editImageData.extraLogoFile = '';
+
+    const ts = '?t=' + Date.now();
+    document.getElementById('editNoLogoImg').src   = imageData.noLogoUrl  + ts;
+    document.getElementById('editWithLogoImg').src = imageData.withLogoUrl + ts;
+    document.getElementById('editDownloadNoLogo').href     = imageData.noLogoUrl;
+    document.getElementById('editDownloadNoLogo').download = imageData.noLogoFile;
+    document.getElementById('editDownloadWithLogo').href     = imageData.withLogoUrl;
+    document.getElementById('editDownloadWithLogo').download = imageData.withLogoFile;
+
+    document.querySelectorAll('.edit-logo-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+    const blBtn = document.querySelector('[onclick="moveEditLogo(\'bottom-left\')"]');
+    if (blBtn) { blBtn.style.borderColor = '#27ae60'; blBtn.style.color = '#27ae60'; }
+
+    document.getElementById('editImageFeedback').value = '';
+    document.getElementById('editImageGenResult').classList.remove('hidden');
+  }
+
+  function regenerateEditImages() {
+    generateEditImage(editCurrentIdeaEn, '', editCurrentSummary);
+  }
+
+  function backToEditIdeas() {
+    document.getElementById('editImageCompare').classList.add('hidden');
+    document.getElementById('editIdeasSection').classList.remove('hidden');
   }
 
   async function improveEditImage() {
@@ -1512,11 +1576,13 @@
 
   function resetEditImageGen() {
     editImageData = { noLogoFile: '', withLogoFile: '', extraLogoFile: '' };
+    editBothData  = {};
     document.getElementById('editImageGenLoading').classList.add('hidden');
     document.getElementById('editImageGenResult').classList.add('hidden');
+    document.getElementById('editImageCompare').classList.add('hidden');
     document.getElementById('editIdeasSection').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
-    document.getElementById('editImageImproveSection').style.display = ''; // שחזר אזור שיפור
+    document.getElementById('editImageImproveSection').style.display = '';
     document.getElementById('editImageGenStart').classList.remove('hidden');
     const btn = document.getElementById('editIdeasBtn');
     btn.disabled = false;

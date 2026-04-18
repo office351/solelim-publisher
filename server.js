@@ -681,6 +681,25 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
+// ─── יצירת תמונה עם Gemini Imagen 3 ─────────────────────────────────────────
+async function generateGeminiImage(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+  const res = await axios.post(
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    {
+      instances: [{ prompt }],
+      parameters: { sampleCount: 1, aspectRatio: '1:1', safetyFilterLevel: 'block_few', personGeneration: 'allow_adult' }
+    },
+    { headers: { 'Content-Type': 'application/json' }, timeout: 90000 }
+  );
+
+  const base64 = res.data.predictions?.[0]?.bytesBase64Encoded;
+  if (!base64) throw new Error('Gemini returned no image data');
+  return Buffer.from(base64, 'base64');
+}
+
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
 
@@ -706,7 +725,7 @@ app.post('/translate-idea', async (req, res) => {
 // רעיונות לתמונה — שני שלבים: ניתוח מאמר → רעיונות תמונה
 app.post('/image-ideas', async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, direction } = req.body;
     if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
     // ── שלב 1: ניתוח המאמר ─────────────────────────────────────────────────
@@ -784,7 +803,7 @@ ARTICLE ANALYSIS:
 - Visual world: ${analysis.visualWorld}
 - Underlying values: ${analysis.underlyingValues}
 
-Each English prompt: 3-5 sentences, cinematic and specific, as if directing a photographer on location in Israel.
+${direction ? `IMPORTANT — The author has given a specific visual direction for the images: "${direction}". All 4 ideas must align with this direction while still being based on the article's content and maintaining the Israeli-Jewish visual identity.\n\n` : ''}Each English prompt: 3-5 sentences, cinematic and specific, as if directing a photographer on location in Israel.
 
 Return ONLY valid JSON:
 {
@@ -812,66 +831,67 @@ Return ONLY valid JSON:
   }
 });
 
-// יצירת תמונה עם DALL-E 3
+// יצירת תמונה — DALL-E 3 + Gemini במקביל
 app.post('/generate-image', async (req, res) => {
   try {
     const { ideaEn, ideaHe, summary } = req.body;
     if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
-    addLog('יוצר תמונה עם DALL-E 3...');
-
-    // בניית פרומפט: בסיס סגנון + רעיון ספציפי
     const prompt = `${ideaEn}${DALL_E_STYLE_SUFFIX}`;
+    addLog('יוצר תמונות עם DALL-E 3 ו-Gemini במקביל...');
 
-    const dalleRes = await axios.post(
-      'https://api.openai.com/v1/images/generations',
-      {
-        model: 'dall-e-3',
-        prompt,
-        size: '1024x1024',
-        quality: 'hd',
-        n: 1,
-        response_format: 'url'
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000
-      }
-    );
-
-    const imageUrl = dalleRes.data.data[0].url;
-    addLog('תמונה נוצרה, מוריד ומוסיף לוגו...');
-
-    // הורדת התמונה
-    const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 30000 });
-    const imageBuffer = Buffer.from(imgRes.data);
-
-    // שמירת גרסה ללא לוגו
     const ts = Date.now();
-    const noLogoFile   = `img_${ts}_clean.png`;
-    const withLogoFile = `img_${ts}_logo.png`;
-    const noLogoPath   = path.join(GENERATED_DIR, noLogoFile);
-    const withLogoPath = path.join(GENERATED_DIR, withLogoFile);
 
-    fs.writeFileSync(noLogoPath, imageBuffer);
+    // פונקציה שמייצרת buffer של DALL-E
+    async function fetchDalle() {
+      const dalleRes = await axios.post(
+        'https://api.openai.com/v1/images/generations',
+        { model: 'dall-e-3', prompt, size: '1024x1024', quality: 'hd', n: 1, response_format: 'url' },
+        { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 60000 }
+      );
+      const imgRes = await axios.get(dalleRes.data.data[0].url, { responseType: 'arraybuffer', timeout: 30000 });
+      return Buffer.from(imgRes.data);
+    }
 
-    // שמירת גרסה עם לוגו שמאל-תחתון
-    const withLogoBuffer = await applyLogoToImage(imageBuffer, 'bottom-left');
-    fs.writeFileSync(withLogoPath, withLogoBuffer);
+    // הרץ שניהם במקביל
+    const [dalleSettled, geminiSettled] = await Promise.allSettled([
+      fetchDalle(),
+      generateGeminiImage(prompt)
+    ]);
 
-    addLog('שתי גרסאות התמונה מוכנות!');
-    res.json({
-      success: true,
-      noLogoFile,
-      withLogoFile,
-      noLogoUrl:   `/generated/${noLogoFile}`,
-      withLogoUrl: `/generated/${withLogoFile}`,
-      ideaHe,
-      logs
-    });
+    // שמור תמונות שהצליחו
+    async function saveImagePair(buf, prefix) {
+      const pngBuf = await sharp(buf).png().toBuffer();
+      const noLogoFile   = `img_${ts}_${prefix}_clean.png`;
+      const withLogoFile = `img_${ts}_${prefix}_logo.png`;
+      fs.writeFileSync(path.join(GENERATED_DIR, noLogoFile), pngBuf);
+      const withLogoBuf = await applyLogoToImage(pngBuf, 'bottom-left');
+      fs.writeFileSync(path.join(GENERATED_DIR, withLogoFile), withLogoBuf);
+      return { noLogoFile, withLogoFile, noLogoUrl: `/generated/${noLogoFile}`, withLogoUrl: `/generated/${withLogoFile}` };
+    }
+
+    const result = { success: true, ideaHe, logs };
+
+    if (dalleSettled.status === 'fulfilled') {
+      result.dalle = await saveImagePair(dalleSettled.value, 'dalle');
+      addLog('תמונת DALL-E נשמרה');
+    } else {
+      addLog(`DALL-E נכשל: ${dalleSettled.reason?.message}`);
+    }
+
+    if (geminiSettled.status === 'fulfilled') {
+      result.gemini = await saveImagePair(geminiSettled.value, 'gemini');
+      addLog('תמונת Gemini נשמרה');
+    } else {
+      addLog(`Gemini נכשל: ${geminiSettled.reason?.message}`);
+    }
+
+    if (!result.dalle && !result.gemini) {
+      return res.status(500).json({ success: false, error: 'שתי יצירות התמונה נכשלו', logs });
+    }
+
+    addLog('התמונות מוכנות!');
+    res.json(result);
   } catch (error) {
     const msg = error.response?.data?.error?.message || error.message;
     addLog(`שגיאה ביצירת תמונה: ${msg}`);
