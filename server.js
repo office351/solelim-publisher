@@ -681,23 +681,24 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
-// ─── יצירת תמונה עם Gemini Imagen 3 ─────────────────────────────────────────
+// ─── יצירת תמונה עם Gemini 2.0 Flash ────────────────────────────────────────
 async function generateGeminiImage(prompt) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
   const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
     {
-      instances: [{ prompt }],
-      parameters: { sampleCount: 1, aspectRatio: '1:1', safetyFilterLevel: 'block_few', personGeneration: 'allow_adult' }
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
     },
     { headers: { 'Content-Type': 'application/json' }, timeout: 90000 }
   );
 
-  const base64 = res.data.predictions?.[0]?.bytesBase64Encoded;
-  if (!base64) throw new Error('Gemini returned no image data');
-  return Buffer.from(base64, 'base64');
+  const parts = res.data.candidates?.[0]?.content?.parts || [];
+  const imagePart = parts.find(p => p.inlineData?.data);
+  if (!imagePart) throw new Error('Gemini returned no image in response');
+  return Buffer.from(imagePart.inlineData.data, 'base64');
 }
 
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
