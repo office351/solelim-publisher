@@ -830,7 +830,7 @@ app.post('/generate-image', async (req, res) => {
     if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
     const prompt = `${ideaEn}${DALL_E_STYLE_SUFFIX}`;
-    addLog('יוצר תמונות עם DALL-E 3 ו-Gemini במקביל...');
+    addLog('יוצר שני סגנונות תמונה במקביל...');
 
     const ts = Date.now();
 
