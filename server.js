@@ -681,24 +681,15 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
-// ─── יצירת תמונה עם Gemini 2.0 Flash ────────────────────────────────────────
-async function generateGeminiImage(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-
-  const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-    {
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-    },
-    { headers: { 'Content-Type': 'application/json' }, timeout: 90000 }
+// ─── יצירת תמונה שנייה עם DALL-E סגנון שונה ────────────────────────────────
+async function generateDalleVariant(prompt, style) {
+  const dalleRes = await axios.post(
+    'https://api.openai.com/v1/images/generations',
+    { model: 'dall-e-3', prompt, size: '1024x1024', quality: 'hd', style, n: 1, response_format: 'url' },
+    { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 60000 }
   );
-
-  const parts = res.data.candidates?.[0]?.content?.parts || [];
-  const imagePart = parts.find(p => p.inlineData?.data);
-  if (!imagePart) throw new Error('Gemini returned no image in response');
-  return Buffer.from(imagePart.inlineData.data, 'base64');
+  const imgRes = await axios.get(dalleRes.data.data[0].url, { responseType: 'arraybuffer', timeout: 30000 });
+  return Buffer.from(imgRes.data);
 }
 
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
@@ -843,21 +834,10 @@ app.post('/generate-image', async (req, res) => {
 
     const ts = Date.now();
 
-    // פונקציה שמייצרת buffer של DALL-E
-    async function fetchDalle() {
-      const dalleRes = await axios.post(
-        'https://api.openai.com/v1/images/generations',
-        { model: 'dall-e-3', prompt, size: '1024x1024', quality: 'hd', n: 1, response_format: 'url' },
-        { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 60000 }
-      );
-      const imgRes = await axios.get(dalleRes.data.data[0].url, { responseType: 'arraybuffer', timeout: 30000 });
-      return Buffer.from(imgRes.data);
-    }
-
-    // הרץ שניהם במקביל
+    // הרץ שני סגנונות DALL-E במקביל: natural (ריאליסטי) + vivid (יצירתי)
     const [dalleSettled, geminiSettled] = await Promise.allSettled([
-      fetchDalle(),
-      generateGeminiImage(prompt)
+      generateDalleVariant(prompt, 'natural'),
+      generateDalleVariant(prompt, 'vivid')
     ]);
 
     // שמור תמונות שהצליחו
