@@ -104,6 +104,22 @@ app.post('/edit-stage1', (req, res) => {
       let bodyStart = 1;
       while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
       let bodyLines = allLines.slice(bodyStart);
+
+      // מחיקת שורות קישור קיימות מתחילת הגוף (אתר / קבוצת ווטסאפ)
+      const isLinkLine = l => {
+        const t = l.trim();
+        if (!t) return false;
+        return /solelim-derech\.co\.il/i.test(t) ||
+               /wa\.me|chat\.whatsapp\.com|whatsapp\.com/i.test(t) ||
+               /^למאמרים נוספים/i.test(t) ||
+               /^להצטרפות לקבוצה/i.test(t);
+      };
+      while (bodyLines.length > 0 && (isLinkLine(bodyLines[0]) || !bodyLines[0].trim())) {
+        if (isLinkLine(bodyLines[0])) bodyLines.shift();
+        else if (!bodyLines[0].trim() && bodyLines.length > 1 && isLinkLine(bodyLines[1])) bodyLines.shift();
+        else break;
+      }
+
       // מחיקת שורת "סוללים דרך" מהסוף (אם AI לא מחק)
       while (bodyLines.length > 0) {
         const last = bodyLines[bodyLines.length - 1].replace(/[*.'"״,\s]/g, '');
