@@ -616,6 +616,76 @@ app.post('/publish', requireAdmin, async (req, res) => {
   }
 });
 
+// ─── העלאת חוברת שבועית ───────────────────────────────────────────────────────
+app.post('/publish-booklet', requireAdmin, upload.single('pdf'), async (req, res) => {
+  try {
+    const { bookletNumber, publishDate } = req.body;
+    if (!req.file) return res.status(400).json({ success: false, error: 'קובץ PDF חסר' });
+    if (!bookletNumber) return res.status(400).json({ success: false, error: 'מספר חוברת חסר' });
+    if (!publishDate) return res.status(400).json({ success: false, error: 'תאריך פרסום חסר' });
+
+    const wpAuth = { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD };
+    const wpBase = `${process.env.WP_URL}/wp-json/wp/v2`;
+
+    addLog(`מעלה חוברת מספר ${bookletNumber}...`);
+
+    // 1. העלאת ה-PDF למדיה של וורדפרס
+    const pdfBuffer = fs.readFileSync(req.file.path);
+    const pdfFilename = `חוברת-שבועית-סוללים-דרך-${bookletNumber}.pdf`;
+    const mediaRes = await axios.post(`${wpBase}/media`, pdfBuffer, {
+      headers: {
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(pdfFilename)}`,
+        'Content-Type': 'application/pdf'
+      },
+      auth: wpAuth,
+      maxBodyLength: Infinity
+    });
+    fs.unlinkSync(req.file.path);
+    const pdfUrl = mediaRes.data.source_url;
+    addLog(`PDF הועלה: ${pdfUrl}`);
+
+    // 2. מציאת תמונה ראשית קבועה לפי שם
+    const imgSearch = await axios.get(`${wpBase}/media?search=WhatsApp-Image-2025-01-10&per_page=5`, { auth: wpAuth });
+    const featuredImg = imgSearch.data[0];
+    const featuredMediaId = featuredImg?.id || null;
+    if (featuredMediaId) addLog(`תמונה ראשית נמצאה: ID ${featuredMediaId}`);
+
+    // 3. קטגוריה ותגית
+    const categoryIds = await getOrCreateTermIds(['אקטואליה'], 'categories');
+    const tagIds      = await getOrCreateTermIds(['חוברת שבועית להדפסה'], 'tags');
+
+    // 4. בניית תוכן המאמר
+    const content = `<blockquote>
+<h2>המאמרים של השבוע האחרון בקובץ דיגיטלי, מותאם להדפסה!</h2>
+<h3>לקבלת החוברת במייל מידי שבוע - <a href="https://pe4ch.com/ref/xR1a1UxC2che?lang=he">הירשמו כאן</a></h3>
+</blockquote>
+<h2></h2>
+<h2 style="text-align: center;"><a href="${pdfUrl}"><strong>לפתיחת החוברת לחצו כאן</strong></a></h2>
+<a href="${pdfUrl}"><img class="aligncenter wp-image-1342 size-thumbnail" src="https://www.solelim-derech.co.il/wp-content/uploads/2025/01/download-pdf-150x150.png" alt="" width="150" height="150" /></a>`;
+
+    // 5. יצירת הפוסט
+    const postData = {
+      title: `חוברת מאמרי השבוע (${bookletNumber}) להדפסה!`,
+      content,
+      status: 'future',
+      date: new Date(publishDate).toISOString(),
+      categories: categoryIds,
+      tags: tagIds
+    };
+    if (featuredMediaId) postData.featured_media = featuredMediaId;
+
+    const postRes = await axios.post(`${wpBase}/posts`, postData, { auth: wpAuth });
+    addLog(`חוברת פורסמה! קישור: ${postRes.data.link}`);
+
+    res.json({ success: true, postUrl: postRes.data.link, postId: postRes.data.id, pdfUrl, logs });
+  } catch (error) {
+    const msg = error.response?.data?.message || error.message;
+    addLog(`שגיאה בפרסום חוברת: ${msg}`);
+    if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ success: false, error: msg, logs });
+  }
+});
+
 // אישור ופרסום טיוטה
 app.post('/approve', requireAdmin, async (req, res) => {
   try {
