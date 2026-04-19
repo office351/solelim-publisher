@@ -645,8 +645,8 @@ app.post('/publish-booklet', requireAdmin, upload.single('pdf'), async (req, res
     addLog(`PDF הועלה: ${pdfUrl}`);
 
     // 2. מציאת תמונה ראשית קבועה לפי שם
-    const imgSearch = await axios.get(`${wpBase}/media?search=WhatsApp-Image-2025-01-10&per_page=5`, { auth: wpAuth });
-    const featuredImg = imgSearch.data[0];
+    const imgSearch = await axios.get(`${wpBase}/media?search=WhatsApp-Image-2025-01-10-at-12.24.11&per_page=5`, { auth: wpAuth });
+    const featuredImg = imgSearch.data.find(m => m.slug?.includes('12-24-11') || m.source_url?.includes('12.24.11')) || imgSearch.data[0];
     const featuredMediaId = featuredImg?.id || null;
     if (featuredMediaId) addLog(`תמונה ראשית נמצאה: ID ${featuredMediaId}`);
 
