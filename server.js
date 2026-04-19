@@ -778,10 +778,45 @@ async function generateDalleVariant(prompt, style) {
   return Buffer.from(imgRes.data);
 }
 
+// ─── מדריך הנדסת פרומפטים מקצועית ───────────────────────────────────────────
+const PROMPT_ENGINEER_SYSTEM = `You are a world-class AI image prompt engineer specializing in Jewish-Israeli cultural imagery.
+
+Your role is to transform any input into a highly detailed, visually rich, production-level image generation prompt that will produce outstanding results with DALL-E 3.
+
+GENERAL RULES:
+- Always expand the input into a complete, vivid visual scene
+- Never keep the prompt short or minimal
+- Output only the final prompt — no explanations, no preamble
+- Keep everything coherent, realistic, and stylistically consistent
+- Avoid contradictions between elements (lighting, time, environment, etc.)
+
+STRUCTURE TO FOLLOW IN ONE CONTINUOUS PARAGRAPH:
+1. SUBJECT: Main subject with rich detail (appearance, age, emotion, pose, action)
+2. ENVIRONMENT: Location, time of day, weather, background elements — always in Israel
+3. SECONDARY ELEMENTS: Supporting details that enrich the scene (objects, people, motion, atmosphere)
+4. STYLE: photorealistic / cinematic — authentic documentary feel, never stock-photo
+5. LIGHTING: Professional lighting — soft light, golden hour, warm natural Israeli light
+6. MATERIALS & TEXTURES: Surface quality, fabric, skin, reflections
+7. CAMERA: 50mm or 85mm lens, eye-level or slightly low angle, shallow depth of field
+8. COMPOSITION: Rule of thirds, clear focal point, balanced and meaningful
+9. COLOR PALETTE: Warm earth tones, deep blue, off-white, natural Israeli light
+10. QUALITY: ultra-detailed, high resolution, 8k, sharp focus, cinematic quality
+
+OUTPUT FORMAT: One continuous professional paragraph in English starting with "A cinematic photorealistic depiction of..."
+
+ISRAELI-JEWISH BRAND RULES (never violate):
+- People: real Israelis — modest natural clothing, calm authentic expressions, thoughtful faces
+- Jewish identity: present only subtly (kippah, mezuzah, Shabbat candles) — never large central symbols
+- Religious women: tichel or sheitel (never hijab). Haredi men: black hat + suit. Dati-leumi: knitted kippah
+- Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only
+- No crosses, churches, crescents, mosques, or Arabic script
+- NO text, letters, words, numbers, or symbols anywhere in the image
+- Square 1:1 composition`;
+
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
 
-Photographic style: warm natural light, golden hour tones, cinematic and documentary feel. Color palette: deep blue, off-white, natural earth tones. Real and candid — never staged or stock-photo. If people are shown: real Israelis, modest natural clothing, calm authentic expressions. Jewish identity present subtly only (kippah, mezuzah, soft candlelight). Israeli national elements (flag, soldiers) shown in a natural human way — not heroic, not dramatic. Connected to Israeli landscape, light, or texture. Tone: reflective, intelligent, emotionally grounded. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
+Ultra-detailed, high resolution, 8k, sharp focus, cinematic quality. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
 
 // תרגום רעיון אישי לאנגלית עבור DALL-E
 app.post('/translate-idea', async (req, res) => {
@@ -790,9 +825,10 @@ app.post('/translate-idea', async (req, res) => {
     if (!idea?.trim()) return res.status(400).json({ success: false, error: 'חסר רעיון' });
     const result = await axios.post(
       'https://api.anthropic.com/v1/messages',
-      { model: 'claude-haiku-4-5-20251001', max_tokens: 300,
-        messages: [{ role: 'user', content: `Translate this Hebrew image idea to a detailed English prompt for DALL-E 3, for a Jewish-Israeli publication.\nRules: no crosses/churches/crescents/mosques, religious women must look Jewish (tichel/sheitel), any flag must be Israeli, any soldiers must be IDF.\nAdapt the idea to feel authentic, cinematic, and emotionally grounded in Israeli reality.\nReturn only the English prompt (no preamble):\n${idea}` }] },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
+      { model: 'claude-sonnet-4-5-20251001', max_tokens: 600,
+        system: PROMPT_ENGINEER_SYSTEM,
+        messages: [{ role: 'user', content: `Transform this Hebrew image idea into a production-level DALL-E 3 prompt following your system instructions:\n${idea}` }] },
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
     );
     res.json({ success: true, en: result.data.content[0].text.trim() });
   } catch (error) {
@@ -853,22 +889,15 @@ ${text.slice(0, 3000)}`
         messages: [
           {
             role: 'system',
-            content: `You are a DALL-E 3 visual director creating images for "סוללים דרך", a Jewish-Israeli publication. You receive a deep analysis of an article and create 4 stunning, publication-quality image prompts.
+            content: `${PROMPT_ENGINEER_SYSTEM}
 
-Each prompt must be a rich, cinematic scene description — paint exactly what the camera sees. Be specific about: the subject and their action, the precise location in Israel, the time of day and quality of light, the mood and atmosphere, textures, colors, and the emotional feeling.
-
-VISUAL APPROACH — 4 different types:
+You will receive a deep article analysis and must create 4 stunning production-level DALL-E 3 prompts, each using a different visual approach:
 1. Human scene: specific people in a real Israeli moment
 2. Landscape / symbolic: a specific Israeli place or symbolic visual
 3. Close-up / detail: hands, objects, or a single evocative texture
-4. Painterly / illustrative: semi-realistic or watercolor cinematic style
+4. Painterly / illustrative: semi-realistic cinematic style
 
-CULTURAL RULES (never break):
-- People: real Israelis. Religious women: tichel or sheitel (never hijab). Haredi men: black hat, black suit. Dati-leumi: knitted kippah, modern Israeli look.
-- Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only.
-- No crosses, churches, crescents, mosques, or Arabic script.
-- No text, letters, numbers, or symbols in the image.
-- Jewish identity: subtle only (kippah, mezuzah, candles).`
+Each prompt must be one continuous professional paragraph starting with "A cinematic photorealistic depiction of..." and ending with ultra-detailed quality keywords. Make each prompt dramatically different from the others in composition, angle, and visual approach.`
           },
           {
             role: 'user',
