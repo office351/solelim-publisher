@@ -528,6 +528,10 @@
       הגה מאמר עם AI ➜
     </button>
 
+    <button onclick="skipToImageStep()" class="secondary" style="margin-top:8px;font-size:15px;padding:12px 20px">
+      🖼️ דלג על הגהה ← עבור לשלב התמונה
+    </button>
+
     <!-- אינדיקטור טעינה -->
     <div id="editLoadingSection" class="hidden" style="margin-top:16px">
       <div class="card" style="text-align:center;padding:36px 24px">
@@ -611,12 +615,12 @@
         <p style="font-weight:bold;margin:0 0 12px;text-align:center;font-size:15px">בחר את התמונה המועדפת:</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div id="editCompareDalle" style="text-align:center">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#7b2d8b">📷 ריאליסטי</p>
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#7b2d8b">📷 קולנועי-ריאליסטי</p>
             <img id="editDalleImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('dalle')">
             <button onclick="selectEditImage('dalle')" style="margin-top:8px;background:#7b2d8b;width:100%;padding:9px">✓ בחר תמונה זו</button>
           </div>
           <div id="editCompareGemini" style="text-align:center">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#e67e22">🎨 יצירתי</p>
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#e67e22">🎨 אמנותי-יצירתי</p>
             <img id="editGeminiImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('gemini')">
             <button onclick="selectEditImage('gemini')" style="margin-top:8px;background:#e67e22;width:100%;padding:9px">✓ בחר תמונה זו</button>
           </div>
@@ -1322,6 +1326,70 @@
     }
   }
 
+  /* ── דילוג על הגהה — מעבר ישיר לשלב התמונה ── */
+  function skipToImageStep() {
+    const rawText = document.getElementById('editText').value.trim();
+
+    editAuthorName = document.getElementById('editAuthor').value.trim();
+    editPhoneVal   = document.getElementById('editPhone').value.trim();
+    editSiteUrl    = '';
+    editOriginalText  = rawText;
+    editCorrectedText = rawText;
+
+    // קישור קבוצה
+    const gid = parseInt(document.getElementById('editGroup').value);
+    editGroupUrl = '';
+    if (gid && groupsData) {
+      const grp = groupsData.groups.find(g => g.id === gid);
+      if (grp?.url) editGroupUrl = grp.url;
+    }
+
+    // חילוץ כותרת וגוף מהטקסט
+    if (rawText) {
+      const lines = rawText.split('\n');
+      const firstLine = lines[0] || '';
+      const slashIdx  = firstLine.search(/[/|\\]/);
+      const title     = (slashIdx !== -1 ? firstLine.slice(0, slashIdx) : firstLine).replace(/\*/g, '').trim();
+
+      let bodyLines = lines.slice(1);
+      while (bodyLines.length > 0 && !bodyLines[0].trim()) bodyLines.shift();
+      editFormattedBody = bodyLines.join('\n').trim();
+
+      // הצגת כותרת אחת
+      const titleContainer = document.getElementById('editTitleOptions');
+      titleContainer.innerHTML = '';
+      if (title) {
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        card.style.cssText = 'border-color:#0073aa;background:#e8f4fb';
+        card.innerHTML = `<span style="font-weight:bold;color:#0073aa;margin-left:6px">✓</span> ${escHtml(title)}`;
+        card.onclick = () => {
+          document.querySelectorAll('#editTitleOptions .idea-card').forEach(c => {
+            c.style.borderColor='#ddd'; c.style.background='';
+          });
+          card.style.borderColor='#0073aa'; card.style.background='#e8f4fb';
+          document.getElementById('editResult').value = buildEditFinalText(title);
+        };
+        titleContainer.appendChild(card);
+        document.getElementById('editResult').value = buildEditFinalText(title);
+      }
+    } else {
+      // ללא טקסט — הצג textarea ריק
+      editFormattedBody = '';
+      document.getElementById('editTitleOptions').innerHTML = '';
+      document.getElementById('editResult').value = '';
+    }
+
+    // מעבר לשלב ב
+    document.getElementById('edit-step1').classList.add('hidden');
+    document.getElementById('edit-step2').classList.remove('hidden');
+
+    // גלגל לחלק יצירת התמונה
+    setTimeout(() => {
+      document.getElementById('editImageGenStart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }
+
   function applyCustomTitle() {
     const title = document.getElementById('editCustomTitle').value.trim();
     if (!title) { alert('נא להזין כותרת'); return; }
@@ -1568,7 +1636,7 @@
     document.getElementById('editImageCompare').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
     document.getElementById('editImageImproveSection').style.display = '';
-    document.getElementById('editImageGenLoadingText').textContent = 'יוצר שני סגנונות תמונה במקביל...';
+    document.getElementById('editImageGenLoadingText').textContent = 'מרחיב פרומפטים ויוצר 📷 קולנועי + 🎨 אמנותי במקביל...';
     document.getElementById('editImageGenLoading').classList.remove('hidden');
 
     try {

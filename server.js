@@ -778,63 +778,111 @@ async function generateDalleVariant(prompt, style) {
   return Buffer.from(imgRes.data);
 }
 
-// ─── מדריך הנדסת פרומפטים מקצועית ───────────────────────────────────────────
+// ─── מדריך הנדסת פרומפטים — שני סגנונות ────────────────────────────────────
 const PROMPT_ENGINEER_SYSTEM = `You are a world-class AI image prompt engineer specializing in Jewish-Israeli cultural imagery.
 
-Your role is to transform any input into a highly detailed, visually rich, production-level image generation prompt that will produce outstanding results with DALL-E 3.
+Your task is to convert any user input into TWO different high-end image generation prompts, each representing a distinct visual style.
 
-GENERAL RULES:
-- Always expand the input into a complete, vivid visual scene
-- Never keep the prompt short or minimal
-- Output only the final prompt — no explanations, no preamble
-- Keep everything coherent, realistic, and stylistically consistent
-- Avoid contradictions between elements (lighting, time, environment, etc.)
+Do NOT explain anything. Output ONLY the two prompts in the exact format below.
 
-STRUCTURE TO FOLLOW IN ONE CONTINUOUS PARAGRAPH:
-1. SUBJECT: Main subject with rich detail (appearance, age, emotion, pose, action)
-2. ENVIRONMENT: Location, time of day, weather, background elements — always in Israel
-3. SECONDARY ELEMENTS: Supporting details that enrich the scene (objects, people, motion, atmosphere)
-4. STYLE: photorealistic / cinematic — authentic documentary feel, never stock-photo
-5. LIGHTING: Professional lighting — soft light, golden hour, warm natural Israeli light
-6. MATERIALS & TEXTURES: Surface quality, fabric, skin, reflections
-7. CAMERA: 50mm or 85mm lens, eye-level or slightly low angle, shallow depth of field
-8. COMPOSITION: Rule of thirds, clear focal point, balanced and meaningful
-9. COLOR PALETTE: Warm earth tones, deep blue, off-white, natural Israeli light
-10. QUALITY: ultra-detailed, high resolution, 8k, sharp focus, cinematic quality
+---
 
-OUTPUT FORMAT: One continuous professional paragraph in English starting with "A cinematic photorealistic depiction of..."
+GOAL:
+For every input, generate:
+1. Prompt A — Photorealistic / Cinematic Style
+2. Prompt B — Artistic / Illustration Style
 
-ISRAELI-JEWISH BRAND RULES (never violate):
-- People: real Israelis — modest natural clothing, calm authentic expressions, thoughtful faces
-- Jewish identity: present only subtly (kippah, mezuzah, Shabbat candles) — never large central symbols
-- Religious women: tichel or sheitel (never hijab). Haredi men: black hat + suit. Dati-leumi: knitted kippah
+Both prompts must be highly detailed, visually rich, and optimized for DALL-E 3.
+
+---
+
+GENERAL RULES (apply to BOTH prompts):
+- Always expand the idea significantly — never keep it minimal
+- Add environment, atmosphere, and context
+- Include lighting, materials, textures, and mood
+- Add camera details when relevant (lens, angle, depth of field)
+- Use composition techniques (rule of thirds, framing, focus)
+- Keep internal consistency (no contradictions)
+- Write in fluent professional English
+- Each prompt must be ONE continuous paragraph
+
+PROMPT A — PHOTOREALISTIC / CINEMATIC:
+A cinematic, ultra-realistic depiction of [SUBJECT], set in [ENVIRONMENT with rich detail]. The scene includes [SECONDARY ELEMENTS]. Lighting is [PROFESSIONAL LIGHTING], creating a [MOOD]. Materials and textures are highly detailed. Shot using [CAMERA: lens, angle, depth of field]. Composition follows [COMPOSITION RULES]. Color palette: [COLOR STYLE]. Ultra-detailed, 8k, sharp focus, cinematic quality.
+
+PROMPT B — ARTISTIC / CREATIVE:
+A highly detailed [ARTISTIC STYLE] illustration of [SUBJECT], set in [STYLIZED ENVIRONMENT]. The scene includes [CREATIVE/SYMBOLIC ELEMENTS]. Lighting is [STYLIZED LIGHTING], enhancing mood and depth. Textures and materials are expressive. Perspective and composition use [DYNAMIC COMPOSITION]. Color palette: [BOLD/HARMONIC COLORS]. Highly detailed, visually striking, 8k resolution, sharp focus, artistic quality.
+
+---
+
+ISRAELI-JEWISH BRAND RULES (never violate in either prompt):
+- People: real Israelis — modest natural clothing, calm authentic expressions
+- Jewish identity: subtle only (kippah, mezuzah, Shabbat candles) — never large central symbols
+- Religious women: tichel or sheitel (NEVER hijab). Haredi men: black hat + black suit. Dati-leumi: knitted kippah
 - Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only
 - No crosses, churches, crescents, mosques, or Arabic script
 - NO text, letters, words, numbers, or symbols anywhere in the image
-- Square 1:1 composition`;
+- Square 1:1 composition
+
+---
+
+OUTPUT FORMAT (STRICT):
+Prompt A:
+[full paragraph]
+
+Prompt B:
+[full paragraph]`;
 
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
 
 Ultra-detailed, high resolution, 8k, sharp focus, cinematic quality. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
 
-// תרגום רעיון אישי לאנגלית עבור DALL-E
+// תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
   try {
     const { idea } = req.body;
     if (!idea?.trim()) return res.status(400).json({ success: false, error: 'חסר רעיון' });
     const result = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      { model: 'claude-sonnet-4-5-20251001', max_tokens: 600,
-        system: PROMPT_ENGINEER_SYSTEM,
-        messages: [{ role: 'user', content: `Transform this Hebrew image idea into a production-level DALL-E 3 prompt following your system instructions:\n${idea}` }] },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
+      'https://api.openai.com/v1/chat/completions',
+      { model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Translate the Hebrew image idea to concise English. Return only the translated description, nothing else.' },
+          { role: 'user', content: idea }
+        ],
+        max_tokens: 200 },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 15000 }
     );
-    res.json({ success: true, en: result.data.content[0].text.trim() });
+    res.json({ success: true, en: result.data.choices[0].message.content.trim() });
   } catch (error) {
     res.json({ success: true, en: req.body.idea }); // fallback: שלח עברית
   }
 });
+
+// ─── הרחבה לשני פרומפטים מקצועיים (Prompt A + Prompt B) ────────────────────
+async function expandToTwoPrompts(ideaEn) {
+  try {
+    const result = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      { model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: PROMPT_ENGINEER_SYSTEM },
+          { role: 'user', content: `Create two professional DALL-E 3 prompts for this image concept:\n${ideaEn}` }
+        ],
+        max_tokens: 1200 },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
+    );
+    const text = result.data.choices[0].message.content;
+    const promptAMatch = text.match(/Prompt A:\s*([\s\S]+?)(?=\n\s*Prompt B:|$)/i);
+    const promptBMatch = text.match(/Prompt B:\s*([\s\S]+?)$/i);
+    const promptA = (promptAMatch ? promptAMatch[1].trim() : ideaEn) + DALL_E_STYLE_SUFFIX;
+    const promptB = (promptBMatch ? promptBMatch[1].trim() : ideaEn) + DALL_E_STYLE_SUFFIX;
+    return { promptA, promptB };
+  } catch (e) {
+    // fallback: אותו פרומפט לשניהם
+    const fallback = ideaEn + DALL_E_STYLE_SUFFIX;
+    return { promptA: fallback, promptB: fallback };
+  }
+}
 
 // רעיונות לתמונה — שני שלבים: ניתוח מאמר → רעיונות תמונה
 app.post('/image-ideas', async (req, res) => {
@@ -938,21 +986,22 @@ Return ONLY valid JSON:
   }
 });
 
-// יצירת תמונה — DALL-E 3 + Gemini במקביל
+// יצירת תמונה — DALL-E 3 x2 (📷 קולנועי + 🎨 אמנותי)
 app.post('/generate-image', async (req, res) => {
   try {
     const { ideaEn, ideaHe, summary } = req.body;
     if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
-    const prompt = `${ideaEn}${DALL_E_STYLE_SUFFIX}`;
-    addLog('יוצר שני סגנונות תמונה במקביל...');
+    addLog('מרחיב רעיון לשני פרומפטים מקצועיים...');
+    const { promptA, promptB } = await expandToTwoPrompts(ideaEn);
 
+    addLog('יוצר 📷 קולנועי-ריאליסטי ו-🎨 אמנותי-יצירתי במקביל...');
     const ts = Date.now();
 
-    // הרץ שני סגנונות DALL-E במקביל: natural (ריאליסטי) + vivid (יצירתי)
+    // הרץ שני סגנונות DALL-E במקביל: Prompt A natural + Prompt B vivid
     const [dalleSettled, geminiSettled] = await Promise.allSettled([
-      generateDalleVariant(prompt, 'natural'),
-      generateDalleVariant(prompt, 'vivid')
+      generateDalleVariant(promptA, 'natural'),
+      generateDalleVariant(promptB, 'vivid')
     ]);
 
     // שמור תמונות שהצליחו
@@ -970,20 +1019,16 @@ app.post('/generate-image', async (req, res) => {
 
     if (dalleSettled.status === 'fulfilled') {
       result.dalle = await saveImagePair(dalleSettled.value, 'dalle');
-      addLog('תמונת DALL-E נשמרה');
+      addLog('📷 קולנועי-ריאליסטי — נשמר בהצלחה');
     } else {
-      addLog(`DALL-E נכשל: ${dalleSettled.reason?.message}`);
+      addLog(`📷 קולנועי נכשל: ${dalleSettled.reason?.message}`);
     }
 
     if (geminiSettled.status === 'fulfilled') {
       result.gemini = await saveImagePair(geminiSettled.value, 'gemini');
-      addLog('תמונת Gemini נשמרה');
+      addLog('🎨 אמנותי-יצירתי — נשמר בהצלחה');
     } else {
-      const geminiErr = geminiSettled.reason?.response?.data
-        ? JSON.stringify(geminiSettled.reason.response.data)
-        : geminiSettled.reason?.message;
-      addLog(`Gemini נכשל: ${geminiErr}`);
-      console.error('Gemini error:', geminiErr);
+      addLog(`🎨 אמנותי נכשל: ${geminiSettled.reason?.message}`);
     }
 
     if (!result.dalle && !result.gemini) {
