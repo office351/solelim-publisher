@@ -634,7 +634,7 @@ app.post('/publish-booklet', requireAdmin, upload.single('pdf'), async (req, res
     const pdfFilename = `חוברת-שבועית-סוללים-דרך-${bookletNumber}.pdf`;
     const mediaRes = await axios.post(`${wpBase}/media`, pdfBuffer, {
       headers: {
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(pdfFilename)}`,
+        'Content-Disposition': `attachment; filename="booklet-${bookletNumber}.pdf"`,
         'Content-Type': 'application/pdf'
       },
       auth: wpAuth,
