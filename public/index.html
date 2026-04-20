@@ -1268,7 +1268,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         card.onclick = () => {
           document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
-          generateImage(idea.en, idea.he, data.summary);
+          generateImage(idea.he, idea.he, data.summary);
         };
         container.appendChild(card);
       });
@@ -2075,7 +2075,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('editImageCompare').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
     document.getElementById('editImageImproveSection').style.display = '';
-    document.getElementById('editImageGenLoadingText').textContent = 'יוצר פרומפטים ו-📷 קולנועי + 🎨 אמנותי במקביל...';
+    document.getElementById('editImageGenLoadingText').textContent = 'יוצר פרומפטים ו-📷 עיתונאי + 🎨 קונספט ארט במקביל...';
     document.getElementById('editImageGenLoading').classList.remove('hidden');
 
     try {
