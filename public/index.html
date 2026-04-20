@@ -521,7 +521,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 /* ── GROUPS ── */
 .group-row {
   display: grid;
-  grid-template-columns: 36px 1fr 1fr 90px;
+  grid-template-columns: 36px 1fr 1fr 90px 32px;
   gap: 12px;
   align-items: center;
   padding: 12px 0;
@@ -564,7 +564,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
 .groups-header {
   display: grid;
-  grid-template-columns: 36px 1fr 1fr 90px;
+  grid-template-columns: 36px 1fr 1fr 90px 32px;
   gap: 12px;
   font-size: 11px;
   font-weight: 700;
@@ -1109,11 +1109,15 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <span>שם הקבוצה</span>
       <span>קישור הצטרפות</span>
       <span style="text-align:center">ברירת מחדל</span>
+      <span></span>
     </div>
     <div id="groupsList"></div>
   </div>
 
-  <button onclick="saveGroups()" id="saveGroupsBtn">💾 שמור שינויים</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px">
+    <button onclick="addGroupRow()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:15px;cursor:pointer;font-family:inherit">➕ הוסף קבוצה</button>
+    <button onclick="saveGroups()" id="saveGroupsBtn">💾 שמור שינויים</button>
+  </div>
   <p id="groupsSaveStatus" style="text-align:center;font-size:14px;color:#27ae60;display:none">✅ נשמר בהצלחה!</p>
 </div>
 
@@ -1461,26 +1465,61 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     return groupsData;
   }
 
+  function renderGroupRow(g, defaultId, container) {
+    const row = document.createElement('div');
+    row.className = 'group-row';
+    row.dataset.gid = g.id;
+    row.innerHTML = `
+      <span class="group-num">${g.id}</span>
+      <input type="text" data-field="name" value="${escHtml(g.name)}" placeholder="שם הקבוצה">
+      <input type="text" data-field="url" value="${escHtml(g.url)}" placeholder="https://chat.whatsapp.com/...">
+      <div class="group-default-wrap">
+        <label>
+          <input type="radio" name="defaultGroup" value="${g.id}" ${defaultId === g.id ? 'checked' : ''}>
+          ברירת מחדל
+        </label>
+      </div>
+      <button onclick="deleteGroupRow(this)" title="מחק קבוצה" style="background:none;border:none;cursor:pointer;color:#c0392b;font-size:18px;padding:0 4px;line-height:1" aria-label="מחק">🗑</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function renumberRows() {
+    document.querySelectorAll('#groupsList .group-row').forEach((row, i) => {
+      const num = i + 1;
+      row.dataset.gid = num;
+      row.querySelector('.group-num').textContent = num;
+      row.querySelector('input[name="defaultGroup"]').value = num;
+    });
+  }
+
+  function deleteGroupRow(btn) {
+    if (document.querySelectorAll('#groupsList .group-row').length <= 1) return;
+    const row = btn.closest('.group-row');
+    const wasDefault = row.querySelector('input[name="defaultGroup"]').checked;
+    row.remove();
+    renumberRows();
+    if (wasDefault) {
+      const first = document.querySelector('input[name="defaultGroup"]');
+      if (first) first.checked = true;
+    }
+  }
+
+  function addGroupRow() {
+    const container = document.getElementById('groupsList');
+    const rows = container.querySelectorAll('.group-row');
+    const newId = rows.length + 1;
+    const defaultRadio = document.querySelector('input[name="defaultGroup"]:checked');
+    const currentDefault = defaultRadio ? parseInt(defaultRadio.value) : 1;
+    renderGroupRow({ id: newId, name: String(newId), url: '' }, currentDefault, container);
+    container.lastElementChild.querySelector('input[data-field="name"]').focus();
+  }
+
   async function loadGroupsPage() {
     const data = await fetchGroups();
     const container = document.getElementById('groupsList');
     container.innerHTML = '';
-    data.groups.forEach(g => {
-      const row = document.createElement('div');
-      row.className = 'group-row';
-      row.innerHTML = `
-        <span class="group-num">${g.id}</span>
-        <input type="text" data-gid="${g.id}" data-field="name" value="${escHtml(g.name)}" placeholder="שם הקבוצה">
-        <input type="text" data-gid="${g.id}" data-field="url" value="${escHtml(g.url)}" placeholder="https://chat.whatsapp.com/...">
-        <div class="group-default-wrap">
-          <label>
-            <input type="radio" name="defaultGroup" value="${g.id}" ${data.defaultGroup === g.id ? 'checked' : ''}>
-            ברירת מחדל
-          </label>
-        </div>
-      `;
-      container.appendChild(row);
-    });
+    data.groups.forEach(g => renderGroupRow(g, data.defaultGroup, container));
     document.getElementById('groupsSaveStatus').style.display = 'none';
   }
 
@@ -1489,23 +1528,20 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     btn.disabled = true;
     btn.textContent = 'שומר...';
 
-    // קריאת הערכים מהטופס
-    const nameInputs = document.querySelectorAll('#groupsList input[data-field="name"]');
-    const urlInputs  = document.querySelectorAll('#groupsList input[data-field="url"]');
     const defaultRadio = document.querySelector('input[name="defaultGroup"]:checked');
+    const defaultId = defaultRadio ? parseInt(defaultRadio.value) : 1;
 
-    const updated = { ...groupsData };
-    nameInputs.forEach(inp => {
-      const id = parseInt(inp.dataset.gid);
-      const g = updated.groups.find(x => x.id === id);
-      if (g) g.name = inp.value.trim() || `קבוצה ${id}`;
+    const groups = [];
+    document.querySelectorAll('#groupsList .group-row').forEach((row, i) => {
+      const id = i + 1;
+      groups.push({
+        id,
+        name: row.querySelector('input[data-field="name"]').value.trim() || String(id),
+        url:  row.querySelector('input[data-field="url"]').value.trim()
+      });
     });
-    urlInputs.forEach(inp => {
-      const id = parseInt(inp.dataset.gid);
-      const g = updated.groups.find(x => x.id === id);
-      if (g) g.url = inp.value.trim();
-    });
-    if (defaultRadio) updated.defaultGroup = parseInt(defaultRadio.value);
+
+    const updated = { defaultGroup: defaultId, groups };
 
     try {
       await fetch('/groups', {
