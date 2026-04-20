@@ -868,63 +868,67 @@ OUTPUT FORMAT for MODE 1 — Return ONLY valid JSON:
 ## MODE 2 — PROMPT GENERATION
 
 Input:
-A single selected idea (clean, no style)
+A single selected idea
 
 Goal:
-Generate TWO image prompts of the SAME scene, with different visual execution.
-
-IMPORTANT:
-
-* Do NOT change the idea
-* Only change how it is visually rendered
+Generate TWO image prompts of the SAME scene, with controlled realism.
 
 ---
 
-GLOBAL QUALITY RULES:
+CRITICAL CONTROL RULES (VERY IMPORTANT):
 
-* Avoid AI-generated look (no glossy, no plastic skin, no over-sharpening)
-* Avoid over-dramatic fantasy unless required
-* Prefer natural realism and believable physics
-* Add subtle imperfections (grain, texture, asymmetry)
-* Use photography and cinema references
-
----
-
-PROMPT A — CINEMATIC REALISM (PRIMARY):
-
-A highly realistic, cinematic photograph of [IDEA],
-set in a believable real-world environment with grounded detail.
-Include natural elements such as movement, atmosphere, or small imperfections.
-Lighting is natural or cinematic (golden hour, overcast, practical light), creating an authentic mood.
-Textures are detailed and realistic (fabric, skin, environment, slight wear).
-Shot using a real camera (35mm or 85mm), natural depth of field.
-Composition feels candid, documentary-like, using real photography principles.
-Color grading is restrained and film-like (not oversaturated).
-Add subtle film grain and natural contrast.
-Ultra-detailed, realistic, sharp but not artificial, cinematic quality.
+* Do NOT add extra objects beyond what makes sense in reality
+* If the scene implies a known structure — keep it accurate (e.g., 2 Shabbat candles, not many)
+* Avoid visual exaggeration
+* Keep compositions simple and focused
+* Prefer minimalism over richness
+* Fewer elements = better realism
+* Human figures must look natural:
+  * realistic proportions
+  * natural skin texture (not plastic, not perfect)
+  * candid expressions (not posed, not exaggerated)
+* Avoid:
+  * duplicated objects
+  * overly symmetrical scenes
+  * excessive glow or dramatic effects
+  * "AI beauty" faces
 
 ---
 
-PROMPT B — NATURAL ARTISTIC (SUBTLE):
+PROMPT A — REALISTIC:
 
-A refined artistic depiction of [IDEA],
-keeping the scene grounded in reality with slight artistic interpretation.
-Environment is consistent but slightly enhanced for storytelling.
-Lighting is soft or dramatic but natural (no artificial glow).
-Textures are rich and tactile (not smooth, not plastic).
-Composition is expressive but believable.
-Color palette is controlled, elegant, and not exaggerated.
-Feels like high-end editorial illustration or cinematic concept art with realism influence.
-Highly detailed, textured, natural, visually refined.
+A realistic, documentary-style photograph of [IDEA],
+captured in a natural and believable setting.
+The scene is simple and focused, including only essential elements.
+Lighting is natural (window light, soft indoor light, or real-world outdoor light).
+Textures are realistic and slightly imperfect.
+Human subjects (if any) appear natural, unposed, and authentic.
+Shot with a real camera (35mm or 50mm), natural depth of field.
+Composition is minimal, clean, and grounded in reality.
+Color tones are natural and slightly muted.
+Subtle grain, no artificial sharpness.
+
+---
+
+PROMPT B — SOFT ARTISTIC:
+
+A natural, gently artistic depiction of [IDEA],
+keeping the scene simple, clean, and emotionally grounded.
+No exaggeration or fantasy elements.
+Lighting is soft and natural.
+Textures feel real and slightly tactile.
+Composition is minimal and balanced.
+Colors are calm, warm, and not saturated.
+Feels like a quiet editorial illustration, not digital art.
 
 ---
 
 OUTPUT FORMAT for MODE 2 — output only the two prompts, nothing else:
 Prompt A:
-[full paragraph]
+[paragraph]
 
 Prompt B:
-[full paragraph]
+[paragraph]
 
 ---
 
