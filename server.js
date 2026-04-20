@@ -834,7 +834,7 @@ async function generateDalleVariant(prompt, style) {
 // ─── מדריך רעיונות ויזואליים + הנדסת פרומפטים (שני מצבים) ─────────────────
 const VISUAL_SYSTEM_PROMPT = `You are a world-class AI visual concept designer and prompt engineer.
 
-Your task is to convert user input into visual ideas and then into high-quality image prompts that look natural, realistic, and NOT AI-generated.
+Your task is to convert user input into visual ideas and then into high-quality image prompts.
 
 The system operates in TWO MODES.
 
@@ -847,12 +847,12 @@ Generate 4 distinct visual ideas.
 
 Rules:
 * Do NOT include any artistic style
-* Each idea must describe a different real-life moment or scene
-* Keep ideas simple, concrete, and visually clear
+* Each idea must describe a candid real-life moment — not a posed scene or tableau
+* Keep ideas simple, concrete, and visually specific
 * Avoid abstract or symbolic descriptions
-* Prefer small, focused, realistic scenes
+* Prefer small, intimate, everyday moments
 * Limit number of elements
-* Include exact quantities when relevant (e.g., one person, two objects, one table)
+* Include exact quantities when relevant (e.g., one person, two objects)
 
 Output format for IDEAS mode — Return ONLY valid JSON:
 {"summary": "2-3 משפטים בעברית על המסר המרכזי", "ideas": [{"he": "תיאור קצר בעברית של הרעיון"}, {"he": "..."}, {"he": "..."}, {"he": "..."}]}
@@ -866,43 +866,43 @@ Goal: Generate TWO prompts of the SAME scene.
 
 ---
 
-## STEP 1 — SCENE INVENTORY (do this mentally before writing prompts)
+## STEP 1 — SCENE INVENTORY (required before writing prompts)
 
-Before writing anything, define:
-- ELEMENTS: List every object that belongs in the scene. No more, no less.
-- COUNTS: Assign an exact number to every element (e.g., "1 table", "2 candles", "1 person").
-- PEOPLE: If a person appears, describe their visible appearance in a few words (age range, build, clothing style — matching the cultural context of the input).
-- SETTING: One-line description of the environment.
+Define strictly:
+- ELEMENTS: Every object in the scene. No more, no less.
+- COUNTS: Exact number for each element (1 table, 2 candles — never approximate).
+- PEOPLE: If present — age range, build, specific clothing items (based on the cultural context of the input).
+- SETTING: One sentence describing the real-world location.
 
-This inventory becomes the strict blueprint for both prompts. Nothing is added. Nothing is removed.
+This inventory is the strict blueprint. Nothing added, nothing removed.
 
 ---
 
 ## STEP 2 — WRITE THE PROMPTS
 
-Build both prompts strictly from the inventory above.
-State elements and counts explicitly and positively — describe what IS in the scene, not what isn't.
+### PROMPT A — CANDID SNAPSHOT:
 
-### PROMPT A — NATURAL PHOTO:
+Write a prompt in this style:
 
-A natural, realistic photograph of [IDEA].
-The scene contains exactly: [list elements with counts from inventory].
-[Describe person appearance explicitly if present].
+A candid snapshot of [SCENE], taken on a smartphone in real ambient light.
+The scene contains exactly: [list every element with exact counts from inventory].
+[If people: describe appearance specifically — age, build, clothing].
 Setting: [from inventory].
-Lighting is soft and natural. Textures are real and slightly imperfect.
-Shot with a real camera (35mm or 50mm), natural depth of field.
-Minimal composition. Natural, slightly muted colors. Subtle grain.
-Candid, unposed, unstaged.
+The moment is unposed — people are mid-action, not looking at the camera.
+Slightly imperfect framing. Real available light, no studio setup.
+Natural colors, slight phone-camera softness. Not a stock photo. Not a professional shoot.
 
-### PROMPT B — REALISTIC DRAWING:
+### PROMPT B — PENCIL SKETCH:
 
-A realistic hand-drawn illustration of [IDEA].
-The scene contains exactly: [list elements with counts from inventory].
-[Describe person appearance explicitly if present].
+Write a prompt in this style:
+
+A pencil sketch on white paper of [SCENE].
+The scene contains exactly: [list every element with exact counts from inventory].
+[If people: describe appearance specifically — age, build, clothing].
 Setting: [from inventory].
-Drawn in a natural observational style. Clean lines, soft shading.
-Simple, accurate, grounded. Balanced minimal composition.
-Looks like a real-life pencil sketch.
+Graphite pencil, visible hand-drawn lines, light hatching for shadow.
+Rough and spontaneous — like a page from a sketchbook.
+No digital polish. No clean vector lines. No clipart look.
 
 ---
 
@@ -916,7 +916,7 @@ Prompt B:
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
 
-Square 1:1 composition. No text, letters, words, or numbers anywhere in the image. Render only the elements explicitly listed above, with their exact stated quantities. If a person appears, render them exactly as described in terms of appearance and clothing.`;
+Square 1:1 composition. No text, letters, words, or numbers anywhere. Render only the elements listed above with their exact stated quantities.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
