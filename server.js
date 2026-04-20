@@ -831,129 +831,117 @@ async function generateDalleVariant(prompt, style) {
   return Buffer.from(imgRes.data);
 }
 
-// ─── מדריך הנדסת פרומפטים — שני סגנונות ────────────────────────────────────
-const PROMPT_ENGINEER_SYSTEM = `You are a world-class AI image prompt engineer specializing in cinematic, realistic, and editorial-quality imagery.
+// ─── מדריך רעיונות ויזואליים + הנדסת פרומפטים (שני מצבים) ─────────────────
+const VISUAL_SYSTEM_PROMPT = `You are a world-class AI visual concept designer and image prompt engineer.
 
-Your task is to generate TWO high-quality image prompts from any user input.
+Your job is to transform written content into high-quality visual concepts and then into production-level image prompts.
 
-IMPORTANT GOAL:
-Avoid the typical "AI-generated" look.
-Strive for natural, believable, photographic or editorial results.
+The process has TWO MODES:
 
 ---
 
-OUTPUT:
+## MODE 1 — IDEA GENERATION
 
-1. Prompt A — Cinematic Realism (PRIMARY, most important)
-2. Prompt B — Natural Artistic (subtle stylization, NOT digital-looking)
+Goal:
+Generate 4 DISTINCT visual ideas based on the input.
 
----
+CRITICAL RULES:
 
-GLOBAL RULES (CRITICAL):
+* DO NOT include any artistic style (no "cinematic", "painting", "surreal", etc.)
+* Focus ONLY on the visual moment / scene
+* Each idea must represent a DIFFERENT moment, angle, or interpretation
+* Ideas must feel real, meaningful, and emotionally grounded
+* Avoid abstract wording — describe what is actually seen
 
-* Avoid overly glossy, plastic, or hyper-polished visuals
-* Avoid exaggerated fantasy lighting unless explicitly requested
-* Avoid "perfect symmetry" or artificial sharpness
-* Prefer natural imperfections (grain, texture, subtle noise)
-* Keep realism grounded in real-world physics
-* Use references to real photography and cinema
-* NEVER produce a "midjourney-style digital art look"
+Each idea must include:
 
----
+* What is happening
+* Who/what is in the scene
+* Environment
+* Emotional tone (implicitly, not as labels)
 
-PROMPT A — CINEMATIC REALISM:
-
-Style direction:
-
-* looks like a real photograph or movie scene
-* documentary / editorial / cinematic photography
-* natural imperfections are GOOD
-
-Structure:
-
-A cinematic, highly realistic photograph of [SUBJECT],
-
-captured in [REALISTIC ENVIRONMENT with grounded detail].
-
-The scene includes natural elements such as [SUBTLE DETAILS: dust, movement, real-world objects].
-
-Lighting is natural or cinematic but believable (golden hour, overcast sky, practical lights), creating a [REALISTIC MOOD].
-
-Textures are authentic and slightly imperfect (skin texture, fabric wear, environmental detail, natural grain).
-
-Shot using a real camera (e.g., 35mm or 85mm lens), with natural depth of field and slight motion realism.
-
-Composition follows professional photography principles (rule of thirds, natural framing, candid feel).
-
-Color grading is cinematic and restrained (not oversaturated, slightly muted or film-like tones).
-
-Add subtle film grain, realistic contrast, editorial photography style.
-
-Ultra-detailed, realistic, sharp but natural, cinematic quality.
+OUTPUT FORMAT for MODE 1 — Return ONLY valid JSON:
+{"summary": "2-3 משפטים בעברית על המסר המרכזי", "ideas": [{"he": "תיאור קצר בעברית של הרעיון"}, {"he": "..."}, {"he": "..."}, {"he": "..."}]}
 
 ---
 
-PROMPT B — NATURAL ARTISTIC (NON-DIGITAL):
+## MODE 2 — PROMPT GENERATION
 
-Style direction:
+Input:
+A single selected idea (clean, no style)
 
-* artistic but NOT glossy AI
-* can feel like:
+Goal:
+Generate TWO image prompts of the SAME scene, with different visual execution.
 
-  * high-end illustration
-  * textured painting
-  * editorial artwork
-* still grounded and not "fantasy overload"
+IMPORTANT:
 
-Structure:
-
-A detailed artistic depiction of [SUBJECT],
-
-set in [ENVIRONMENT with slightly enhanced but believable atmosphere].
-
-The scene includes symbolic or emotional elements, but remains visually grounded.
-
-Lighting is soft, moody, or dramatic but natural, enhancing depth without artificial glow.
-
-Textures feel tactile and real (brush texture, grain, layered materials), avoiding digital smoothness.
-
-Composition is expressive but balanced, with strong visual storytelling.
-
-Color palette is controlled and mature (not neon, not oversaturated).
-
-Style resembles high-end editorial illustration or cinematic concept art with realism influence.
-
-Highly detailed, textured, refined, visually rich, professional quality.
+* Do NOT change the idea
+* Only change how it is visually rendered
 
 ---
 
-ADAPTATION RULES:
+GLOBAL QUALITY RULES:
 
-* If the user input relates to Israel / Judaism / military / emotion → emphasize authenticity and emotional realism
+* Avoid AI-generated look (no glossy, no plastic skin, no over-sharpening)
+* Avoid over-dramatic fantasy unless required
+* Prefer natural realism and believable physics
+* Add subtle imperfections (grain, texture, asymmetry)
+* Use photography and cinema references
+
+---
+
+PROMPT A — CINEMATIC REALISM (PRIMARY):
+
+A highly realistic, cinematic photograph of [IDEA],
+set in a believable real-world environment with grounded detail.
+Include natural elements such as movement, atmosphere, or small imperfections.
+Lighting is natural or cinematic (golden hour, overcast, practical light), creating an authentic mood.
+Textures are detailed and realistic (fabric, skin, environment, slight wear).
+Shot using a real camera (35mm or 85mm), natural depth of field.
+Composition feels candid, documentary-like, using real photography principles.
+Color grading is restrained and film-like (not oversaturated).
+Add subtle film grain and natural contrast.
+Ultra-detailed, realistic, sharp but not artificial, cinematic quality.
+
+---
+
+PROMPT B — NATURAL ARTISTIC (SUBTLE):
+
+A refined artistic depiction of [IDEA],
+keeping the scene grounded in reality with slight artistic interpretation.
+Environment is consistent but slightly enhanced for storytelling.
+Lighting is soft or dramatic but natural (no artificial glow).
+Textures are rich and tactile (not smooth, not plastic).
+Composition is expressive but believable.
+Color palette is controlled, elegant, and not exaggerated.
+Feels like high-end editorial illustration or cinematic concept art with realism influence.
+Highly detailed, textured, natural, visually refined.
+
+---
+
+OUTPUT FORMAT for MODE 2 — output only the two prompts, nothing else:
+Prompt A:
+[full paragraph]
+
+Prompt B:
+[full paragraph]
+
+---
+
+ADAPTATION RULES (apply to both modes):
+
+* If input is emotional → express through lighting, distance, composition
+* If related to Israel / identity / conflict → prioritize authenticity and realism
 * Prefer "real moment" over "epic fantasy"
-* If dramatic → keep it believable, not exaggerated
-* If symbolic → integrate subtly into reality
+* Keep everything visually coherent
 
-not AI-looking, not overly polished, not glossy, not plastic
-
----
-
-ISRAELI-JEWISH IDENTITY RULES (never violate in either prompt):
+ISRAELI-JEWISH IDENTITY RULES (never violate):
 - People: real Israelis — modest natural clothing, calm authentic expressions
 - Jewish identity: subtle only (kippah, mezuzah, Shabbat candles) — never large central symbols
 - Religious women: tichel or sheitel (NEVER hijab). Haredi men: black hat + black suit. Dati-leumi: knitted kippah
 - Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only
 - No crosses, churches, crescents, mosques, or Arabic script
-- NO text, letters, words, numbers, or symbols anywhere in the image
-
----
-
-OUTPUT FORMAT (STRICT — output only the two prompts, nothing else):
-Prompt A:
-[full paragraph]
-
-Prompt B:
-[full paragraph]`;
+- NO text, letters, words, numbers, or symbols anywhere in the image`;
 
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
@@ -981,15 +969,15 @@ app.post('/translate-idea', async (req, res) => {
   }
 });
 
-// ─── הרחבה לשני פרומפטים מקצועיים (Prompt A + Prompt B) ────────────────────
-async function expandToTwoPrompts(ideaEn) {
+// ─── יצירת שני פרומפטים מרעיון נבחר (MODE: PROMPTS) ────────────────────────
+async function expandToTwoPrompts(idea) {
   try {
     const result = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       { model: 'gpt-4o',
         messages: [
-          { role: 'system', content: PROMPT_ENGINEER_SYSTEM },
-          { role: 'user', content: `Create two professional DALL-E 3 prompts for this image concept:\n${ideaEn}` }
+          { role: 'system', content: VISUAL_SYSTEM_PROMPT },
+          { role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }
         ],
         max_tokens: 1200 },
       { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
@@ -997,12 +985,11 @@ async function expandToTwoPrompts(ideaEn) {
     const text = result.data.choices[0].message.content;
     const promptAMatch = text.match(/Prompt A:\s*([\s\S]+?)(?=\n\s*Prompt B:|$)/i);
     const promptBMatch = text.match(/Prompt B:\s*([\s\S]+?)$/i);
-    const promptA = (promptAMatch ? promptAMatch[1].trim() : ideaEn) + DALL_E_STYLE_SUFFIX;
-    const promptB = (promptBMatch ? promptBMatch[1].trim() : ideaEn) + DALL_E_STYLE_SUFFIX;
+    const promptA = (promptAMatch ? promptAMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
+    const promptB = (promptBMatch ? promptBMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
     return { promptA, promptB };
   } catch (e) {
-    // fallback: אותו פרומפט לשניהם
-    const fallback = ideaEn + DALL_E_STYLE_SUFFIX;
+    const fallback = idea + DALL_E_STYLE_SUFFIX;
     return { promptA: fallback, promptB: fallback };
   }
 }
@@ -1013,127 +1000,25 @@ app.post('/image-ideas', async (req, res) => {
     const { text, direction } = req.body;
     if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
-    // ── שלב 1: ניתוח המאמר ─────────────────────────────────────────────────
-    addLog('שלב 1: מנתח את המאמר לעומק...');
+    addLog('מנתח מאמר ויוצר רעיונות ויזואליים...');
 
-    const analysisRes = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a thoughtful literary analyst. Read the article and produce a deep analysis that will later be used to generate visual images. Focus on: the core message and conclusion, the emotional tone, the key human moments or scenes described, the setting (time, place, context), and the underlying values or ideas the author conveys.`
-          },
-          {
-            role: 'user',
-            content: `Analyze this Hebrew article deeply. Extract what truly matters — the heart of what the author is saying, the emotions they evoke, the specific scenes or moments they describe, and the visual world this article lives in.
-
-Return ONLY valid JSON:
-{
-  "summary": "סיכום בעברית של המסר המרכזי (2-3 משפטים)",
-  "coreMessage": "The single most important idea or conclusion of the article (English)",
-  "emotionalTone": "The dominant emotion or atmosphere (English)",
-  "keyScenes": ["specific scene or moment 1", "specific scene or moment 2", "specific scene or moment 3"],
-  "visualWorld": "Description of the physical/visual world this article inhabits — place, time, people, textures, light (English)",
-  "underlyingValues": "The deeper values, themes, or ideas (English)"
-}
-
-Article:
-${text.slice(0, 3000)}`
-          }
-        ],
-        max_tokens: 800,
-        response_format: { type: 'json_object' }
-      },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
-    );
-
-    const analysis = JSON.parse(analysisRes.data.choices[0].message.content);
-    addLog('ניתוח הושלם, יוצר רעיונות תמונה...');
-
-    // ── שלב 2: יצירת 4 רעיונות תמונה — סגנון שונה לכל אחד ─────────────────
     const ideasRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-4o',
         messages: [
-          {
-            role: 'system',
-            content: `You are a visual concept designer AND DALL-E 3 prompt engineer for Israeli national-identity content.
-
-Your task: generate 4 distinct visual concepts, each with two ready-to-use DALL-E 3 prompts.
-
-CREATE 4 IDEAS — each in a different mandatory style:
-1. Cinematic realism — looks like a real photograph or movie still
-2. Digital painting — detailed illustrated scene, expressive color, painterly
-3. Minimalist symbolic — one strong symbol, clean graphic composition
-4. Surreal / dreamlike — unexpected juxtaposition, poetic visual metaphor
-
-For EACH idea, write TWO full DALL-E 3 prompts:
-- promptA: cinematic/photographic version of the idea (natural light, film grain, realistic)
-- promptB: artistic/painterly version of the idea (textured, expressive, editorial illustration)
-
-PROMPT WRITING RULES (apply to every prompt):
-- Avoid AI-generated look, glossy, plastic, hyper-polished visuals
-- No perfect symmetry or artificial sharpness
-- Prefer natural imperfections: grain, texture, real-world detail
-- Natural or dramatic but believable lighting
-- Square 1:1 composition
-- Absolutely no text, letters, numbers or symbols in the image
-- Each prompt: ONE paragraph, 3-5 sentences, concrete and specific
-
-ISRAELI-JEWISH VISUAL IDENTITY (never violate):
-- Real Israelis, modest natural clothing, authentic expressions
-- Jewish symbols: subtle only (kippah, mezuzah) — never dominant
-- Religious women: tichel or sheitel (never hijab). Soldiers: IDF olive uniform only
-- No crosses, crescents, mosques, Arabic text. Israeli flag only
-
-OUTPUT — Return ONLY valid JSON:
-{
-  "ideas": [
-    {
-      "he": "כותרת קצרה בעברית (4-6 מילים)",
-      "style": "Cinematic realism",
-      "promptA": "A cinematic, highly realistic photograph of ...",
-      "promptB": "A detailed artistic depiction of ..."
-    },
-    {
-      "he": "כותרת קצרה בעברית (4-6 מילים)",
-      "style": "Digital painting",
-      "promptA": "...",
-      "promptB": "..."
-    },
-    {
-      "he": "כותרת קצרה בעברית (4-6 מילים)",
-      "style": "Minimalist symbolic",
-      "promptA": "...",
-      "promptB": "..."
-    },
-    {
-      "he": "כותרת קצרה בעברית (4-6 מילים)",
-      "style": "Surreal",
-      "promptA": "...",
-      "promptB": "..."
-    }
-  ]
-}`
-          },
+          { role: 'system', content: VISUAL_SYSTEM_PROMPT },
           {
             role: 'user',
-            content: `Create 4 visual concepts (with full DALL-E prompts) for this article. Each must use a different style (Cinematic realism, Digital painting, Minimalist symbolic, Surreal).
+            content: `MODE: IDEAS
 
-ARTICLE ANALYSIS:
-- Central theme: ${analysis.coreMessage}
-- Emotional tone: ${analysis.emotionalTone}
-- Key moments: ${analysis.keyScenes?.join(' | ')}
-- Visual world: ${analysis.visualWorld}
-- Underlying values: ${analysis.underlyingValues}
-${direction ? `\nAUTHOR'S VISUAL DIRECTION: "${direction}" — all 4 ideas must align with this.\n` : ''}
-Make each idea visually striking and memorable. Prefer strong metaphor over generic scenes. Write prompts that will produce non-AI-looking, natural, believable images.`
+INPUT:
+${text.slice(0, 3500)}
+${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas must align with this.\n` : ''}
+Generate 4 distinct visual ideas based on this article. Each idea should reflect a different moment, angle, or interpretation. No style labels — only describe what is seen.`
           }
         ],
-        max_tokens: 3000,
+        max_tokens: 900,
         response_format: { type: 'json_object' }
       },
       { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
@@ -1141,7 +1026,7 @@ Make each idea visually striking and memorable. Prefer strong metaphor over gene
 
     const result = JSON.parse(ideasRes.data.choices[0].message.content);
     addLog(`התקבלו ${result.ideas?.length || 0} רעיונות לתמונה`);
-    res.json({ success: true, summary: analysis.summary, ideas: result.ideas, logs });
+    res.json({ success: true, summary: result.summary || '', ideas: result.ideas, logs });
   } catch (error) {
     addLog(`שגיאה ברעיונות תמונה: ${error.response?.data?.error?.message || error.message}`);
     res.status(500).json({ success: false, error: error.response?.data?.error?.message || error.message, logs });
@@ -1151,22 +1036,11 @@ Make each idea visually striking and memorable. Prefer strong metaphor over gene
 // יצירת תמונה — DALL-E 3 x2 (📷 קולנועי + 🎨 אמנותי)
 app.post('/generate-image', async (req, res) => {
   try {
-    const { ideaEn, ideaHe, summary, promptA: prebuiltA, promptB: prebuiltB } = req.body;
-    if (!ideaEn && !prebuiltA) return res.status(400).json({ success: false, error: 'רעיון חסר' });
+    const { ideaEn, ideaHe } = req.body;
+    if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
-    let promptA, promptB;
-    if (prebuiltA && prebuiltB) {
-      // פרומפטים מוכנים מ-/image-ideas — ישר ל-DALL-E
-      addLog('משתמש בפרומפטים מוכנים...');
-      promptA = prebuiltA + DALL_E_STYLE_SUFFIX;
-      promptB = prebuiltB + DALL_E_STYLE_SUFFIX;
-    } else {
-      // רעיון חופשי — מרחיב עם GPT-4o
-      addLog('מרחיב רעיון לשני פרומפטים מקצועיים...');
-      const expanded = await expandToTwoPrompts(ideaEn);
-      promptA = expanded.promptA;
-      promptB = expanded.promptB;
-    }
+    addLog('יוצר פרומפטים מקצועיים לפי הרעיון הנבחר...');
+    const { promptA, promptB } = await expandToTwoPrompts(ideaEn);
 
     addLog('יוצר 📷 קולנועי-ריאליסטי ו-🎨 אמנותי-יצירתי במקביל...');
     const ts = Date.now();

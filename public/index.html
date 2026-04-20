@@ -1942,17 +1942,14 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
       const container = document.getElementById('editIdeaOptions');
       container.innerHTML = '';
-      const styleIcons = { 'Cinematic realism': '📷', 'Digital painting': '🎨', 'Minimalist symbolic': '◼️', 'Surreal': '🌀' };
       (data.ideas || []).forEach((idea, i) => {
         const card = document.createElement('div');
         card.className = 'idea-card';
-        const icon = styleIcons[idea.style] || '✦';
-        const styleLabel = idea.style ? `<span style="font-size:11px;color:#999;margin-right:6px">${icon} ${idea.style}</span>` : '';
-        card.innerHTML = `<span class="idea-num">${i + 1}.</span> ${escHtml(idea.he)} ${styleLabel}`;
+        card.innerHTML = `<span class="idea-num">${i + 1}</span> ${escHtml(idea.he)}`;
         card.onclick = () => {
           document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
-          generateEditImage(idea.promptA || idea.en || idea.he, idea.he, data.summary, idea.promptA, idea.promptB);
+          generateEditImage(idea.he, idea.he, data.summary);
         };
         container.appendChild(card);
       });
@@ -2034,7 +2031,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   let editBothData = {}; // שמירת שתי התמונות לבחירה
 
-  async function generateEditImage(ideaEn, ideaHe, summary, promptA, promptB) {
+  async function generateEditImage(ideaEn, ideaHe, summary) {
     editCurrentIdeaEn  = ideaEn;
     editCurrentSummary = summary || '';
     document.getElementById('editIdeasSection').classList.add('hidden');
@@ -2042,16 +2039,14 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('editImageCompare').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
     document.getElementById('editImageImproveSection').style.display = '';
-    document.getElementById('editImageGenLoadingText').textContent = promptA
-      ? 'יוצר 📷 קולנועי + 🎨 אמנותי במקביל...'
-      : 'מרחיב פרומפטים ויוצר 📷 קולנועי + 🎨 אמנותי במקביל...';
+    document.getElementById('editImageGenLoadingText').textContent = 'יוצר פרומפטים ו-📷 קולנועי + 🎨 אמנותי במקביל...';
     document.getElementById('editImageGenLoading').classList.remove('hidden');
 
     try {
       const res = await fetch('/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ideaEn, ideaHe, summary, promptA, promptB })
+        body: JSON.stringify({ ideaEn, ideaHe, summary })
       });
       const data = await res.json();
       if (!data.success) { alert('שגיאה ביצירת תמונה: ' + data.error); resetEditImageGen(); return; }
