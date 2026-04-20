@@ -982,7 +982,7 @@ ${text.slice(0, 3000)}`
     const analysis = JSON.parse(analysisRes.data.choices[0].message.content);
     addLog('ניתוח הושלם, יוצר רעיונות תמונה...');
 
-    // ── שלב 2: יצירת רעיונות תמונה על בסיס הניתוח ─────────────────────────
+    // ── שלב 2: יצירת 4 רעיונות תמונה — סגנון שונה לכל אחד ─────────────────
     const ideasRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -990,38 +990,59 @@ ${text.slice(0, 3000)}`
         messages: [
           {
             role: 'system',
-            content: `${PROMPT_ENGINEER_SYSTEM}
+            content: `You are a visual concept designer for square (1:1) images used in Israeli national-identity content.
 
-You will receive a deep article analysis and must create 4 stunning production-level DALL-E 3 prompts, each using a different visual approach:
-1. Human scene: specific people in a real Israeli moment
-2. Landscape / symbolic: a specific Israeli place or symbolic visual
-3. Close-up / detail: hands, objects, or a single evocative texture
-4. Painterly / illustrative: semi-realistic cinematic style
+Your task: generate 4 distinct visual concepts that express the core message of the article.
+Do NOT generate images — only describe the ideas.
 
-Each prompt must be one continuous professional paragraph starting with "A cinematic photorealistic depiction of..." and ending with ultra-detailed quality keywords. Make each prompt dramatically different from the others in composition, angle, and visual approach.`
+STEP 1 — IDENTIFY:
+- The central theme (e.g., freedom, identity, struggle, faith, transformation)
+- Key tensions or contrasts (e.g., light vs darkness, individual vs system, tradition vs modernity)
+
+STEP 2 — CREATE 4 IDEAS, each in a different mandatory style:
+1. Cinematic realism — photographic quality, real Israeli people/places, dramatic natural lighting
+2. Digital painting / concept art — detailed illustrated scene, rich expressive color
+3. Minimalist symbolic — one strong symbol, clean composition, bold graphic simplicity
+4. Surreal / dreamlike — unexpected juxtaposition, poetic visual metaphor, imaginative
+
+REQUIREMENTS for every idea:
+- Square 1:1 composition
+- No text or letters in the image
+- One clear central subject — simple, not cluttered
+- Strong emotional or symbolic impact
+- Prefer metaphor over literal scenes
+- Each idea must differ in: composition, perspective, color palette, visual language
+- Do NOT repeat: same character, same object, same environment
+
+ISRAELI-JEWISH VISUAL IDENTITY (always apply):
+- Real Israelis, modest natural clothing, authentic expressions
+- Jewish symbols: subtle only (kippah, mezuzah, Shabbat candles) — never dominant
+- Soldiers: IDF olive uniform only. Flags: Israeli only
+- No crosses, crescents, mosques, Arabic text
+- No text, letters, numbers or symbols anywhere in the image
+
+OUTPUT — Return ONLY valid JSON:
+{
+  "ideas": [
+    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Cinematic realism.", "style": "Cinematic realism"},
+    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Digital painting.", "style": "Digital painting"},
+    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Minimalist symbolic.", "style": "Minimalist symbolic"},
+    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Surreal.", "style": "Surreal"}
+  ]
+}`
           },
           {
             role: 'user',
-            content: `Based on this article analysis, create 4 vivid DALL-E 3 image prompts that capture the soul of the article.
+            content: `Create 4 visual concepts for this article. Each must use a different style (Cinematic realism, Digital painting, Minimalist symbolic, Surreal).
 
 ARTICLE ANALYSIS:
-- Core message: ${analysis.coreMessage}
+- Central theme: ${analysis.coreMessage}
 - Emotional tone: ${analysis.emotionalTone}
-- Key scenes: ${analysis.keyScenes?.join(' | ')}
+- Key moments: ${analysis.keyScenes?.join(' | ')}
 - Visual world: ${analysis.visualWorld}
 - Underlying values: ${analysis.underlyingValues}
-
-${direction ? `IMPORTANT — The author has given a specific visual direction for the images: "${direction}". All 4 ideas must align with this direction while still being based on the article's content and maintaining the Israeli-Jewish visual identity.\n\n` : ''}Each English prompt: 3-5 sentences, cinematic and specific, as if directing a photographer on location in Israel.
-
-Return ONLY valid JSON:
-{
-  "ideas": [
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"},
-    {"he": "תיאור קצר בעברית של הסצנה", "en": "Rich cinematic scene description for DALL-E 3"}
-  ]
-}`
+${direction ? `\nAUTHOR'S VISUAL DIRECTION: "${direction}" — all 4 ideas must align with this while keeping Israeli-Jewish identity.\n` : ''}
+Make each idea visually striking, bold, and memorable. Avoid clichés. Prefer strong metaphor over generic scenes.`
           }
         ],
         max_tokens: 1500,

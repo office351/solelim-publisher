@@ -1539,10 +1539,13 @@
 
       const container = document.getElementById('editIdeaOptions');
       container.innerHTML = '';
+      const styleIcons = { 'Cinematic realism': '📷', 'Digital painting': '🎨', 'Minimalist symbolic': '◼️', 'Surreal': '🌀' };
       (data.ideas || []).forEach((idea, i) => {
         const card = document.createElement('div');
         card.className = 'idea-card';
-        card.innerHTML = `<span class="idea-num">${i + 1}.</span> ${escHtml(idea.he)}`;
+        const icon = styleIcons[idea.style] || '✦';
+        const styleLabel = idea.style ? `<span style="font-size:11px;color:#999;margin-right:6px">${icon} ${idea.style}</span>` : '';
+        card.innerHTML = `<span class="idea-num">${i + 1}.</span> ${escHtml(idea.he)} ${styleLabel}`;
         card.onclick = () => {
           document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
