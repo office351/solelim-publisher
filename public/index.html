@@ -1952,7 +1952,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         card.onclick = () => {
           document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
-          generateEditImage(idea.en, idea.he, data.summary);
+          generateEditImage(idea.promptA || idea.en || idea.he, idea.he, data.summary, idea.promptA, idea.promptB);
         };
         container.appendChild(card);
       });
@@ -2034,7 +2034,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   let editBothData = {}; // שמירת שתי התמונות לבחירה
 
-  async function generateEditImage(ideaEn, ideaHe, summary) {
+  async function generateEditImage(ideaEn, ideaHe, summary, promptA, promptB) {
     editCurrentIdeaEn  = ideaEn;
     editCurrentSummary = summary || '';
     document.getElementById('editIdeasSection').classList.add('hidden');
@@ -2042,14 +2042,16 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('editImageCompare').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
     document.getElementById('editImageImproveSection').style.display = '';
-    document.getElementById('editImageGenLoadingText').textContent = 'מרחיב פרומפטים ויוצר 📷 קולנועי + 🎨 אמנותי במקביל...';
+    document.getElementById('editImageGenLoadingText').textContent = promptA
+      ? 'יוצר 📷 קולנועי + 🎨 אמנותי במקביל...'
+      : 'מרחיב פרומפטים ויוצר 📷 קולנועי + 🎨 אמנותי במקביל...';
     document.getElementById('editImageGenLoading').classList.remove('hidden');
 
     try {
       const res = await fetch('/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ideaEn, ideaHe, summary })
+        body: JSON.stringify({ ideaEn, ideaHe, summary, promptA, promptB })
       });
       const data = await res.json();
       if (!data.success) { alert('שגיאה ביצירת תמונה: ' + data.error); resetEditImageGen(); return; }

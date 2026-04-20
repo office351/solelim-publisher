@@ -1060,50 +1060,68 @@ ${text.slice(0, 3000)}`
         messages: [
           {
             role: 'system',
-            content: `You are a visual concept designer for square (1:1) images used in Israeli national-identity content.
+            content: `You are a visual concept designer AND DALL-E 3 prompt engineer for Israeli national-identity content.
 
-Your task: generate 4 distinct visual concepts that express the core message of the article.
-Do NOT generate images — only describe the ideas.
+Your task: generate 4 distinct visual concepts, each with two ready-to-use DALL-E 3 prompts.
 
-STEP 1 — IDENTIFY:
-- The central theme (e.g., freedom, identity, struggle, faith, transformation)
-- Key tensions or contrasts (e.g., light vs darkness, individual vs system, tradition vs modernity)
+CREATE 4 IDEAS — each in a different mandatory style:
+1. Cinematic realism — looks like a real photograph or movie still
+2. Digital painting — detailed illustrated scene, expressive color, painterly
+3. Minimalist symbolic — one strong symbol, clean graphic composition
+4. Surreal / dreamlike — unexpected juxtaposition, poetic visual metaphor
 
-STEP 2 — CREATE 4 IDEAS, each in a different mandatory style:
-1. Cinematic realism — photographic quality, real Israeli people/places, dramatic natural lighting
-2. Digital painting / concept art — detailed illustrated scene, rich expressive color
-3. Minimalist symbolic — one strong symbol, clean composition, bold graphic simplicity
-4. Surreal / dreamlike — unexpected juxtaposition, poetic visual metaphor, imaginative
+For EACH idea, write TWO full DALL-E 3 prompts:
+- promptA: cinematic/photographic version of the idea (natural light, film grain, realistic)
+- promptB: artistic/painterly version of the idea (textured, expressive, editorial illustration)
 
-REQUIREMENTS for every idea:
+PROMPT WRITING RULES (apply to every prompt):
+- Avoid AI-generated look, glossy, plastic, hyper-polished visuals
+- No perfect symmetry or artificial sharpness
+- Prefer natural imperfections: grain, texture, real-world detail
+- Natural or dramatic but believable lighting
 - Square 1:1 composition
-- No text or letters in the image
-- One clear central subject — simple, not cluttered
-- Strong emotional or symbolic impact
-- Prefer metaphor over literal scenes
-- Each idea must differ in: composition, perspective, color palette, visual language
-- Do NOT repeat: same character, same object, same environment
+- Absolutely no text, letters, numbers or symbols in the image
+- Each prompt: ONE paragraph, 3-5 sentences, concrete and specific
 
-ISRAELI-JEWISH VISUAL IDENTITY (always apply):
+ISRAELI-JEWISH VISUAL IDENTITY (never violate):
 - Real Israelis, modest natural clothing, authentic expressions
-- Jewish symbols: subtle only (kippah, mezuzah, Shabbat candles) — never dominant
-- Soldiers: IDF olive uniform only. Flags: Israeli only
-- No crosses, crescents, mosques, Arabic text
-- No text, letters, numbers or symbols anywhere in the image
+- Jewish symbols: subtle only (kippah, mezuzah) — never dominant
+- Religious women: tichel or sheitel (never hijab). Soldiers: IDF olive uniform only
+- No crosses, crescents, mosques, Arabic text. Israeli flag only
 
 OUTPUT — Return ONLY valid JSON:
 {
   "ideas": [
-    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Cinematic realism.", "style": "Cinematic realism"},
-    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Digital painting.", "style": "Digital painting"},
-    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Minimalist symbolic.", "style": "Minimalist symbolic"},
-    {"he": "כותרת קצרה בעברית (4-6 מילים)", "en": "2-3 sentence visual scene description. Style: Surreal.", "style": "Surreal"}
+    {
+      "he": "כותרת קצרה בעברית (4-6 מילים)",
+      "style": "Cinematic realism",
+      "promptA": "A cinematic, highly realistic photograph of ...",
+      "promptB": "A detailed artistic depiction of ..."
+    },
+    {
+      "he": "כותרת קצרה בעברית (4-6 מילים)",
+      "style": "Digital painting",
+      "promptA": "...",
+      "promptB": "..."
+    },
+    {
+      "he": "כותרת קצרה בעברית (4-6 מילים)",
+      "style": "Minimalist symbolic",
+      "promptA": "...",
+      "promptB": "..."
+    },
+    {
+      "he": "כותרת קצרה בעברית (4-6 מילים)",
+      "style": "Surreal",
+      "promptA": "...",
+      "promptB": "..."
+    }
   ]
 }`
           },
           {
             role: 'user',
-            content: `Create 4 visual concepts for this article. Each must use a different style (Cinematic realism, Digital painting, Minimalist symbolic, Surreal).
+            content: `Create 4 visual concepts (with full DALL-E prompts) for this article. Each must use a different style (Cinematic realism, Digital painting, Minimalist symbolic, Surreal).
 
 ARTICLE ANALYSIS:
 - Central theme: ${analysis.coreMessage}
@@ -1111,11 +1129,11 @@ ARTICLE ANALYSIS:
 - Key moments: ${analysis.keyScenes?.join(' | ')}
 - Visual world: ${analysis.visualWorld}
 - Underlying values: ${analysis.underlyingValues}
-${direction ? `\nAUTHOR'S VISUAL DIRECTION: "${direction}" — all 4 ideas must align with this while keeping Israeli-Jewish identity.\n` : ''}
-Make each idea visually striking, bold, and memorable. Avoid clichés. Prefer strong metaphor over generic scenes.`
+${direction ? `\nAUTHOR'S VISUAL DIRECTION: "${direction}" — all 4 ideas must align with this.\n` : ''}
+Make each idea visually striking and memorable. Prefer strong metaphor over generic scenes. Write prompts that will produce non-AI-looking, natural, believable images.`
           }
         ],
-        max_tokens: 1500,
+        max_tokens: 3000,
         response_format: { type: 'json_object' }
       },
       { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
@@ -1133,11 +1151,22 @@ Make each idea visually striking, bold, and memorable. Avoid clichés. Prefer st
 // יצירת תמונה — DALL-E 3 x2 (📷 קולנועי + 🎨 אמנותי)
 app.post('/generate-image', async (req, res) => {
   try {
-    const { ideaEn, ideaHe, summary } = req.body;
-    if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
+    const { ideaEn, ideaHe, summary, promptA: prebuiltA, promptB: prebuiltB } = req.body;
+    if (!ideaEn && !prebuiltA) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
-    addLog('מרחיב רעיון לשני פרומפטים מקצועיים...');
-    const { promptA, promptB } = await expandToTwoPrompts(ideaEn);
+    let promptA, promptB;
+    if (prebuiltA && prebuiltB) {
+      // פרומפטים מוכנים מ-/image-ideas — ישר ל-DALL-E
+      addLog('משתמש בפרומפטים מוכנים...');
+      promptA = prebuiltA + DALL_E_STYLE_SUFFIX;
+      promptB = prebuiltB + DALL_E_STYLE_SUFFIX;
+    } else {
+      // רעיון חופשי — מרחיב עם GPT-4o
+      addLog('מרחיב רעיון לשני פרומפטים מקצועיים...');
+      const expanded = await expandToTwoPrompts(ideaEn);
+      promptA = expanded.promptA;
+      promptB = expanded.promptB;
+    }
 
     addLog('יוצר 📷 קולנועי-ריאליסטי ו-🎨 אמנותי-יצירתי במקביל...');
     const ts = Date.now();
