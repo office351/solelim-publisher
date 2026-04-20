@@ -846,14 +846,13 @@ Goal:
 Generate 4 distinct visual ideas.
 
 Rules:
-
 * Do NOT include any artistic style
-* Each idea must describe a different real-life moment
+* Each idea must describe a different real-life moment or scene
 * Keep ideas simple, concrete, and visually clear
 * Avoid abstract or symbolic descriptions
-* Prefer small, realistic scenes
+* Prefer small, focused, realistic scenes
 * Limit number of elements
-* Include quantities when relevant (e.g., two candles, one person, one table)
+* Include exact quantities when relevant (e.g., one person, two objects, one table)
 
 Output format for IDEAS mode — Return ONLY valid JSON:
 {"summary": "2-3 משפטים בעברית על המסר המרכזי", "ideas": [{"he": "תיאור קצר בעברית של הרעיון"}, {"he": "..."}, {"he": "..."}, {"he": "..."}]}
@@ -862,94 +861,48 @@ Output format for IDEAS mode — Return ONLY valid JSON:
 MODE: PROMPTS
 =============
 
-Input:
-A single idea
-
-Goal:
-Generate TWO prompts of the SAME scene.
+Input: A single idea
+Goal: Generate TWO prompts of the SAME scene.
 
 ---
 
-## IDENTITY RULE (MANDATORY):
+## STEP 1 — SCENE INVENTORY (do this mentally before writing prompts)
 
-The scene must reflect a Jewish / Israeli context when relevant.
+Before writing anything, define:
+- ELEMENTS: List every object that belongs in the scene. No more, no less.
+- COUNTS: Assign an exact number to every element (e.g., "1 table", "2 candles", "1 person").
+- PEOPLE: If a person appears, describe their visible appearance in a few words (age range, build, clothing style — matching the cultural context of the input).
+- SETTING: One-line description of the environment.
 
-Allowed:
-
-* Two Shabbat candles (only two)
-* Jewish home setting
-* modest appearance
-
-Forbidden:
-
-* crescent symbols
-* mosques
-* hijab
-* Arabic text
+This inventory becomes the strict blueprint for both prompts. Nothing is added. Nothing is removed.
 
 ---
 
-## CONTROL RULES:
+## STEP 2 — WRITE THE PROMPTS
 
-* Keep the scene simple
-* Do NOT add extra objects
-* Do NOT duplicate elements
-* Do NOT exaggerate
-* Follow real-world structure exactly (e.g., two candles only)
+Build both prompts strictly from the inventory above.
+State elements and counts explicitly and positively — describe what IS in the scene, not what isn't.
 
----
+### PROMPT A — NATURAL PHOTO:
 
-## HUMAN RULES:
-
-* Natural faces (not perfect)
-* No "AI beauty" look
-* Natural expressions (not posed)
-
----
-
-## PROMPT A — NATURAL PHOTO:
-
-A natural, realistic photograph of [IDEA],
-
-capturing a simple, real-life moment in a believable environment.
-
-The scene includes only essential elements.
-
-Lighting is soft and natural.
-
-Textures are real and slightly imperfect.
-
-People (if present) are natural and unposed.
-
+A natural, realistic photograph of [IDEA].
+The scene contains exactly: [list elements with counts from inventory].
+[Describe person appearance explicitly if present].
+Setting: [from inventory].
+Lighting is soft and natural. Textures are real and slightly imperfect.
 Shot with a real camera (35mm or 50mm), natural depth of field.
+Minimal composition. Natural, slightly muted colors. Subtle grain.
+Candid, unposed, unstaged.
 
-Minimal composition.
+### PROMPT B — REALISTIC DRAWING:
 
-Natural, slightly muted colors.
-
-Subtle grain.
-
-no extra objects, no duplication, not staged, not artificial
-
----
-
-## PROMPT B — REALISTIC DRAWING:
-
-A realistic hand-drawn illustration of [IDEA],
-
-drawn in a natural observational style.
-
-The scene is simple, accurate, and grounded.
-
-No exaggeration.
-
-Clean lines, soft shading.
-
-Balanced composition.
-
-Looks like a real-life sketch.
-
-no fantasy, no exaggeration, no artificial styling
+A realistic hand-drawn illustration of [IDEA].
+The scene contains exactly: [list elements with counts from inventory].
+[Describe person appearance explicitly if present].
+Setting: [from inventory].
+Drawn in a natural observational style. Clean lines, soft shading.
+Simple, accurate, grounded. Balanced minimal composition.
+Looks like a real-life pencil sketch.
 
 ---
 
@@ -963,7 +916,7 @@ Prompt B:
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
 
-Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. No Islamic symbols, no crescents, no mosques, no hijab. Israeli Jewish context only.`;
+Square 1:1 composition. No text, letters, words, or numbers anywhere in the image. Render only the elements explicitly listed above, with their exact stated quantities. If a person appears, render them exactly as described in terms of appearance and clothing.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
@@ -1062,10 +1015,10 @@ app.post('/generate-image', async (req, res) => {
     addLog('יוצר 📷 ריאלי ו-✏️ ציור במקביל...');
     const ts = Date.now();
 
-    // הרץ שני סגנונות DALL-E במקביל: Prompt A natural + Prompt B vivid
+    // הרץ שני סגנונות DALL-E במקביל: Prompt A natural (ריאלי) + Prompt B natural (ציור)
     const [dalleSettled, geminiSettled] = await Promise.allSettled([
       generateDalleVariant(promptA, 'natural'),
-      generateDalleVariant(promptB, 'vivid')
+      generateDalleVariant(promptB, 'natural')
     ]);
 
     // שמור תמונות שהצליחו
