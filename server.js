@@ -871,55 +871,55 @@ Input:
 A single selected idea
 
 Goal:
-Generate TWO image prompts of the SAME scene, with controlled realism.
+Generate TWO image prompts of the SAME scene — one photographic, one drawn.
 
 ---
 
-CRITICAL CONTROL RULES (VERY IMPORTANT):
+ABSOLUTE IDENTITY RULES — MUST APPLY TO BOTH PROMPTS, NO EXCEPTIONS:
 
-* Do NOT add extra objects beyond what makes sense in reality
-* If the scene implies a known structure — keep it accurate (e.g., 2 Shabbat candles, not many)
-* Avoid visual exaggeration
-* Keep compositions simple and focused
-* Prefer minimalism over richness
-* Fewer elements = better realism
-* Human figures must look natural:
-  * realistic proportions
-  * natural skin texture (not plastic, not perfect)
-  * candid expressions (not posed, not exaggerated)
-* Avoid:
-  * duplicated objects
-  * overly symmetrical scenes
-  * excessive glow or dramatic effects
-  * "AI beauty" faces
+* This content is ISRAELI and JEWISH. Every visual element must reflect this.
+* People: Israeli Jews — modest natural clothing, authentic Israeli appearance
+* Religious women: tichel or sheitel — NEVER hijab, NEVER headscarf that implies Islam
+* Haredi men: black hat + black suit. Dati-leumi: knitted kippah. Secular: casual Israeli style
+* Soldiers: IDF uniform (olive green) ONLY — no other army uniforms
+* Flags: Israeli flag ONLY
+* STRICTLY FORBIDDEN: crescents, mosques, minarets, Arabic script, crosses, churches, hijab, niqab, any Islamic visual symbol
+* NO text, letters, numbers, or symbols anywhere in the image
+* Square 1:1 composition
 
 ---
 
-PROMPT A — REALISTIC:
+REALISM RULES — BOTH PROMPTS:
 
-A realistic, documentary-style photograph of [IDEA],
-captured in a natural and believable setting.
-The scene is simple and focused, including only essential elements.
-Lighting is natural (window light, soft indoor light, or real-world outdoor light).
-Textures are realistic and slightly imperfect.
-Human subjects (if any) appear natural, unposed, and authentic.
-Shot with a real camera (35mm or 50mm), natural depth of field.
-Composition is minimal, clean, and grounded in reality.
-Color tones are natural and slightly muted.
-Subtle grain, no artificial sharpness.
+* Simple and focused — only essential elements, nothing extra
+* No visual exaggeration, no dramatic lighting effects
+* Human figures: natural proportions, real skin texture, candid unposed expressions
+* No "AI beauty" faces, no plastic skin, no perfect symmetry
+* No duplicated objects, no excessive glow
 
 ---
 
-PROMPT B — SOFT ARTISTIC:
+PROMPT A — NATURAL PHOTO:
 
-A natural, gently artistic depiction of [IDEA],
-keeping the scene simple, clean, and emotionally grounded.
-No exaggeration or fantasy elements.
-Lighting is soft and natural.
-Textures feel real and slightly tactile.
-Composition is minimal and balanced.
-Colors are calm, warm, and not saturated.
-Feels like a quiet editorial illustration, not digital art.
+A natural, realistic photograph of [IDEA].
+Simple setting, only essential elements in the frame.
+Natural lighting (daylight, window light, or soft indoor light).
+People (if any) look real, unposed, and authentic — natural skin, genuine expression.
+Camera: 35mm or 50mm lens, natural depth of field.
+Minimal composition, slightly muted natural colors, subtle grain.
+No drama, no cinematic effects — just a real, honest moment.
+
+---
+
+PROMPT B — REALISTIC DRAWING:
+
+A realistic pencil or colored-pencil drawing of [IDEA].
+The scene is accurate and believable — drawn with care and detail.
+Lines are confident but not mechanical — natural hand-drawn quality.
+Shading is soft and realistic, not stylized or cartoonish.
+Colors (if any) are calm, warm, and true to life.
+Proportions and details are accurate — no exaggeration or fantasy.
+Feels like a skilled illustrator's quiet, faithful depiction of a real scene.
 
 ---
 
@@ -935,22 +935,14 @@ Prompt B:
 ADAPTATION RULES (apply to both modes):
 
 * If input is emotional → express through lighting, distance, composition
-* If related to Israel / identity / conflict → prioritize authenticity and realism
+* If related to Israel / identity / conflict → prioritize authenticity and Israeli-Jewish realism
 * Prefer "real moment" over "epic fantasy"
-* Keep everything visually coherent
-
-ISRAELI-JEWISH IDENTITY RULES (never violate):
-- People: real Israelis — modest natural clothing, calm authentic expressions
-- Jewish identity: subtle only (kippah, mezuzah, Shabbat candles) — never large central symbols
-- Religious women: tichel or sheitel (NEVER hijab). Haredi men: black hat + black suit. Dati-leumi: knitted kippah
-- Soldiers: IDF only (olive Israeli uniform). Flags: Israeli flag only
-- No crosses, churches, crescents, mosques, or Arabic script
-- NO text, letters, words, numbers, or symbols anywhere in the image`;
+* Keep everything visually coherent`;
 
 // ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
 const DALL_E_STYLE_SUFFIX = `
 
-Ultra-detailed, high resolution, 8k, sharp focus, cinematic quality. Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image.`;
+Square 1:1 composition. Absolutely no text, letters, words, numbers, or symbols anywhere in the image. No Islamic symbols, no crescents, no mosques, no hijab. Israeli Jewish context only.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
@@ -1046,7 +1038,7 @@ app.post('/generate-image', async (req, res) => {
     addLog('יוצר פרומפטים מקצועיים לפי הרעיון הנבחר...');
     const { promptA, promptB } = await expandToTwoPrompts(ideaEn);
 
-    addLog('יוצר 📷 קולנועי-ריאליסטי ו-🎨 אמנותי-יצירתי במקביל...');
+    addLog('יוצר 📷 ריאלי ו-✏️ ציור במקביל...');
     const ts = Date.now();
 
     // הרץ שני סגנונות DALL-E במקביל: Prompt A natural + Prompt B vivid
@@ -1070,14 +1062,14 @@ app.post('/generate-image', async (req, res) => {
 
     if (dalleSettled.status === 'fulfilled') {
       result.dalle = await saveImagePair(dalleSettled.value, 'dalle');
-      addLog('📷 קולנועי-ריאליסטי — נשמר בהצלחה');
+      addLog('📷 ריאלי — נשמר בהצלחה');
     } else {
       addLog(`📷 קולנועי נכשל: ${dalleSettled.reason?.message}`);
     }
 
     if (geminiSettled.status === 'fulfilled') {
       result.gemini = await saveImagePair(geminiSettled.value, 'gemini');
-      addLog('🎨 אמנותי-יצירתי — נשמר בהצלחה');
+      addLog('✏️ ציור — נשמר בהצלחה');
     } else {
       addLog(`🎨 אמנותי נכשל: ${geminiSettled.reason?.message}`);
     }
