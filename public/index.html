@@ -5,443 +5,709 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>מערכת פרסום תוכן – סוללים דרך</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
     :root {
-      --brand-teal:        #2ab5c8;
-      --brand-teal-dark:   #1e96a8;
-      --brand-teal-light:  #e8f8fb;
-      --brand-navy:        #1a3a54;
-      --brand-navy-mid:    #2c5282;
-      --bg:                #f4f6f9;
-      --surface:           #ffffff;
-      --border:            #e2e8f0;
-      --text-primary:      #1a2332;
-      --text-secondary:    #5a6a7e;
-      --text-muted:        #94a3b8;
-      --success:           #16a34a;
-      --success-bg:        #f0fdf4;
-      --error:             #dc2626;
-      --warning:           #d97706;
-      --purple:            #7b2d8b;
-      --purple-light:      #f5edfa;
-      --whatsapp:          #25d366;
+      --teal:        #2ab5c8;
+      --teal-dark:   #1e96a8;
+      --teal-light:  #e6f8fb;
+      --navy:        #1a3a54;
+      --navy-mid:    #1e4a6e;
+      --bg:          #f0f4f8;
+      --surface:     #ffffff;
+      --border:      #e2e8f0;
+      --text:        #1a2332;
+      --text2:       #4a5568;
+      --text3:       #94a3b8;
+      --purple:      #7b2d8b;
+      --purple-bg:   #f5edfa;
+      --success:     #16a34a;
+      --success-bg:  #f0fdf4;
+      --radius:      16px;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    * { box-sizing: border-box; }
 
-    body {
-      font-family: 'Heebo', Arial, sans-serif;
-      font-size: 15px;
-      line-height: 1.6;
-      color: var(--text-primary);
-      background: var(--bg);
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 24px 20px 60px;
-      min-height: 100vh;
-    }
+/* ── BASE ── */
+body {
+  font-family: 'Heebo', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+  min-height: 100vh;
+}
 
-    /* ── כותרת עליונה ── */
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid var(--border);
-    }
-    .top-bar h1 {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .back-btn {
-      background: none;
-      border: 1.5px solid var(--border);
-      color: var(--text-secondary);
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      width: auto;
-      margin: 0;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .back-btn:hover { background: var(--bg); border-color: var(--text-muted); transform: none; box-shadow: none; }
+/* ── TOP BAR (דפי פנים) ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+}
 
-    /* ── כרטיסים ── */
-    .card {
-      background: var(--surface);
-      padding: 24px;
-      border-radius: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-      border: 1px solid var(--border);
-    }
+.top-bar h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-    /* ── Landing ── */
-    .landing-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 12px;
-    }
-    .landing-card:first-child { grid-column: 1 / -1; }
-    @media (max-width: 580px) {
-      .landing-grid { grid-template-columns: 1fr; }
-      .landing-card:first-child { grid-column: auto; }
-    }
-    .landing-card {
-      background: var(--surface);
-      border-radius: 20px;
-      padding: 40px 28px 32px;
-      text-align: center;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      border: 1.5px solid var(--border);
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.18s;
-      position: relative;
-      overflow: hidden;
-    }
-    .landing-card::before {
-      content: '';
-      position: absolute;
-      top: 0; right: 0; left: 0;
-      height: 4px;
-      background: linear-gradient(90deg, var(--brand-teal), var(--brand-navy));
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .landing-card:hover {
-      border-color: var(--brand-teal);
-      box-shadow: 0 8px 28px rgba(42,181,200,0.18);
-      transform: translateY(-4px);
-    }
-    .landing-card:hover::before { opacity: 1; }
-    .landing-card .icon { font-size: 44px; margin-bottom: 16px; display: block; }
-    .landing-card h2 { color: var(--brand-navy); font-size: 20px; font-weight: 700; margin: 0 0 10px; }
-    .landing-card p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin: 0; }
+/* ── HEADER ראשי (דף נחיתה בלבד) ── */
+#page-landing .top-bar {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #2563a0 100%);
+  margin: 0 -16px 32px;
+  padding: 22px 32px 26px;
+  border-bottom: none;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
 
-    .landing-footer { text-align: center; margin-top: 24px; }
-    .landing-footer a {
-      color: var(--text-muted);
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .landing-footer a:hover { color: var(--brand-teal); background: var(--brand-teal-light); }
+#page-landing .top-bar::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(42,181,200,0.22) 0%, transparent 70%);
+  pointer-events: none;
+}
 
-    /* ── טפסים ── */
-    label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      display: block;
-      margin-bottom: 6px;
-      margin-top: 16px;
-      letter-spacing: 0.02em;
-    }
-    label:first-child { margin-top: 0; }
+#page-landing .top-bar h1 {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+}
 
-    textarea,
-    input[type="file"],
-    input[type="date"],
-    input[type="datetime-local"],
-    input[type="text"],
-    input[type="number"],
-    input[type="tel"],
-    select {
-      width: 100%;
-      min-width: 0;
-      padding: 11px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 15px;
-      font-family: 'Heebo', Arial, sans-serif;
-      color: var(--text-primary);
-      background: #fafbfc;
-      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-      margin-top: 6px;
-    }
-    textarea:focus,
-    input[type="text"]:focus,
-    input[type="date"]:focus,
-    input[type="datetime-local"]:focus,
-    input[type="number"]:focus,
-    input[type="tel"]:focus,
-    select:focus {
-      outline: none;
-      border-color: var(--brand-teal);
-      background: white;
-      box-shadow: 0 0 0 3px rgba(42,181,200,0.12);
-    }
-    textarea { resize: vertical; line-height: 1.7; }
+/* לוגו בתוך header */
+#page-landing .top-bar h1::before {
+  content: '';
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  background: url('/logo.png') center/contain no-repeat;
+  background-color: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 4px;
+  flex-shrink: 0;
+}
 
-    /* ── כפתורים ── */
-    button {
-      background: var(--brand-teal);
-      color: white;
-      padding: 13px 24px;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-      font-family: 'Heebo', Arial, sans-serif;
-      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-      letter-spacing: 0.01em;
-    }
-    button:hover:not(:disabled) {
-      background: var(--brand-teal-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(42,181,200,0.3);
-    }
-    button:active:not(:disabled) { transform: translateY(0); }
-    button:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
-    button.green { background: var(--success); }
-    button.green:hover:not(:disabled) { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
-    button.secondary {
-      background: white;
-      color: var(--brand-teal);
-      border: 1.5px solid var(--brand-teal);
-      box-shadow: none;
-    }
-    button.secondary:hover:not(:disabled) { background: var(--brand-teal-light); transform: translateY(-1px); box-shadow: none; }
+/* ── BACK BUTTON ── */
+.back-btn {
+  background: none;
+  border: 1.5px solid var(--border);
+  color: var(--text2);
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: auto;
+  margin: 0;
+  font-family: 'Heebo', Arial, sans-serif;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.back-btn:hover {
+  background: var(--bg);
+  border-color: var(--text3);
+  color: var(--text);
+  transform: none;
+  box-shadow: none;
+}
 
-    /* כפתור WhatsApp ראשי */
-    button[onclick="sendToMainGroup()"] {
-      background: linear-gradient(135deg, #25d366, #1da851);
-      font-size: 17px;
-      padding: 16px 28px;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(37,211,102,0.3);
-    }
-    button[onclick="sendToMainGroup()"]:hover:not(:disabled) {
-      background: linear-gradient(135deg, #1da851, #178a41);
-      box-shadow: 0 6px 20px rgba(37,211,102,0.4);
-    }
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  padding: 24px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
 
-    /* ── סטטוס העלאה ── */
-    .upload-status { font-size: 13px; margin-top: 6px; color: var(--text-muted); font-weight: 500; }
-    .upload-status.ok  { color: var(--success); }
-    .upload-status.err { color: var(--error); }
+/* כותרות בתוך cards */
+.card > h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  margin-top: 0;
+}
 
-    /* ── אפשרויות בחירה (ציטוטים / פתיחה) ── */
-    .quote-option, .opening-option {
-      padding: 14px 16px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      font-size: 15px;
-      line-height: 1.6;
-      color: var(--text-primary);
-      background: #fafbfc;
-      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-    }
-    .quote-option.selected,
-    .opening-option.selected {
-      border-color: var(--brand-teal);
-      background: var(--brand-teal-light);
-      box-shadow: 0 0 0 3px rgba(42,181,200,0.12);
-      font-weight: 500;
-    }
-    .quote-option:hover,
-    .opening-option:hover { border-color: var(--brand-teal); background: var(--brand-teal-light); }
+/* ── LANDING CARDS ── */
+.landing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
 
-    /* ── לוג ── */
-    #logs {
-      background: #0f1923;
-      color: #4ade80;
-      padding: 16px 20px;
-      border-radius: 10px;
-      font-family: 'Courier New', monospace;
-      min-height: 80px;
-      white-space: pre-line;
-      font-size: 13px;
-      line-height: 1.7;
-      border: 1px solid #1e2d3d;
-    }
+@media (max-width: 580px) {
+  .landing-grid { grid-template-columns: 1fr; }
+}
 
-    /* ── ניהול קבוצות ── */
-    .group-row {
-      display: grid;
-      grid-template-columns: 36px 1fr 1fr 90px;
-      gap: 12px;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .group-row:last-child { border-bottom: none; }
-    .group-row .group-num { font-weight: 700; color: var(--text-muted); text-align: center; font-size: 13px; }
-    .group-row input[type="text"] { padding: 7px 10px; font-size: 14px; margin-top: 0; }
-    .group-default-wrap { text-align: center; }
-    .group-default-wrap label {
-      font-weight: normal;
-      font-size: 13px;
-      color: var(--text-secondary);
-      display: block;
-      margin: 0;
-      letter-spacing: 0;
-      text-transform: none;
-    }
-    .group-default-wrap input[type="radio"] { width: auto; margin: 0 4px 0 0; }
-    .groups-header {
-      display: grid;
-      grid-template-columns: 36px 1fr 1fr 90px;
-      gap: 12px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--border);
-      margin-bottom: 4px;
-    }
+.landing-card {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 36px 24px 30px;
+  text-align: center;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.22s, box-shadow 0.22s, transform 0.22s;
+  position: relative;
+  overflow: hidden;
+}
 
-    /* ── עריכת מאמר ── */
-    .hidden { display: none !important; }
+.landing-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--teal), var(--navy));
+  opacity: 0;
+  transition: opacity 0.22s;
+}
 
-    /* ── approve box ── */
-    .approve-box {
-      background: var(--brand-teal-light);
-      border: 1.5px solid var(--brand-teal);
-      border-radius: 12px;
-      padding: 20px;
-      margin-top: 14px;
-    }
-    .approve-box p { margin: 0 0 12px; font-size: 15px; color: var(--brand-navy); font-weight: 500; }
+.landing-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 8px 32px rgba(42,181,200,0.18), 0 2px 8px rgba(0,0,0,0.06);
+  transform: translateY(-4px);
+}
 
-    /* ── שדות שורה ── */
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 500px) { .field-row { grid-template-columns: 1fr; } }
+.landing-card:hover::before { opacity: 1; }
+.landing-card:active { transform: translateY(-1px); }
 
-    /* ── WhatsApp send area ── */
-    .wa-result {
-      background: #f0fdf4;
-      border: 1.5px solid #86efac;
-      border-radius: 12px;
-      padding: 18px;
-      font-size: 15px;
-    }
-    .wa-result a { color: #15803d; font-weight: 600; }
+.landing-card .icon {
+  font-size: 42px;
+  margin-bottom: 18px;
+  display: block;
+  line-height: 1;
+}
 
-    /* ── אנימציית טעינה ── */
-    @keyframes spin { to { transform: rotate(360deg); } }
+.landing-card h2 {
+  color: var(--navy);
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
 
-    /* ── כרטיס בחירת רעיון ── */
-    .idea-card {
-      padding: 14px 16px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      font-size: 15px;
-      line-height: 1.6;
-      background: #fafbfc;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .idea-card:hover  { border-color: var(--purple); background: var(--purple-light); }
-    .idea-card.chosen {
-      border-color: var(--purple);
-      background: var(--purple-light);
-      box-shadow: 0 0 0 3px rgba(123,45,139,0.1);
-    }
-    .idea-card .idea-num { font-weight: 700; color: var(--purple); margin-left: 8px; }
+.landing-card p {
+  color: var(--text2);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
 
-    /* ── טאבים ── */
-    .tab-btn {
-      background: var(--bg);
-      color: var(--text-secondary);
-      border: 1.5px solid var(--border);
-      cursor: pointer;
-      width: auto;
-      font-family: 'Heebo', Arial, sans-serif;
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-    }
-    .tab-btn.active {
-      background: var(--brand-teal);
-      color: white;
-      border-color: var(--brand-teal);
-      box-shadow: 0 2px 8px rgba(42,181,200,0.3);
-    }
-    .tab-btn:hover:not(.active) {
-      background: var(--brand-teal-light);
-      border-color: var(--brand-teal);
-      color: var(--brand-teal);
-    }
+/* כרטיס ראשון (עריכת מאמר) – רוחב מלא */
+.landing-card:first-child {
+  grid-column: 1 / -1;
+  text-align: right;
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
 
-    /* ── היסטוריית מאמרים ── */
-    .article-history-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      border-radius: 8px;
-      transition: background 0.15s;
-      font-size: 14px;
-      color: var(--text-primary);
-    }
-    .article-history-item:hover { background: var(--brand-teal-light); }
-    .article-history-item:last-child { border-bottom: none; }
-    .article-history-meta { font-size: 12px; color: var(--text-muted); }
-    .article-history-del {
-      color: var(--error);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 15px;
-      width: auto;
-      padding: 4px 8px;
-      margin: 0;
-      border-radius: 6px;
-      transition: background 0.15s;
-    }
-    .article-history-del:hover { background: #fef2f2; transform: none; box-shadow: none; }
+.landing-card:first-child .icon {
+  font-size: 40px;
+  margin: 0;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--purple-bg), #ede0f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(123,45,139,0.18);
+}
 
-    /* ── h2 בכרטיסים ── */
-    .card h2 {
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 18px;
-      margin-top: 0;
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
+.landing-card:first-child h2 {
+  color: var(--purple);
+  margin-bottom: 6px;
+}
 
-    /* ── progress bar loading ── */
-    #editLoadingSection .card {
-      background: linear-gradient(135deg, #fafbff, white);
-      border: 1px solid var(--border);
-    }
+.landing-card:first-child::before {
+  background: linear-gradient(90deg, var(--purple), var(--navy));
+}
 
-    /* ── scrollbar עדין ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+.landing-card:first-child:hover {
+  border-color: var(--purple);
+  box-shadow: 0 8px 32px rgba(123,45,139,0.18);
+}
 
-    /* ── focus outline נגיש ── */
-    *:focus-visible { outline: 2px solid var(--brand-teal); outline-offset: 2px; }
+@media (max-width: 580px) {
+  .landing-card:first-child { grid-column: auto; flex-direction: column; text-align: center; }
+  .landing-card:first-child .icon { margin: 0 auto; }
+}
+
+/* footer link (ניהול קבוצות) */
+.landing-footer {
+  text-align: center;
+  margin-top: 16px;
+}
+.landing-footer a {
+  color: var(--text3);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  transition: all 0.15s;
+  display: inline-block;
+}
+.landing-footer a:hover {
+  color: var(--teal);
+  background: var(--teal-light);
+}
+
+/* ── FORMS ── */
+label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  display: block;
+  margin-bottom: 7px;
+  margin-top: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+label:first-child { margin-top: 0; }
+
+textarea,
+input[type="file"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="text"],
+input[type="number"],
+input[type="tel"],
+select {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: 'Heebo', Arial, sans-serif;
+  color: var(--text);
+  background: #fafbfc;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  margin-top: 0;
+}
+
+textarea:focus,
+input[type="text"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--teal);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(42,181,200,0.12);
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.7;
+  min-height: 200px;
+}
+
+/* ── BUTTONS ── */
+button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  color: white;
+  padding: 13px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 12px;
+  font-family: 'Heebo', Arial, sans-serif;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+  letter-spacing: 0.01em;
+  box-shadow: 0 3px 12px rgba(42,181,200,0.3);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(42,181,200,0.4);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: var(--text3);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ירוק */
+button.green {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 3px 12px rgba(34,197,94,0.3);
+}
+button.green:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(34,197,94,0.4);
+}
+
+/* secondary / ghost */
+button.secondary {
+  background: white;
+  color: var(--teal);
+  border: 1.5px solid var(--teal);
+  box-shadow: none;
+}
+button.secondary:hover:not(:disabled) {
+  background: var(--teal-light);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+/* כפתורי עריכה – purple */
+#page-edit button[style*="background:#7b2d8b"],
+#page-edit button[style*="background: #7b2d8b"],
+button[style*="background:#7b2d8b"] {
+  background: linear-gradient(135deg, #7b2d8b, #9b3dab) !important;
+  box-shadow: 0 3px 12px rgba(123,45,139,0.3);
+}
+button[style*="background:#7b2d8b"]:hover:not(:disabled),
+#page-edit button[style*="background:#7b2d8b"]:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(123,45,139,0.4) !important;
+}
+
+/* כפתור וואטסאפ */
+button[style*="background:#25d366"],
+button[onclick*="sendToMainGroup"] {
+  background: linear-gradient(135deg, #25d366, #1da851) !important;
+  box-shadow: 0 4px 18px rgba(37,211,102,0.35) !important;
+  font-size: 17px;
+  padding: 16px 28px;
+}
+button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
+  box-shadow: 0 8px 28px rgba(37,211,102,0.45) !important;
+}
+
+/* ── OPTION CARDS (ציטוטים / פתיחות) ── */
+.quote-option,
+.opening-option {
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1.6;
+  background: #fafbfc;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.quote-option:hover,
+.opening-option:hover {
+  border-color: var(--teal);
+  background: var(--teal-light);
+}
+
+.quote-option.selected,
+.opening-option.selected {
+  border-color: var(--teal);
+  background: var(--teal-light);
+  box-shadow: 0 0 0 3px rgba(42,181,200,0.12);
+  font-weight: 500;
+}
+
+/* ── IDEA CARDS ── */
+.idea-card {
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.6;
+  background: #fafbfc;
+  transition: all 0.15s;
+}
+
+.idea-card:hover {
+  border-color: var(--purple);
+  background: var(--purple-bg);
+}
+
+.idea-card .idea-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--purple-bg);
+  color: var(--purple);
+  font-size: 13px;
+  font-weight: 700;
+  margin-left: 10px;
+  vertical-align: middle;
+  transition: all 0.15s;
+}
+.idea-card:hover .idea-num {
+  background: var(--purple);
+  color: white;
+}
+
+/* ── UPLOAD STATUS ── */
+.upload-status { font-size: 13px; margin-top: 6px; color: var(--text3); font-weight: 500; }
+.upload-status.ok  { color: var(--success); }
+.upload-status.err { color: #dc2626; }
+
+/* ── LOG BOX ── */
+#logs {
+  background: #0f1923;
+  color: #4ade80;
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-family: 'Courier New', monospace;
+  min-height: 80px;
+  white-space: pre-line;
+  font-size: 13px;
+  line-height: 1.7;
+  border: 1px solid #1e2d3d;
+}
+
+/* ── APPROVE BOX ── */
+.approve-box {
+  background: var(--teal-light);
+  border: 1.5px solid var(--teal);
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 14px;
+}
+.approve-box p {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* ── WA RESULT ── */
+.wa-result {
+  background: var(--success-bg);
+  border: 1.5px solid #86efac;
+  border-radius: 14px;
+  padding: 18px;
+  font-size: 15px;
+}
+.wa-result a { color: #15803d; font-weight: 600; }
+
+/* ── GROUPS ── */
+.group-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.group-row:last-child { border-bottom: none; }
+
+.group-row .group-num {
+  font-weight: 700;
+  color: var(--text3);
+  text-align: center;
+  font-size: 13px;
+}
+
+.group-row input[type="text"] {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.group-default-wrap {
+  text-align: center;
+}
+.group-default-wrap label {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.group-default-wrap input[type="radio"] {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.groups-header {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr 90px;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 4px;
+}
+
+/* ── ARTICLE HISTORY ── */
+.article-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+  font-size: 14px;
+  color: var(--text);
+}
+.article-history-item:hover { background: var(--teal-light); }
+.article-history-item:last-child { border-bottom: none; }
+.article-history-meta { font-size: 12px; color: var(--text3); }
+.article-history-del {
+  color: #dc2626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  width: auto;
+  padding: 4px 8px;
+  margin: 0;
+  border-radius: 6px;
+  transition: background 0.15s;
+  box-shadow: none;
+}
+.article-history-del:hover { background: #fef2f2; transform: none; box-shadow: none; }
+
+/* ── TABS ── */
+.tab-btn {
+  background: var(--bg);
+  color: var(--text2);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  width: auto;
+  font-family: 'Heebo', Arial, sans-serif;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+  margin-top: 0;
+  transition: all 0.15s;
+}
+.tab-btn.active {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(42,181,200,0.3);
+}
+.tab-btn:hover:not(.active) {
+  background: var(--teal-light);
+  border-color: var(--teal);
+  color: var(--teal);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── FIELD ROW ── */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 500px) { .field-row { grid-template-columns: 1fr; } }
+
+/* ── LOADING SECTION ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#editLoadingSection .card {
+  text-align: center;
+  padding: 40px 28px;
+  background: linear-gradient(135deg, #fafbff, white);
+}
+
+#editProgressBar {
+  background: linear-gradient(90deg, var(--teal), var(--navy)) !important;
+  border-radius: 8px;
+}
+
+#editLoadingStage {
+  color: var(--purple);
+  font-size: 17px;
+  font-weight: 700;
+  margin: 18px 0 6px;
+}
+
+#editLoadingNote {
+  color: var(--text3);
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+/* ── DROP ZONE (חוברת) ── */
+[style*="dashed"] {
+  transition: border-color 0.2s, background 0.2s;
+}
+[style*="dashed"]:hover {
+  border-color: var(--teal) !important;
+  background: var(--teal-light) !important;
+}
+
+/* ── BOOKLET RESULT ── */
+#bookletResult {
+  background: var(--success-bg) !important;
+  border-radius: 14px !important;
+  border: 1.5px solid #86efac !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* ── FOCUS VISIBLE ── */
+*:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* ── HIDDEN ── */
+.hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -451,14 +717,20 @@
 ═══════════════════════════════════════════════════ -->
 <div id="page-landing">
   <div class="top-bar">
-    <h1>🗞️ מערכת פרסום תוכן</h1>
+    <h1>
+      <img src="/logo.png" style="height:34px;width:auto;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;vertical-align:middle" alt="לוגו">
+      מערכת פרסום תוכן
+    </h1>
   </div>
 
   <div class="landing-grid">
     <div class="landing-card" onclick="showPage('page-edit')">
       <div class="icon">✏️</div>
-      <h2>עריכת מאמר</h2>
-      <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
+      <div>
+        <h2>עריכת מאמר</h2>
+        <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
+      </div>
+      <span style="font-size:20px;color:var(--text3);flex-shrink:0;transition:transform 0.2s">←</span>
     </div>
     <div class="landing-card admin-only" onclick="showPage('page-upload')">
       <div class="icon">📤</div>
