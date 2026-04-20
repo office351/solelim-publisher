@@ -6,4 +6,5 @@ uploads/
 *.wav
 .claude/
 articles.json
+whatsapp-groups.json
 public/generated/
