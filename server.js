@@ -876,13 +876,13 @@ Goal: Generate TWO prompts of the SAME concept in two different visual styles.
 
 ---
 
-## CONCEPT BREAKDOWN (before writing prompts)
+## CONCEPT BREAKDOWN (internal — do NOT output this, use it only to guide your writing)
 
-Define:
-- CORE SYMBOL: The central symbolic element (e.g., glowing Star of David, IDF soldier, open Torah scroll, roaring lion)
-- SUPPORTING ELEMENTS: 1–2 secondary elements that deepen the meaning
-- ATMOSPHERE: Lighting and mood (e.g., golden dramatic backlight, dark with fire glow, stormy sky with rays breaking through)
-- FIGURE (if any): Describe specifically — e.g., IDF soldier in uniform, silhouette of a man, elderly hands holding a book
+Before writing the prompts, mentally decide:
+- CORE SYMBOL: The central symbolic element
+- SUPPORTING ELEMENTS: 1–2 secondary elements
+- ATMOSPHERE: Lighting and mood
+- FIGURE (if any): Described specifically
 
 ## FLAG — DEFAULT RULE
 
@@ -965,16 +965,20 @@ async function expandToTwoPrompts(idea) {
           { role: 'system', content: VISUAL_SYSTEM_PROMPT },
           { role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }
         ],
-        max_tokens: 1200 },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
+        max_tokens: 2000 },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 45000 }
     );
     const text = result.data.choices[0].message.content;
+    addLog(`פרומפטים שנוצרו (${text.length} תווים)`);
     const promptAMatch = text.match(/Prompt A:\s*([\s\S]+?)(?=\n\s*Prompt B:|$)/i);
     const promptBMatch = text.match(/Prompt B:\s*([\s\S]+?)$/i);
+    if (!promptAMatch) addLog('⚠️ לא נמצא Prompt A בפלט GPT — משתמש בפולבק');
+    if (!promptBMatch) addLog('⚠️ לא נמצא Prompt B בפלט GPT — משתמש בפולבק');
     const promptA = (promptAMatch ? promptAMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
     const promptB = (promptBMatch ? promptBMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
     return { promptA, promptB };
   } catch (e) {
+    addLog(`⚠️ expandToTwoPrompts נכשל: ${e.message} — משתמש בפולבק`);
     const fallback = idea + DALL_E_STYLE_SUFFIX;
     return { promptA: fallback, promptB: fallback };
   }
