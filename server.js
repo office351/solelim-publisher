@@ -135,7 +135,7 @@ app.post('/edit-stage1', (req, res) => {
         'https://api.anthropic.com/v1/messages',
         { model: 'claude-haiku-4-5-20251001', max_tokens: 4000, system: PROOFREADING_SYSTEM,
           messages: [{ role: 'user', content: text }] },
-        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 180000 }
+        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
       );
       const correctedText = proofRes.data.content[0].text.trim();
       let allLines = correctedText.split('\n');

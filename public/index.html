@@ -1685,20 +1685,42 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       }
       const jobId = startResp.jobId;
 
-      // polling עד שהשרת מסיים (מקסימום 3 דקות)
+      // polling עד שהשרת מסיים (מקסימום 2 דקות)
       let data1;
-      const pollDeadline = Date.now() + 3 * 60 * 1000;
+      const pollStart    = Date.now();
+      const pollDeadline = pollStart + 2 * 60 * 1000;
+      const stageEl      = document.getElementById('editLoadingStage');
+      let pollErrors     = 0;
+
       while (true) {
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2500));
+
+        // עדכון טיימר גלוי
+        const elapsed = Math.round((Date.now() - pollStart) / 1000);
+        if (stageEl) stageEl.textContent = `מגיה טקסט… (${elapsed} שניות)`;
+
         if (Date.now() > pollDeadline) {
           stopEditLoading(false);
           btn.style.display = ''; btn.disabled = false;
-          alert('ההגהה לקחה יותר מדי זמן — נסה מאמר קצר יותר.');
+          alert('ההגהה לקחה יותר מ-2 דקות — השרת עלול להיות עמוס. נסה שוב.');
           return;
         }
-        const pollRes = await fetch(`/edit-poll/${jobId}`);
-        const poll = await pollRes.json();
-        if (poll.done) { data1 = poll; break; }
+
+        try {
+          const pollRes = await fetch(`/edit-poll/${jobId}`);
+          if (!pollRes.ok) throw new Error(`HTTP ${pollRes.status}`);
+          const poll = await pollRes.json();
+          pollErrors = 0;
+          if (poll.done) { data1 = poll; break; }
+        } catch (pollErr) {
+          pollErrors++;
+          if (pollErrors >= 4) {
+            stopEditLoading(false);
+            btn.style.display = ''; btn.disabled = false;
+            alert('בעיית תקשורת עם השרת בזמן ההגהה — נסה שוב.');
+            return;
+          }
+        }
       }
 
       if (!data1.success) {
