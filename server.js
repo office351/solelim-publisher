@@ -884,10 +884,10 @@ Define:
 - ATMOSPHERE: Lighting and mood (e.g., golden dramatic backlight, dark with fire glow, stormy sky with rays breaking through)
 - FIGURE (if any): Describe specifically — e.g., IDF soldier in uniform, silhouette of a man, elderly hands holding a book
 
-## ISRAELI FLAG — VISUAL DESCRIPTION RULE
+## FLAG — DEFAULT RULE
 
-When the Israeli flag appears in the concept, NEVER write only "Israeli flag."
-Always describe it visually:
+Whenever a flag appears in the concept — unless explicitly stated otherwise — it is the Israeli flag.
+Always describe it visually, never just by name:
 "a white flag with two horizontal blue stripes — one near the top and one near the bottom — and a blue six-pointed Star of David in the center, waving in the wind"
 This ensures accurate rendering.
 
