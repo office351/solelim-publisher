@@ -125,19 +125,47 @@ app.post('/edit-stage1', (req, res) => {
   if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
   const jobId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  editJobs.set(jobId, { status: 'pending', createdAt: Date.now() });
+  editJobs.set(jobId, { status: 'pending', createdAt: Date.now(), progress: '' });
   res.json({ success: true, jobId }); // חוזר מיד ללקוח
 
   // עבודה ברקע – ללא מגבלת זמן HTTP
   (async () => {
     try {
-      const proofRes = await axios.post(
-        'https://api.anthropic.com/v1/messages',
-        { model: 'claude-haiku-4-5-20251001', max_tokens: 4000, system: PROOFREADING_SYSTEM,
-          messages: [{ role: 'user', content: text }] },
-        { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
-      );
-      const correctedText = proofRes.data.content[0].text.trim();
+      // פיצול לחלקים לפי פסקאות — כל חלק עד 2500 תווים
+      const CHUNK_SIZE = 2500;
+      const lines = text.split('\n');
+      const chunks = [];
+      let current = [];
+      let currentLen = 0;
+
+      for (const line of lines) {
+        const lineLen = line.length + 1;
+        // אם הוספת השורה תחרוג מהגבול וכבר יש תוכן — שמור חלק וצור חדש
+        if (currentLen + lineLen > CHUNK_SIZE && current.length > 0) {
+          chunks.push(current.join('\n'));
+          current = [];
+          currentLen = 0;
+        }
+        current.push(line);
+        currentLen += lineLen;
+      }
+      if (current.length > 0) chunks.push(current.join('\n'));
+
+      // הגהה לכל חלק בנפרד (סדרתי כדי לא לעמוס)
+      const proofedChunks = [];
+      for (let ci = 0; ci < chunks.length; ci++) {
+        const chunk = chunks[ci];
+        editJobs.set(jobId, { ...editJobs.get(jobId), progress: `מגיה חלק ${ci + 1} מתוך ${chunks.length}…` });
+        const proofRes = await axios.post(
+          'https://api.anthropic.com/v1/messages',
+          { model: 'claude-haiku-4-5-20251001', max_tokens: 3000, system: PROOFREADING_SYSTEM,
+            messages: [{ role: 'user', content: chunk }] },
+          { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 60000 }
+        );
+        proofedChunks.push(proofRes.data.content[0].text.trim());
+      }
+
+      const correctedText = proofedChunks.join('\n');
       let allLines = correctedText.split('\n');
       const firstLine = allLines[0];
       const slashIdx = firstLine.search(/[/|\\]/);
@@ -189,7 +217,7 @@ app.post('/edit-stage1', (req, res) => {
 // בדיקת סטטוס משימת הגהה
 app.get('/edit-poll/:jobId', (req, res) => {
   const job = editJobs.get(req.params.jobId);
-  if (!job || job.status === 'pending') return res.json({ done: false });
+  if (!job || job.status === 'pending') return res.json({ done: false, progress: job?.progress || '' });
   editJobs.delete(req.params.jobId);
   res.json({ done: true, ...job.data });
 });

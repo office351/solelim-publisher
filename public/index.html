@@ -1711,6 +1711,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           if (!pollRes.ok) throw new Error(`HTTP ${pollRes.status}`);
           const poll = await pollRes.json();
           pollErrors = 0;
+          if (stageEl && poll.progress) stageEl.textContent = `${poll.progress} (${elapsed} שנ')`;
           if (poll.done) { data1 = poll; break; }
         } catch (pollErr) {
           pollErrors++;
