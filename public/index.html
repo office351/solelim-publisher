@@ -2365,6 +2365,8 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   let uploadedMediaId = null;
   let buzzsproutEpisodeId = '';
   let buzzsproutPodcastId = '';
+  let pendingImageFile = null;
+  let pendingAudioFile = null;
 
   document.getElementById('publishDate').value = new Date().toISOString().slice(0, 10);
 
@@ -2380,57 +2382,25 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     el.innerHTML = logs.map(l => `[${new Date(l.time).toLocaleTimeString('he-IL')}] ${l.message}`).join('\n');
   }
 
-  async function uploadImageNow(input) {
-    const file = input.files[0];
-    if (!file) return;
+  function uploadImageNow(input) {
+    pendingImageFile = input.files[0] || null;
     const status = document.getElementById('imageStatus');
-    status.className = 'upload-status';
-    status.textContent = 'מעלה תמונה לוורדפרס...';
-    const formData = new FormData();
-    formData.append('image', file);
-    try {
-      const res = await fetch('/upload-image', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.success) {
-        uploadedMediaId = data.mediaId;
-        status.className = 'upload-status ok';
-        status.textContent = '✓ תמונה הועלתה בהצלחה';
-      } else {
-        status.className = 'upload-status err';
-        status.textContent = 'שגיאה: ' + data.error;
-      }
-    } catch (e) {
-      status.className = 'upload-status err';
-      status.textContent = 'שגיאה: ' + e.message;
+    if (pendingImageFile) {
+      status.className = 'upload-status ok';
+      status.textContent = `✓ תמונה נבחרה: ${pendingImageFile.name} — תועלה בלחיצה על "עבד מאמר"`;
+    } else {
+      status.textContent = '';
     }
   }
 
-  async function uploadAudioNow(input) {
-    const file = input.files[0];
-    if (!file) return;
+  function uploadAudioNow(input) {
+    pendingAudioFile = input.files[0] || null;
     const status = document.getElementById('audioStatus');
-    status.className = 'upload-status';
-    status.textContent = 'מעלה אודיו ל-Buzzsprout...';
-    const formData = new FormData();
-    formData.append('audio', file);
-    try {
-      const res = await fetch('/upload-audio', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.success) {
-        uploadedAudioUrl = data.audioData?.audio_url || '';
-        buzzsproutEpisodeId = String(data.audioData?.id || '');
-        buzzsproutPodcastId = data.podcastId || '';
-        // מילוי אוטומטי של שדה קישור האודיו
-        if (uploadedAudioUrl) document.getElementById('audioUrl').value = uploadedAudioUrl;
-        status.className = 'upload-status ok';
-        status.textContent = '✓ אודיו הועלה בהצלחה';
-      } else {
-        status.className = 'upload-status err';
-        status.textContent = 'שגיאה: ' + data.error;
-      }
-    } catch (e) {
-      status.className = 'upload-status err';
-      status.textContent = 'שגיאה: ' + e.message;
+    if (pendingAudioFile) {
+      status.className = 'upload-status ok';
+      status.textContent = `✓ אודיו נבחר: ${pendingAudioFile.name} — יועלה בלחיצה על "עבד מאמר"`;
+    } else {
+      status.textContent = '';
     }
   }
 
@@ -2507,6 +2477,59 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     btn.disabled = true;
     btn.textContent = 'מעבד...';
     document.getElementById('logs').innerHTML = 'מתחיל עיבוד...';
+
+    // העלאת תמונה אם נבחרה
+    if (pendingImageFile) {
+      const imgStatus = document.getElementById('imageStatus');
+      imgStatus.className = 'upload-status';
+      imgStatus.textContent = 'מעלה תמונה לוורדפרס...';
+      try {
+        const fd = new FormData();
+        fd.append('image', pendingImageFile);
+        const r = await fetch('/upload-image', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.success) {
+          uploadedMediaId = d.mediaId;
+          imgStatus.className = 'upload-status ok';
+          imgStatus.textContent = '✓ תמונה הועלתה בהצלחה';
+        } else {
+          imgStatus.className = 'upload-status err';
+          imgStatus.textContent = 'שגיאה בהעלאת תמונה: ' + d.error;
+        }
+      } catch(e) {
+        document.getElementById('imageStatus').className = 'upload-status err';
+        document.getElementById('imageStatus').textContent = 'שגיאה: ' + e.message;
+      }
+      pendingImageFile = null;
+    }
+
+    // העלאת אודיו אם נבחר
+    if (pendingAudioFile) {
+      const audStatus = document.getElementById('audioStatus');
+      audStatus.className = 'upload-status';
+      audStatus.textContent = 'מעלה אודיו ל-Buzzsprout...';
+      try {
+        const fd = new FormData();
+        fd.append('audio', pendingAudioFile);
+        const r = await fetch('/upload-audio', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.success) {
+          uploadedAudioUrl = d.audioData?.audio_url || '';
+          buzzsproutEpisodeId = String(d.audioData?.id || '');
+          buzzsproutPodcastId = d.podcastId || '';
+          if (uploadedAudioUrl) document.getElementById('audioUrl').value = uploadedAudioUrl;
+          audStatus.className = 'upload-status ok';
+          audStatus.textContent = '✓ אודיו הועלה בהצלחה';
+        } else {
+          audStatus.className = 'upload-status err';
+          audStatus.textContent = 'שגיאה בהעלאת אודיו: ' + d.error;
+        }
+      } catch(e) {
+        document.getElementById('audioStatus').className = 'upload-status err';
+        document.getElementById('audioStatus').textContent = 'שגיאה: ' + e.message;
+      }
+      pendingAudioFile = null;
+    }
 
     const formData = new FormData();
     formData.append('text', text);
