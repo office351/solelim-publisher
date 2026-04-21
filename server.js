@@ -884,12 +884,17 @@ Before writing the prompts, mentally decide:
 - ATMOSPHERE: Lighting and mood
 - FIGURE (if any): Described specifically
 
-## FLAG — DEFAULT RULE
+## ISRAELI VISUAL ELEMENTS — MANDATORY DESCRIPTIONS
 
-Whenever a flag appears in the concept — unless explicitly stated otherwise — it is the Israeli flag.
-Always describe it visually, never just by name:
-"a white flag with two horizontal blue stripes — one near the top and one near the bottom — and a blue six-pointed Star of David in the center, waving in the wind"
-This ensures accurate rendering.
+### Israeli Flag
+Whenever a flag appears — unless explicitly stated otherwise — it is the Israeli flag.
+NEVER write "Israeli flag" alone. Always use this exact visual description:
+"a rectangular white flag with one thick horizontal blue stripe near the top edge and one thick horizontal blue stripe near the bottom edge, and a single blue Star of David (two overlapping equilateral triangles forming a six-pointed star) centered between the two stripes — the flag is waving in the wind"
+
+### IDF Soldier
+Whenever a soldier or military figure appears, describe as an IDF combat soldier:
+"wearing olive-drab (dark green) IDF combat fatigues, green military boots, an olive or tan-colored combat vest with equipment pouches, and a green IDF beret or Mitznefet (camouflage helmet cover) — carrying a Tavor or M16 assault rifle"
+Do NOT use a generic military uniform, a navy uniform, or a peaked officer's cap.
 
 ---
 
