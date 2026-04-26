@@ -207,6 +207,17 @@ body {
 .landing-card:first-child::before { background: linear-gradient(90deg, var(--purple), var(--navy)); }
 .landing-card:first-child:hover { border-color: var(--purple); box-shadow: 0 8px 32px rgba(123,45,139,0.18); }
 
+/* תצוגת השוואה עברית/אנגלית */
+.en-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (max-width: 680px) {
+  .en-compare-grid { grid-template-columns: 1fr; }
+}
+
 /* footer link (ניהול קבוצות) */
 .landing-footer {
   text-align: center;
@@ -751,7 +762,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <p>העלאת קובץ PDF ופרסום אוטומטי לוורדפרס עם כל ההגדרות הקבועות</p>
     </div>
     <div class="landing-card english-only" onclick="showPage('page-upload-en')">
-      <div class="icon" style="font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">🇺🇸</div>
+      <div class="icon"><span style="display:inline-block;background:linear-gradient(180deg,#B22234 40%,#fff 40%,#fff 60%,#3C3B6E 60%);color:#fff;font-size:15px;font-weight:900;width:52px;height:36px;line-height:36px;border-radius:7px;text-align:center;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,0.18);font-family:Arial,sans-serif">EN</span></div>
       <h2>English Article</h2>
       <p>Process &amp; publish an English article — AI analysis, TTS audio, WordPress upload</p>
     </div>
@@ -2862,36 +2873,104 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 ═══════════════════════════════════════════════════ -->
 <div id="page-upload-en" class="hidden">
   <div class="top-bar">
-    <h1>🇺🇸 English Article Upload</h1>
+    <h1>🌐 English Article Upload</h1>
     <button class="back-btn" onclick="showPage('page-landing')">← Back</button>
   </div>
 
-  <!-- Step 1 -->
-  <div id="en-step1">
-    <div class="card">
-      <label>Article Text:</label>
-      <textarea id="enArticleText" style="min-height:180px" placeholder="Paste article text here...&#10;First line: Title / Author Name (phone)"></textarea>
+  <!-- Step 0: Translation / Entry -->
+  <div id="en-step0">
+
+    <!-- Mode tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="enTabTranslate" onclick="setEnTab('translate')"
+        style="flex:1;padding:10px;border:2px solid var(--navy);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--navy);color:#fff;transition:all 0.2s">
+        🔄 Translate from Hebrew
+      </button>
+      <button id="enTabDirect" onclick="setEnTab('direct')"
+        style="flex:1;padding:10px;border:2px solid var(--border);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:var(--text2);transition:all 0.2s">
+        📝 Paste English directly
+      </button>
     </div>
 
-    <div class="card">
+    <!-- Translate mode -->
+    <div id="enModeTranslate">
+      <div class="card">
+        <label>Hebrew Article:</label>
+        <textarea id="enHebrewInput" dir="rtl" style="min-height:160px;font-size:14px;direction:rtl"
+          placeholder="הדבק כאן את המאמר העברי כולל כותרת, שם הכותב, מספר טלפון, קישורים וחתימה..."></textarea>
+      </div>
+      <button onclick="translateArticle()" id="enTranslateBtn"
+        style="width:100%;padding:12px;background:var(--teal-dark);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">
+        🔄 Translate to English
+      </button>
+      <div id="enTranslateLoading" class="hidden" style="text-align:center;color:#666;padding:12px;font-size:14px;background:#f5f5f5;border-radius:8px;margin-bottom:10px">⏳ Translating with AI...</div>
+
+      <!-- Side-by-side -->
+      <div id="enTranslateResult" class="hidden">
+        <div class="en-compare-grid">
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--navy)">🌐 English — edit if needed:</label>
+            <textarea id="enTranslatedTextarea" dir="ltr"
+              style="width:100%;min-height:340px;padding:10px;border:1.5px solid var(--teal);border-radius:8px;font-size:13px;line-height:1.7;font-family:Georgia,serif;box-sizing:border-box;margin-top:6px;resize:vertical"></textarea>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--text2)">🇮🇱 Hebrew — original:</label>
+            <textarea id="enHebrewDisplay" dir="rtl" readonly
+              style="width:100%;min-height:340px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;line-height:1.7;background:#f8f8f8;box-sizing:border-box;margin-top:6px;resize:vertical;color:var(--text2)"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button onclick="copyEnglishForWhatsApp()" id="enCopyWaBtn"
+            style="padding:9px 18px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+            📋 Copy English text
+          </button>
+          <button onclick="retranslate()"
+            style="padding:9px 18px;background:#f0f0f0;color:var(--text);border:none;border-radius:8px;font-size:13px;cursor:pointer">
+            🔄 Translate again
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Direct paste mode -->
+    <div id="enModeDirect" class="hidden">
+      <div class="card">
+        <label>English Article Text:</label>
+        <textarea id="enArticleText" style="min-height:180px" placeholder="Paste article text here...&#10;First line: Title / Author Name (phone)"></textarea>
+      </div>
+    </div>
+
+    <!-- Shared: image + date + continue -->
+    <div class="card" style="margin-top:16px">
       <label>Featured Image:</label>
       <input type="file" id="enImageFile" accept="image/*" onchange="uploadEnImageNow(this)">
       <p class="upload-status" id="enImageStatus"></p>
     </div>
-
     <div class="card">
       <label>Publish Date &amp; Time:</label>
       <input type="datetime-local" id="enPublishDate">
     </div>
 
-    <button onclick="startProcessEn()" id="enProcessBtn" style="width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px">
-      Process Article ➜
+    <div id="enLogs1" style="margin-top:8px"></div>
+
+    <button onclick="continueFromTranslation()" id="enContinueBtn"
+      style="width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px">
+      Continue to editing ➜
     </button>
-    <div id="enLogs1" style="margin-top:12px"></div>
   </div>
 
   <!-- Step 2 -->
   <div id="en-step2" class="hidden">
+
+    <!-- WhatsApp text recovery -->
+    <div style="margin-bottom:14px;padding:11px 14px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <span style="font-size:13px;color:#2e7d32;font-weight:600">📱 Need the WhatsApp-formatted text?</span>
+      <button onclick="copyEnglishForWhatsApp()"
+        style="padding:7px 16px;background:#25d366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+        📋 Copy English text
+      </button>
+    </div>
+
     <div class="card">
       <label>Title:</label>
       <input id="enTitleField" type="text" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box">
@@ -2967,6 +3046,79 @@ let enBuzzsproutId    = '';
 let enBuzzsproutPodId = '';
 let enAudioUrl        = '';
 let enMp3Blob         = null;
+let enWhatsAppText    = '';   // English WhatsApp-ready text (from translation)
+let enCurrentTab      = 'translate';
+
+/* ── Mode tabs ── */
+function setEnTab(tab) {
+  enCurrentTab = tab;
+  const isTranslate = tab === 'translate';
+  document.getElementById('enModeTranslate').classList.toggle('hidden', !isTranslate);
+  document.getElementById('enModeDirect').classList.toggle('hidden', isTranslate);
+  const tBtn = document.getElementById('enTabTranslate');
+  const dBtn = document.getElementById('enTabDirect');
+  tBtn.style.background = isTranslate ? 'var(--navy)' : '#fff';
+  tBtn.style.color      = isTranslate ? '#fff' : 'var(--text2)';
+  tBtn.style.borderColor= isTranslate ? 'var(--navy)' : 'var(--border)';
+  dBtn.style.background = isTranslate ? '#fff' : 'var(--navy)';
+  dBtn.style.color      = isTranslate ? 'var(--text2)' : '#fff';
+  dBtn.style.borderColor= isTranslate ? 'var(--border)' : 'var(--navy)';
+}
+
+/* ── Translation ── */
+async function translateArticle() {
+  const text = document.getElementById('enHebrewInput').value.trim();
+  if (!text) { alert('אנא הדבק את המאמר העברי'); return; }
+  const btn = document.getElementById('enTranslateBtn');
+  btn.disabled = true;
+  document.getElementById('enTranslateLoading').classList.remove('hidden');
+  document.getElementById('enTranslateResult').classList.add('hidden');
+  try {
+    const res  = await fetch('/translate-en', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
+    const data = await res.json();
+    if (!data.success) { alert('Translation error: ' + data.error); return; }
+    enWhatsAppText = data.translated;
+    document.getElementById('enTranslatedTextarea').value = data.translated;
+    document.getElementById('enHebrewDisplay').value      = text;
+    document.getElementById('enTranslateResult').classList.remove('hidden');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('enTranslateLoading').classList.add('hidden');
+  }
+}
+
+function retranslate() {
+  document.getElementById('enTranslateResult').classList.add('hidden');
+  document.getElementById('enHebrewInput').scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ── Copy WhatsApp text ── */
+function copyEnglishForWhatsApp() {
+  const text = (enCurrentTab === 'translate'
+    ? document.getElementById('enTranslatedTextarea')?.value
+    : null) || enWhatsAppText;
+  if (!text) { alert('No English text to copy yet'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('enCopyWaBtn');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✅ Copied!'; setTimeout(() => btn.textContent = orig, 2000); }
+  });
+}
+
+/* ── Continue from translation → auto-process ── */
+async function continueFromTranslation() {
+  let articleText = '';
+  if (enCurrentTab === 'translate') {
+    articleText = document.getElementById('enTranslatedTextarea').value.trim();
+    if (!articleText) { alert('Please translate the article first'); return; }
+    enWhatsAppText = articleText;
+  } else {
+    articleText = document.getElementById('enArticleText').value.trim();
+    if (!articleText) { alert('Please paste the article text'); return; }
+  }
+  await startProcessEn(articleText);
+}
 
 // Build WordPress HTML for English articles: each paragraph wrapped in <p dir="ltr">
 // with blockquote pull-quotes inserted at ~1/3 and ~2/3 of the article.
@@ -3056,12 +3208,12 @@ async function uploadEnImageNow(input) {
   }
 }
 
-async function startProcessEn() {
-  const text = document.getElementById('enArticleText').value;
+async function startProcessEn(textOverride) {
+  const text = textOverride || document.getElementById('enArticleText')?.value || '';
   if (!text.trim()) { alert('Please enter article text'); return; }
-  const btn = document.getElementById('enProcessBtn');
-  btn.disabled = true; btn.textContent = 'Processing...';
-  document.getElementById('enLogs1').innerHTML = 'Processing...';
+  const btn = document.getElementById('enContinueBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
+  document.getElementById('enLogs1').innerHTML = '<span style="color:#666">⏳ Analyzing article...</span>';
   try {
     const res  = await fetch('/process-en', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
     const data = await res.json();
@@ -3118,11 +3270,12 @@ async function startProcessEn() {
       quoteCont.appendChild(card);
     });
 
-    document.getElementById('en-step1').classList.add('hidden');
+    document.getElementById('en-step0').classList.add('hidden');
     document.getElementById('en-step2').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e) {
     alert('Error: ' + e.message);
-    btn.disabled = false; btn.textContent = 'Process Article ➜';
+    if (btn) { btn.disabled = false; btn.textContent = 'Continue to editing ➜'; }
   }
 }
 

@@ -1314,6 +1314,62 @@ app.get('/recent-images', requireAdmin, (req, res) => {
 
 // ─── English Article Feature ─────────────────────────────────────────────────
 
+const EN_TRANSLATION_SYSTEM = `You are a professional Hebrew-to-English translator specializing in Israeli political and cultural commentary for an English-speaking audience.
+
+Translate the Hebrew WhatsApp article below to English with these EXACT rules:
+
+1. FIRST LINE: Keep "Title / Author Name" format. If a phone number appears in parentheses after the author name, rewrite as: Name (For comments: NUMBER). Example: "Signs in Jerusalem / Yaakov Cohen (For comments: 050-1234567)"
+
+2. SECTION LETTERS: Convert Hebrew letters to English — א→A, ב→B, ג→C, ד→D, ה→E, ו→F, ז→G, ח→H, ט→I, י→J, כ→K, ל→L
+
+3. BOLD: Keep asterisks as-is — *bold text* stays *bold text*
+
+4. LINKS & FOOTER: Replace ALL website links, WhatsApp group links, and sign-off lines at the end with exactly these (preserve blank lines before and after the links block):
+
+For more articles: www.solelim-derech.co.il
+
+To join the group: https://chat.whatsapp.com/LD5QhFlalkRDTbC3Y49QAt
+
+path pavers
+
+5. QUALITY: Write natural, flowing English — maintain the rhetorical style, persuasive tone, and literary quality of the original. Do not translate word-for-word.
+
+6. SPACING: Preserve blank lines between paragraphs and sections exactly as in the original.
+
+Return ONLY the translated text. No explanations, no preamble, no markdown.`;
+
+// תרגום מאמר עברי לאנגלית
+app.post('/translate-en', requireAdminOrEnglish, express.json(), async (req, res) => {
+  logs = [];
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ success: false, error: 'Text required' });
+    addLog('Translating Hebrew article to English...');
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: EN_TRANSLATION_SYSTEM,
+        messages: [{ role: 'user', content: text.trim() }]
+      },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        }
+      }
+    );
+    const translated = response.data.content[0].text.trim();
+    addLog('Translation complete');
+    res.json({ success: true, translated, logs });
+  } catch (e) {
+    addLog(`Translation error: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message, logs });
+  }
+});
+
 const ENGLISH_AUTHORS = ['Itay Asman', 'Ben Yakov Sabo', 'Udi Ben Hamu'];
 
 const HEBREW_TAGS_LIST = 'ימין ושמאל, דיפ סטייט, אליטות, מוצש וזכויותיהם של ישראל, גבורה, הפרוגרס, עסקת חטופים, מלחמת זהות, מלחמה, אחדות בעם ישראל, גיוס חרדים, ראש הממשלה, תקשורת, חירות מחשבה, תודעה היסטורית, תפיסות ביטחוניות, יהדות במרחב הציבורי, היסטוריה, חטופים, השב״כ, מערכת המשפט, מערכת הביטחון, מחאות קפלן, אחריות לאומית, החברה החרדית, הרבעון הרביעי, דמוקרטיה, הנהגת המדינה, עיצוב תודעה, מחנה הימין, שליטה במקורות הכוח, תפיסות מוסריות, חירות, מנהיגות צבאית, ממשלה ואחריות, דתיים לאומיים, אחים לנשק, נפתלי בנט, דת ומדינה, ציבוריות וצבא, מוסר, אהוד ברק, מדיניות ציבורית, הרמטכ"ל, אסלאם, היועמשית, משפחות החטופים, טראמפ, ליברליזם, ציונות דתית, תורת הרב קוק, רפורמה משפטית, עולם התורה, משפחות שכולות, קצר לפני שבת, תודעה ציבורית, בית המשפט, עברית, נבחרי ציבור, הסכמי אוסלו, תורת ישראל, עיתון הארץ, עופר וינטר, הנהגה יהודית, ערכים לאומיים, מלחמת תרבות, עוצמה לאומית, חינוך לערכים, חנוכה, הקונספציה, שנאה, טרור, חזון, ערוץ 14, עיצוב זיכרון לאומי, זיכרון ותקומה, פוסטמודרניזם, השתקה, רוח צה"ל, מקצועיות בצבא, קבוצת השתייכות, אסטרטגיה';
