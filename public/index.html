@@ -751,7 +751,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <p>העלאת קובץ PDF ופרסום אוטומטי לוורדפרס עם כל ההגדרות הקבועות</p>
     </div>
     <div class="landing-card english-only" onclick="showPage('page-upload-en')">
-      <div class="icon">🇺🇸</div>
+      <div class="icon" style="font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif">🇺🇸</div>
       <h2>English Article</h2>
       <p>Process &amp; publish an English article — AI analysis, TTS audio, WordPress upload</p>
     </div>
@@ -2982,16 +2982,26 @@ function buildEnglishContent(text, quote1, quote2) {
   const paragraphs = normalized.split(/\n+/).map(p => p.trim()).filter(Boolean);
   if (!paragraphs.length) return '';
 
-  const total = paragraphs.length;
-  const q1Idx = Math.max(1, Math.floor(total / 3));
-  const q2Idx = Math.max(q1Idx + 1, Math.floor(2 * total / 3));
+  const total  = paragraphs.length;
+  const q1Idx  = Math.max(1, Math.floor(total / 3));
+  const q2Idx  = Math.max(q1Idx + 1, Math.floor(2 * total / 3));
+  const spacer = `<p dir="ltr">&nbsp;</p>\n`;
+
+  // Section header: line whose visible text starts with a letter/number + period
+  const isSectionHeader = p => /^<strong>[A-Z\d]{1,2}[.)]/i.test(p);
 
   let html = '';
   paragraphs.forEach((para, i) => {
+    // Blockquote with spacers before & after
     if (i === q1Idx && quote1)
-      html += `<blockquote>\n<p dir="ltr">${quote1}</p>\n</blockquote>\n\n`;
+      html += `${spacer}<blockquote>\n<p dir="ltr">${quote1}</p>\n</blockquote>\n${spacer}\n`;
     if (i === q2Idx && quote2)
-      html += `<blockquote>\n<p dir="ltr">${quote2}</p>\n</blockquote>\n\n`;
+      html += `${spacer}<blockquote>\n<p dir="ltr">${quote2}</p>\n</blockquote>\n${spacer}\n`;
+
+    // Spacer before section headers (not before the very first paragraph)
+    if (i > 0 && isSectionHeader(para))
+      html += spacer;
+
     html += `<p dir="ltr">${para}</p>\n\n`;
   });
 
@@ -3185,7 +3195,7 @@ async function publishEnglishArticle() {
       body: JSON.stringify({
         title:          document.getElementById('enTitleField').value,
         content,
-        excerpt:        enSelectedOpening,
+        excerpt:        enSelectedOpening.replace(/\.\s*$/, ''),
         date:           new Date(document.getElementById('enPublishDate').value).toISOString(),
         tags:           enAnalysisData.tags   || [],
         topics:         enAnalysisData.topics || [],

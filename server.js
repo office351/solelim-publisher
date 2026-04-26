@@ -1422,11 +1422,25 @@ app.post('/process-en', requireAdminOrEnglish, express.json(), async (req, res) 
       .replace(/\n{3,}/g, '\n\n')
       .trim();
 
-    const cleanedText = rawBody
+    // הסרת שורות חתימה קבועות (לינקים, path pavers וכו')
+    const footerPatterns = [
+      /^\s*\(?for\s+comments\s*[:：]/i,
+      /^\s*for\s+more\s+articles\s*[:：]/i,
+      /^\s*to\s+join\s+the\s+group\s*[:：]?\s*$/i,
+      /^\s*[''""]?path\s+pavers[''""]?\s*$/i,
+      /^\s*www\.solelim/i,
+    ];
+    const filteredBody = rawBody
+      .split('\n')
+      .filter(line => !footerPatterns.some(re => re.test(line)))
+      .join('\n');
+
+    const cleanedText = filteredBody
       .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
       .replace(/\*/g, '')
       .replace(/https?:\/\/\S+/gi, '')
       .replace(/[\+\(]?\d[\d\s\-\(\)]{7,}\d/g, '')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
 
     const analysis = await analyzeEnglishArticle(text);
