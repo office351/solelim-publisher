@@ -2587,7 +2587,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
     // זיהוי כותרת פסקה: ספרה/אות עברית/לטינית + פיסוק + רווח, עם עטיפת <strong> או בלעדיה
     // לדוגמה: "א. כותרת" / "A. Title" / "1. כותרת" / "<strong>ב. כותרת</strong>"
-    const sectionHeaderRe = /^(?:<strong>)?[א-תA-Z\d]{1,2}[.)]\s/;
+    const sectionHeaderRe = /^(?:<strong>)?(?:[א-תA-Z\d]{1,2}[.)]\s|[0-9]\uFE0F?\u20E3)/;
 
     const lines = text.split('\n');
     const headerIndices = lines.reduce((acc, l, i) => {
