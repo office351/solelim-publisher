@@ -787,7 +787,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <p>העלאת קובץ PDF ופרסום אוטומטי לוורדפרס עם כל ההגדרות הקבועות</p>
     </div>
     <div class="landing-card english-only" onclick="showPage('page-upload-en')">
-      <div class="icon"><img src="https://flagcdn.com/w80/us.png" alt="🇺🇸" style="width:56px;height:auto;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.18)"></div>
+      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f1fa-1f1f8.svg" alt="🇺🇸" style="width:58px;height:auto"></div>
       <h2>English Article</h2>
       <p>Process &amp; publish an English article — AI analysis, TTS audio, WordPress upload</p>
     </div>
@@ -2925,8 +2925,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           placeholder="הדבק כאן את המאמר העברי כולל כותרת, שם הכותב, מספר טלפון, קישורים וחתימה..."></textarea>
       </div>
       <button onclick="translateArticle()" id="enTranslateBtn"
-        style="width:100%;padding:12px;background:var(--teal-dark);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">
+        style="width:100%;padding:12px;background:var(--teal-dark);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">
         🔄 Translate to English
+      </button>
+      <button onclick="setEnTab('direct')"
+        style="width:100%;padding:10px;background:#fff;color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px">
+        📝 Article already in English — skip translation
       </button>
       <div id="enTranslateLoading" class="loading-box hidden">
         <span class="loading-spinner"></span>
@@ -3059,6 +3063,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         style="padding:10px 24px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
         Publish Now ➜
       </button>
+      <div id="enNewArticleBtn" class="hidden" style="margin-top:14px">
+        <button onclick="resetEnglishForm()"
+          style="padding:10px 24px;background:#1a4a7a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+          ➕ Upload Another Article
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -3119,6 +3129,30 @@ async function translateArticle() {
     btn.disabled = false;
     document.getElementById('enTranslateLoading').classList.add('hidden');
   }
+}
+
+function resetEnglishForm() {
+  // Reset state
+  enAnalysisData = {}; enCleanedText = ''; enSelectedOpening = null; enSelectedQuotes = [];
+  enUploadedMediaId = null; enPublishedPostId = null;
+  enBuzzsproutId = ''; enBuzzsproutPodId = ''; enAudioUrl = '';
+  enMp3Blob = null; enWhatsAppText = '';
+  // Reset UI
+  document.getElementById('en-step0').classList.remove('hidden');
+  document.getElementById('en-step2').classList.add('hidden');
+  document.getElementById('enHebrewInput').value = '';
+  document.getElementById('enTranslateResult').classList.add('hidden');
+  document.getElementById('enApproveSection').classList.add('hidden');
+  document.getElementById('enNewArticleBtn').classList.add('hidden');
+  const pb = document.getElementById('enPublishBtn');
+  pb.style.display = ''; pb.disabled = false; pb.textContent = 'Upload to WordPress ➜';
+  document.getElementById('enTtsResult').classList.add('hidden');
+  document.getElementById('enTtsLoading').classList.add('hidden');
+  document.getElementById('enAudioUrl').value = '';
+  document.getElementById('enLogs1').innerHTML = '';
+  document.getElementById('enLogs2').innerHTML = '';
+  setEnTab('translate');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function retranslate() {
@@ -3417,6 +3451,7 @@ async function approveEnglishPost() {
       btn.textContent = '✅ Published!';
       btn.style.background = '#888';
       if (data.url) window.open(data.url, '_blank');
+      document.getElementById('enNewArticleBtn').classList.remove('hidden');
     } else {
       alert('Error: ' + data.error);
       btn.disabled = false; btn.textContent = 'Publish Now ➜';

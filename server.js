@@ -1381,6 +1381,9 @@ const ENGLISH_AUTHORS = ['SOLELIM DERECH', 'Ezra Hyman', 'Itay Asman', 'Ben Yako
 const HEBREW_TAGS_LIST = 'ימין ושמאל, דיפ סטייט, אליטות, מוצש וזכויותיהם של ישראל, גבורה, הפרוגרס, עסקת חטופים, מלחמת זהות, מלחמה, אחדות בעם ישראל, גיוס חרדים, ראש הממשלה, תקשורת, חירות מחשבה, תודעה היסטורית, תפיסות ביטחוניות, יהדות במרחב הציבורי, היסטוריה, חטופים, השב״כ, מערכת המשפט, מערכת הביטחון, מחאות קפלן, אחריות לאומית, החברה החרדית, הרבעון הרביעי, דמוקרטיה, הנהגת המדינה, עיצוב תודעה, מחנה הימין, שליטה במקורות הכוח, תפיסות מוסריות, חירות, מנהיגות צבאית, ממשלה ואחריות, דתיים לאומיים, אחים לנשק, נפתלי בנט, דת ומדינה, ציבוריות וצבא, מוסר, אהוד ברק, מדיניות ציבורית, הרמטכ"ל, אסלאם, היועמשית, משפחות החטופים, טראמפ, ליברליזם, ציונות דתית, תורת הרב קוק, רפורמה משפטית, עולם התורה, משפחות שכולות, קצר לפני שבת, תודעה ציבורית, בית המשפט, עברית, נבחרי ציבור, הסכמי אוסלו, תורת ישראל, עיתון הארץ, עופר וינטר, הנהגה יהודית, ערכים לאומיים, מלחמת תרבות, עוצמה לאומית, חינוך לערכים, חנוכה, הקונספציה, שנאה, טרור, חזון, ערוץ 14, עיצוב זיכרון לאומי, זיכרון ותקומה, פוסטמודרניזם, השתקה, רוח צה"ל, מקצועיות בצבא, קבוצת השתייכות, אסטרטגיה';
 const HEBREW_CATEGORIES_LIST = 'התיישבות, זהות יהודית, חינוך, לאומיות, משפטים, פוליטיקה, פילוסופיה, צבא וביטחון, תקשורת';
 
+const ENGLISH_TAGS_LIST = 'Right and Left, Deep State, Elites, Rights of Israel, Heroism, The Progressives, Hostage Deal, Identity War, War, Jewish Unity, Haredi Conscription, Prime Minister, Media, Freedom of Thought, Historical Consciousness, Security Concepts, Judaism in the Public Sphere, History, Hostages, Shin Bet, Judicial System, Defense Establishment, Kaplan Protests, National Responsibility, Haredi Society, The Fourth Quarter, Democracy, State Leadership, Shaping Public Consciousness, The Right Wing Camp, Control of Power Sources, Moral Perceptions, Freedom, Military Leadership, Government and Accountability, Religious Zionists, Brothers in Arms, Naftali Bennett, Religion and State, Public Sphere and Military, Morality, Ehud Barak, Public Policy, IDF Chief of Staff, Islam, Attorney General, Hostage Families, Trump, Liberalism, Religious Zionism, Rabbi Kooks Teaching, Judicial Reform, Torah World, Bereaved Families, Short Before Shabbat, Public Consciousness, Supreme Court, Hebrew, Elected Officials, Oslo Accords, Torah of Israel, Haaretz Newspaper, Ofer Winter, Jewish Leadership, National Values, Culture War, National Power, Values Education, Hanukkah, The Conception, Hatred, Terror, Vision, Channel 14, Shaping National Memory, Memory and Revival, Postmodernism, Silencing, IDF Spirit, Military Professionalism, Group Identity, Strategy';
+const ENGLISH_CATEGORIES_LIST = 'Settlement, Jewish Identity, Education, Nationalism, Law, Politics, Philosophy, Military and Security, Media';
+
 // ניתוח מאמר אנגלי עם Claude
 async function analyzeEnglishArticle(text) {
   addLog('Analyzing English article with Claude...');
@@ -1398,16 +1401,16 @@ async function analyzeEnglishArticle(text) {
   "author": "author name extracted from first line (after / or |), or empty string",
   "opening1": "one compelling English sentence (max 120 chars) that captures the core message — thought-provoking, not a technical description",
   "opening2": "two compelling English sentences (max 200 chars total) that expand on the core message",
-  "topics": ["hebrewCategory1", "hebrewCategory2"],
-  "tags": ["hebrewTag1", "hebrewTag2", "hebrewTag3", "hebrewTag4"],
+  "topics": ["category1", "category2"],
+  "tags": ["tag1", "tag2", "tag3", "tag4"],
   "quotes": ["verbatimQuote1", "verbatimQuote2", "verbatimQuote3"]
 }
 
 Topics — choose EXACTLY 2 from this list only, exact spelling:
-${HEBREW_CATEGORIES_LIST}
+${ENGLISH_CATEGORIES_LIST}
 
-Tags — choose 4-6 from this list only, exact spelling, no hyphens:
-${HEBREW_TAGS_LIST}
+Tags — choose 4-6 from this list only, exact spelling, no hyphens between words:
+${ENGLISH_TAGS_LIST}
 
 Quotes — extract EXACTLY 3 verbatim sentences from the article body (1-2 sentences each, copied word-for-word, no changes).
 
