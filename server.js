@@ -1324,17 +1324,21 @@ Translate the Hebrew WhatsApp article below to English with these EXACT rules:
 
 3. BOLD: Keep asterisks as-is — *bold text* stays *bold text*
 
-4. LINKS & FOOTER: Replace ALL website links, WhatsApp group links, and sign-off lines at the end with exactly these (preserve blank lines before and after the links block):
+4. LINKS BLOCK: Place this block BETWEEN the first line (title/author) and the article body, with one blank line before and one blank line after — exactly like the Hebrew original:
 
 For more articles: www.solelim-derech.co.il
 
 To join the group: https://chat.whatsapp.com/LD5QhFlalkRDTbC3Y49QAt
 
-path pavers
+Remove any other website or WhatsApp links that appear anywhere else in the text.
 
-5. QUALITY: Write natural, flowing English — maintain the rhetorical style, persuasive tone, and literary quality of the original. Do not translate word-for-word.
+5. SIGNATURE: The last line of the article must be exactly:
+'path pavers'
+(with single quotes around it). Replace "סוללים דרך" or any similar Hebrew sign-off with this.
 
-6. SPACING: Preserve blank lines between paragraphs and sections exactly as in the original.
+6. QUALITY: Write natural, flowing English — maintain the rhetorical style, persuasive tone, and literary quality of the original. Do not translate word-for-word.
+
+7. SPACING: Preserve blank lines between paragraphs and sections exactly as in the original.
 
 Return ONLY the translated text. No explanations, no preamble, no markdown.`;
 
