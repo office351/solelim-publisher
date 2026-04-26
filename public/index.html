@@ -207,6 +207,31 @@ body {
 .landing-card:first-child::before { background: linear-gradient(90deg, var(--purple), var(--navy)); }
 .landing-card:first-child:hover { border-color: var(--purple); box-shadow: 0 8px 32px rgba(123,45,139,0.18); }
 
+/* ספינר טעינה כללי */
+.loading-spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 3px solid #ddd;
+  border-top-color: var(--teal-dark, #1a7340);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.loading-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #f0f7f4;
+  border: 1.5px solid #b2d8c8;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #1a5c36;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
 /* תצוגת השוואה עברית/אנגלית */
 .en-compare-grid {
   display: grid;
@@ -2903,7 +2928,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         style="width:100%;padding:12px;background:var(--teal-dark);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">
         🔄 Translate to English
       </button>
-      <div id="enTranslateLoading" class="hidden" style="text-align:center;color:#666;padding:12px;font-size:14px;background:#f5f5f5;border-radius:8px;margin-bottom:10px">⏳ Translating with AI...</div>
+      <div id="enTranslateLoading" class="loading-box hidden">
+        <span class="loading-spinner"></span>
+        <span>Translating with AI — this may take 10–20 seconds...</span>
+      </div>
 
       <!-- Side-by-side -->
       <div id="enTranslateResult" class="hidden">
@@ -3004,7 +3032,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         style="padding:10px 20px;background:#1a7340;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px">
         🎙️ Generate Audio (TTS)
       </button>
-      <div id="enTtsLoading" class="hidden" style="color:#666;font-size:14px;margin-bottom:8px">⏳ Generating audio and uploading to Buzzsprout...</div>
+      <div id="enTtsLoading" class="loading-box hidden">
+        <span class="loading-spinner"></span>
+        <span>Generating audio and uploading — this may take a minute...</span>
+      </div>
       <div id="enTtsResult" class="hidden">
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
           <a id="enAudioDownloadLink" href="#" download style="padding:7px 14px;background:#0073aa;color:#fff;border-radius:7px;text-decoration:none;font-size:13px">⬇️ Download MP3</a>
