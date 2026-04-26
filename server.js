@@ -1616,7 +1616,10 @@ app.post('/generate-tts', requireAdminOrEnglish, express.json(), async (req, res
 app.post('/publish-en', requireAdminOrEnglish, express.json(), async (req, res) => {
   logs = [];
   try {
-    const { title, content, excerpt, date, tags, topics, authorName, featuredMediaId } = req.body;
+    const { title: rawTitle, content, excerpt, date, tags, topics, authorName, featuredMediaId } = req.body;
+
+    // הסרת סימן שאלה/קריאה מסוף הכותרת (נראה רע באתר עברי RTL)
+    const title = (rawTitle || '').replace(/[?!]+$/, '').trim();
 
     // עטיפת תוכן ב-LTR ופונט אנגלי
     const wrappedContent = `<div dir="ltr" style="text-align:left;font-family:Georgia,'Times New Roman',serif;line-height:1.8;">${content}</div>`;
