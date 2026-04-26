@@ -1324,11 +1324,13 @@ Translate the Hebrew WhatsApp article below to English with these EXACT rules:
 
 3. BOLD: Keep asterisks as-is — *bold text* stays *bold text*
 
-4. LINKS BLOCK: Place this block BETWEEN the first line (title/author) and the article body, with one blank line before and one blank line after — exactly like the Hebrew original:
+4. LINKS BLOCK: Place this block BETWEEN the first line (title/author) and the article body. Each element separated by a blank line:
 
+[blank line]
 For more articles: www.solelim-derech.co.il
-
+[blank line]
 To join the group: https://chat.whatsapp.com/LD5QhFlalkRDTbC3Y49QAt
+[blank line]
 
 Remove any other website or WhatsApp links that appear anywhere else in the text.
 
