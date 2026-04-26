@@ -3206,7 +3206,7 @@ function buildEnglishContent(text, quote1, quote2) {
   const spacer = `<p dir="ltr">&nbsp;</p>\n`;
 
   // Section header: line whose visible text starts with a letter/number + period
-  const isSectionHeader = p => /^<strong>[A-Z\d]{1,2}[.)]/i.test(p);
+  const isSectionHeader = p => /^<strong>[A-Z\d]{1,2}[.)]/i.test(p) || /^[0-9]\uFE0F?\u20E3/.test(p);
 
   let html = '';
   paragraphs.forEach((para, i) => {
