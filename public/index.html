@@ -202,48 +202,10 @@ body {
   margin: 0;
 }
 
-/* כרטיס ראשון (עריכת מאמר) – רוחב מלא */
-.landing-card:first-child {
-  grid-column: 1 / -1;
-  text-align: right;
-  padding: 28px;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.landing-card:first-child .icon {
-  font-size: 40px;
-  margin: 0;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  border-radius: 18px;
-  background: linear-gradient(135deg, var(--purple-bg), #ede0f5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(123,45,139,0.18);
-}
-
-.landing-card:first-child h2 {
-  color: var(--purple);
-  margin-bottom: 6px;
-}
-
-.landing-card:first-child::before {
-  background: linear-gradient(90deg, var(--purple), var(--navy));
-}
-
-.landing-card:first-child:hover {
-  border-color: var(--purple);
-  box-shadow: 0 8px 32px rgba(123,45,139,0.18);
-}
-
-@media (max-width: 580px) {
-  .landing-card:first-child { grid-column: auto; flex-direction: column; text-align: center; }
-  .landing-card:first-child .icon { margin: 0 auto; }
-}
+/* כרטיס עריכת מאמר – סגנון סגול */
+.landing-card:first-child h2 { color: var(--purple); }
+.landing-card:first-child::before { background: linear-gradient(90deg, var(--purple), var(--navy)); }
+.landing-card:first-child:hover { border-color: var(--purple); box-shadow: 0 8px 32px rgba(123,45,139,0.18); }
 
 /* footer link (ניהול קבוצות) */
 .landing-footer {
@@ -454,6 +416,16 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   box-shadow: 0 0 0 3px rgba(123,45,139,0.1);
 }
 
+.idea-card.cynical {
+  border-color: #c0392b;
+  background: #fdf6f5;
+}
+.idea-card.cynical:hover, .idea-card.cynical.chosen {
+  border-color: #c0392b;
+  background: #fdecea;
+  box-shadow: 0 0 0 3px rgba(192,57,43,0.1);
+}
+
 .idea-card .idea-num {
   display: inline-flex;
   align-items: center;
@@ -465,14 +437,59 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   color: var(--purple);
   font-size: 13px;
   font-weight: 700;
-  margin-left: 10px;
+  margin-left: 8px;
   vertical-align: middle;
+  flex-shrink: 0;
   transition: all 0.15s;
 }
-.idea-card:hover .idea-num {
+.idea-card:hover .idea-num, .idea-card.chosen .idea-num {
   background: var(--purple);
   color: white;
 }
+.idea-card.cynical .idea-num {
+  background: #fdecea;
+  color: #c0392b;
+}
+.idea-card.cynical:hover .idea-num, .idea-card.cynical.chosen .idea-num {
+  background: #c0392b;
+  color: white;
+}
+
+.idea-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.idea-card-title {
+  font-weight: 700;
+  font-size: 15px;
+  flex: 1;
+}
+.idea-cynical-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c0392b;
+  background: #fdecea;
+  border: 1px solid #e8a89e;
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+.idea-card-scene {
+  font-size: 13.5px;
+  color: #333;
+  margin-bottom: 6px;
+}
+.idea-card-meta {
+  font-size: 12px;
+  color: #777;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.idea-card-meta span { display: flex; gap: 4px; }
+.idea-card-meta b { color: #555; }
 
 /* ── UPLOAD STATUS ── */
 .upload-status { font-size: 13px; margin-top: 6px; color: var(--text3); font-weight: 500; }
@@ -720,11 +737,8 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   <div class="landing-grid">
     <div class="landing-card" onclick="showPage('page-edit')">
       <div class="icon">✏️</div>
-      <div>
-        <h2>עריכת מאמר</h2>
-        <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
-      </div>
-      <span style="font-size:20px;color:var(--text3);flex-shrink:0;transition:transform 0.2s">←</span>
+      <h2>עריכת מאמר</h2>
+      <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
     </div>
     <div class="landing-card admin-only" onclick="showPage('page-upload')">
       <div class="icon">📤</div>
@@ -735,6 +749,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <div class="icon">📚</div>
       <h2>חוברת שבועית</h2>
       <p>העלאת קובץ PDF ופרסום אוטומטי לוורדפרס עם כל ההגדרות הקבועות</p>
+    </div>
+    <div class="landing-card english-only" onclick="showPage('page-upload-en')">
+      <div class="icon">🇺🇸</div>
+      <h2>English Article</h2>
+      <p>Process &amp; publish an English article — AI analysis, TTS audio, WordPress upload</p>
     </div>
   </div>
 
@@ -777,8 +796,8 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     </div>
 
     <div class="card">
-      <label>תאריך פרסום:</label>
-      <input type="date" id="publishDate">
+      <label>תאריך ושעת פרסום:</label>
+      <input type="datetime-local" id="publishDate">
     </div>
 
     <button onclick="startProcess()" id="processBtn">עבד מאמר ➜</button>
@@ -1012,7 +1031,6 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <div id="editImageGenLoading" class="hidden" style="text-align:center;padding:20px">
         <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">⏳</div>
         <p id="editImageGenLoadingText" style="color:#555;margin:8px 0 0">יוצר תמונות...</p>
-        <div id="editImageLogs" style="margin-top:10px;text-align:right;font-size:12px;color:#888;background:#f8f8f8;border-radius:6px;padding:8px 10px;max-height:80px;overflow-y:auto;display:none;white-space:pre-wrap;direction:rtl"></div>
       </div>
 
       <div id="editImageCompare" class="hidden" style="margin-top:14px">
@@ -1023,10 +1041,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
             <img id="editDalleImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('dalle')">
             <button onclick="selectEditImage('dalle')" style="margin-top:8px;background:#7b2d8b;width:100%;padding:9px">✓ בחר תמונה זו</button>
           </div>
-          <div id="editCompareGemini" style="text-align:center">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#e67e22">✏️ ציור</p>
-            <img id="editGeminiImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('gemini')">
-            <button onclick="selectEditImage('gemini')" style="margin-top:8px;background:#e67e22;width:100%;padding:9px">✓ בחר תמונה זו</button>
+          <div id="editCompareArtistic" style="text-align:center">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#e67e22">🎨 אמנותי</p>
+            <img id="editArtisticImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('artistic')">
+            <button onclick="selectEditImage('artistic')" style="margin-top:8px;background:#e67e22;width:100%;padding:9px">✓ בחר תמונה זו</button>
           </div>
         </div>
         <div style="text-align:center;margin-top:12px">
@@ -1080,6 +1098,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           </button>
         </div>
       </div>
+
+      <!-- לוגים מיצירת תמונה — נשארים גלויים אחרי הגנרציה -->
+      <div id="editImageLogs" style="display:none;margin-top:12px;text-align:right;font-size:12px;color:#888;background:#f8f8f8;border-radius:6px;padding:8px 10px;max-height:100px;overflow-y:auto;white-space:pre-wrap;direction:rtl;border:1px solid #eee"></div>
     </div>
 
     <!-- שליחה -->
@@ -1137,10 +1158,18 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       currentUser = data.username;
     } catch (e) { currentUser = null; }
 
-    if (currentUser !== (window._adminUser || 'admin')) {
-      // משתמש מוגבל — מסתיר אלמנטים של admin בלבד
+    const adminUser = window._adminUser || 'admin';
+    if (currentUser === adminUser) {
+      // admin — רואה הכל, כולל english-only
+    } else if (currentUser === 'english') {
+      // english — רואה רק את כרטיס האנגלית, לא את שאר ה-admin
       document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-      // מצמצם את הגריד לעמודה אחת כשרק כרטיס אחד נראה
+      const grid = document.querySelector('.landing-grid');
+      if (grid) grid.style.gridTemplateColumns = '1fr';
+    } else {
+      // solelim ואחרים — לא רואים admin-only ולא english-only
+      document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.english-only').forEach(el => el.classList.add('hidden'));
       const grid = document.querySelector('.landing-grid');
       if (grid) grid.style.gridTemplateColumns = '1fr';
     }
@@ -1150,7 +1179,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   /* ─────────── ניווט בין דפים ─────────── */
   function showPage(pageId) {
-    ['page-landing', 'page-upload', 'page-edit', 'page-groups', 'page-booklet'].forEach(id => {
+    ['page-landing', 'page-upload', 'page-edit', 'page-groups', 'page-booklet', 'page-upload-en'].forEach(id => {
       document.getElementById(id).classList.add('hidden');
     });
     document.getElementById(pageId).classList.remove('hidden');
@@ -1264,12 +1293,30 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       container.innerHTML = '';
       (data.ideas || []).forEach((idea, i) => {
         const card = document.createElement('div');
-        card.className = 'idea-card';
-        card.innerHTML = `<span class="idea-num">${i + 1}.</span> ${escHtml(idea.he)}`;
+        card.className = 'idea-card' + (idea.cynical ? ' cynical' : '');
+        const sceneText = idea.scene || idea.he || '';
+        // מבנה רעיון מלא לשליחה לגנרטור — כולל כל השדות לפרומפט עשיר יותר
+        const fullIdeaDesc = [
+          idea.title  ? idea.title                          : '',
+          sceneText,
+          idea.metaphor ? 'מטפורה: ' + idea.metaphor       : '',
+          idea.message  ? 'מסר: '    + idea.message        : ''
+        ].filter(Boolean).join('. ');
+        card.innerHTML = `
+          <div class="idea-card-header">
+            <span class="idea-num">${i + 1}</span>
+            <span class="idea-card-title">${escHtml(idea.title || '')}</span>
+            ${idea.cynical ? '<span class="idea-cynical-badge">ציני</span>' : ''}
+          </div>
+          <div class="idea-card-scene">${escHtml(sceneText)}</div>
+          ${idea.metaphor || idea.message ? `<div class="idea-card-meta">
+            ${idea.metaphor ? `<span><b>מטפורה:</b> ${escHtml(idea.metaphor)}</span>` : ''}
+            ${idea.message  ? `<span><b>מסר:</b> ${escHtml(idea.message)}</span>`   : ''}
+          </div>` : ''}`;
         card.onclick = () => {
-          document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('chosen'));
+          document.querySelectorAll('#ideaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
-          generateImage(idea.he, idea.he, data.summary);
+          generateImage(fullIdeaDesc, sceneText, data.summary);
         };
         container.appendChild(card);
       });
@@ -2004,12 +2051,30 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       container.innerHTML = '';
       (data.ideas || []).forEach((idea, i) => {
         const card = document.createElement('div');
-        card.className = 'idea-card';
-        card.innerHTML = `<span class="idea-num">${i + 1}</span> ${escHtml(idea.he)}`;
+        card.className = 'idea-card' + (idea.cynical ? ' cynical' : '');
+        const sceneText = idea.scene || idea.he || '';
+        // מבנה רעיון מלא לשליחה לגנרטור — כולל כל השדות לפרומפט עשיר יותר
+        const fullIdeaDesc = [
+          idea.title    ? idea.title                        : '',
+          sceneText,
+          idea.metaphor ? 'מטפורה: ' + idea.metaphor       : '',
+          idea.message  ? 'מסר: '    + idea.message        : ''
+        ].filter(Boolean).join('. ');
+        card.innerHTML = `
+          <div class="idea-card-header">
+            <span class="idea-num">${i + 1}</span>
+            <span class="idea-card-title">${escHtml(idea.title || '')}</span>
+            ${idea.cynical ? '<span class="idea-cynical-badge">ציני</span>' : ''}
+          </div>
+          <div class="idea-card-scene">${escHtml(sceneText)}</div>
+          ${idea.metaphor || idea.message ? `<div class="idea-card-meta">
+            ${idea.metaphor ? `<span><b>מטפורה:</b> ${escHtml(idea.metaphor)}</span>` : ''}
+            ${idea.message  ? `<span><b>מסר:</b> ${escHtml(idea.message)}</span>`   : ''}
+          </div>` : ''}`;
         card.onclick = () => {
           document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
-          generateEditImage(idea.he, idea.he, data.summary);
+          generateEditImage(fullIdeaDesc, sceneText, data.summary);
         };
         container.appendChild(card);
       });
@@ -2123,16 +2188,16 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       editBothData = data;
 
       // אם יש שתי תמונות — הצג השוואה
-      if (data.dalle && data.gemini) {
+      if (data.dalle && data.artistic) {
         const ts = '?t=' + Date.now();
-        document.getElementById('editDalleImg').src  = data.dalle.withLogoUrl  + ts;
-        document.getElementById('editGeminiImg').src = data.gemini.withLogoUrl + ts;
-        document.getElementById('editCompareDalle').style.display  = '';
-        document.getElementById('editCompareGemini').style.display = '';
+        document.getElementById('editDalleImg').src     = data.dalle.withLogoUrl    + ts;
+        document.getElementById('editArtisticImg').src  = data.artistic.withLogoUrl + ts;
+        document.getElementById('editCompareDalle').style.display    = '';
+        document.getElementById('editCompareArtistic').style.display = '';
         document.getElementById('editImageCompare').classList.remove('hidden');
       } else {
         // רק תמונה אחת — הצג ישירות
-        const chosen = data.dalle || data.gemini;
+        const chosen = data.dalle || data.artistic;
         showEditImageResult(chosen);
       }
     } catch(e) {
@@ -2232,6 +2297,8 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('editExtraLogoResult').classList.add('hidden');
     document.getElementById('editImageImproveSection').style.display = '';
     document.getElementById('editImageGenStart').classList.remove('hidden');
+    document.getElementById('editImageLogs').style.display = 'none';
+    document.getElementById('editImageLogs').textContent = '';
     const btn = document.getElementById('editIdeasBtn');
     btn.disabled = false;
     btn.textContent = '💡 קבל 4 רעיונות לתמונה';
@@ -2383,6 +2450,8 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('editIdeasSection').classList.add('hidden');
     document.getElementById('editExtraLogoResult').classList.add('hidden');
     document.getElementById('editImageGenStart').classList.remove('hidden');
+    document.getElementById('editImageLogs').style.display = 'none';
+    document.getElementById('editImageLogs').textContent = '';
     const ideasBtn = document.getElementById('editIdeasBtn');
     if (ideasBtn) { ideasBtn.disabled = false; ideasBtn.textContent = '💡 קבל 4 רעיונות לתמונה'; }
   }
@@ -2400,7 +2469,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   let pendingImageFile = null;
   let pendingAudioFile = null;
 
-  document.getElementById('publishDate').value = new Date().toISOString().slice(0, 10);
+  (function setDefaultDateTime() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const local = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    document.getElementById('publishDate').value = local;
+  })();
 
   const stripPeriod = s => s ? s.replace(/\.+$/, '').trim() : s;
 
@@ -2474,20 +2548,85 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     const q1 = `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
     const q2 = `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
 
-    let sections = text.split(/\n(?=\d)/).filter(s => s.trim());
-    if (sections.length < 3) sections = text.split(/\n(?=[א-ת][.')\s])/).filter(s => s.trim());
-    if (sections.length < 3) sections = text.split(/\n{2,}/).filter(s => s.trim());
+    // זיהוי כותרת פסקה: ספרה/אות עברית/לטינית + פיסוק + רווח, עם עטיפת <strong> או בלעדיה
+    // לדוגמה: "א. כותרת" / "A. Title" / "1. כותרת" / "<strong>ב. כותרת</strong>"
+    const sectionHeaderRe = /^(?:<strong>)?[א-תA-Z\d]{1,2}[.)]\s/;
 
-    if (sections.length >= 3) {
-      const first = sections[0];
-      const last  = sections[sections.length - 1];
-      const middle = sections.slice(1, -1).join(SEP);
-      return `${audioHtml}${first}${q1}${middle}${q2}${last}`;
+    const lines = text.split('\n');
+    const headerIndices = lines.reduce((acc, l, i) => {
+      if (sectionHeaderRe.test(l.trim())) acc.push(i);
+      return acc;
+    }, []);
+
+    // ניקוי חלק טקסט: מסיר שורות &nbsp; בודדות ומצמצם שורות ריקות רצופות לאחת
+    function cleanPart(partLines) {
+      const filtered = partLines.filter(l => {
+        const t = l.trim();
+        return t !== '&nbsp;' && t !== '<p>&nbsp;</p>';
+      });
+      const result = [];
+      let prevBlank = false;
+      for (const l of filtered) {
+        if (!l.trim()) {
+          if (!prevBlank) result.push(l);
+          prevBlank = true;
+        } else {
+          prevBlank = false;
+          result.push(l);
+        }
+      }
+      while (result.length && !result[result.length - 1].trim()) result.pop();
+      return result.join('\n');
     }
 
-    const lines = text.split('\n').filter(l => l.trim());
-    const total = lines.length;
-    if (total < 4) return `${audioHtml}${text}${q1}${q2}`;
+    if (headerIndices.length >= 2) {
+      // ── מאמר ממוספר (אותיות/ספרות) ──
+      // חלקים: מה שלפני הכותרת הראשונה (מבוא), ואז כל פסקה עד הבאה
+      const intro = cleanPart(lines.slice(0, headerIndices[0]));
+      const sections = [];
+      for (let i = 0; i < headerIndices.length; i++) {
+        const start = headerIndices[i];
+        const end   = i + 1 < headerIndices.length ? headerIndices[i + 1] : lines.length;
+        sections.push(cleanPart(lines.slice(start, end)));
+      }
+
+      let result = audioHtml;
+      if (intro) result += intro + '\n\n'; // שורה ריקה אחת בין מבוא לפסקה הראשונה
+
+      for (let i = 0; i < sections.length; i++) {
+        result += sections[i];
+        if      (i === 0 && sections.length > 1) result += q1; // ציטוט 1 אחרי פסקה ראשונה
+        else if (i === 1 && sections.length > 2) result += q2; // ציטוט 2 אחרי פסקה שנייה
+        else if (i < sections.length - 1)        result += '\n\n'; // פסקאות נוספות: שורה ריקה בלבד
+      }
+      // אם יש פחות פסקאות ממספר הציטוטים — הוסף בסוף
+      if (sections.length === 1) result += q1 + q2;
+      else if (sections.length === 2) result += q2;
+
+      return result;
+    }
+
+    // ── מאמר ללא חלוקה לפסקאות ──
+    // שומרים מבנה קיים, רק מסירים שורות ריקות כפולות ושורות &nbsp; בודדות
+    const cleanedLines = lines.filter(l => {
+      const t = l.trim();
+      return t !== '&nbsp;' && t !== '<p>&nbsp;</p>';
+    });
+    const collapsed = [];
+    let prevBlank = false;
+    for (const l of cleanedLines) {
+      if (!l.trim()) {
+        if (!prevBlank) collapsed.push(l);
+        prevBlank = true;
+      } else {
+        prevBlank = false;
+        collapsed.push(l);
+      }
+    }
+
+    const nonBlank = collapsed.filter(l => l.trim());
+    const total = nonBlank.length;
+    if (total < 4) return `${audioHtml}${collapsed.join('\n')}${q1}${q2}`;
 
     const q1pos = Math.floor(total / 3);
     const q2pos = Math.floor(2 * total / 3);
@@ -2495,10 +2634,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     function groupLines(arr) {
       const chunks = [];
       for (let i = 0; i < arr.length; i += 4) chunks.push(arr.slice(i, i + 4).join('\n'));
-      return chunks.join(SEP);
+      return chunks.join('\n\n');
     }
 
-    return `${audioHtml}${groupLines(lines.slice(0, q1pos))}${q1}${groupLines(lines.slice(q1pos, q2pos))}${q2}${groupLines(lines.slice(q2pos))}`;
+    return `${audioHtml}${groupLines(nonBlank.slice(0, q1pos))}${q1}${groupLines(nonBlank.slice(q1pos, q2pos))}${q2}${groupLines(nonBlank.slice(q2pos))}`;
   }
 
   async function startProcess() {
@@ -2715,6 +2854,378 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       btn.textContent = 'פרסם עכשיו ➜';
     }
   }
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     דף העלאת מאמר אנגלי
+═══════════════════════════════════════════════════ -->
+<div id="page-upload-en" class="hidden">
+  <div class="top-bar">
+    <h1>🇺🇸 English Article Upload</h1>
+    <button class="back-btn" onclick="showPage('page-landing')">← Back</button>
+  </div>
+
+  <!-- Step 1 -->
+  <div id="en-step1">
+    <div class="card">
+      <label>Article Text:</label>
+      <textarea id="enArticleText" style="min-height:180px" placeholder="Paste article text here...&#10;First line: Title / Author Name (phone)"></textarea>
+    </div>
+
+    <div class="card">
+      <label>Featured Image:</label>
+      <input type="file" id="enImageFile" accept="image/*" onchange="uploadEnImageNow(this)">
+      <p class="upload-status" id="enImageStatus"></p>
+    </div>
+
+    <div class="card">
+      <label>Publish Date &amp; Time:</label>
+      <input type="datetime-local" id="enPublishDate">
+    </div>
+
+    <button onclick="startProcessEn()" id="enProcessBtn" style="width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px">
+      Process Article ➜
+    </button>
+    <div id="enLogs1" style="margin-top:12px"></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div id="en-step2" class="hidden">
+    <div class="card">
+      <label>Title:</label>
+      <input id="enTitleField" type="text" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box">
+    </div>
+
+    <div class="card">
+      <label>Author:</label>
+      <select id="enAuthorField" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:#fff">
+        <option value="Itay Asman">Itay Asman</option>
+        <option value="Ben Yakov Sabo">Ben Yakov Sabo</option>
+        <option value="Udi Ben Hamu">Udi Ben Hamu</option>
+        <option value="מערכת">מערכת (Editorial)</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <label>Opening Sentence — choose 1:</label>
+      <div id="enOpeningOptions"></div>
+    </div>
+
+    <div class="card">
+      <label>Quotes — choose 2:</label>
+      <div id="enQuoteOptions"></div>
+    </div>
+
+    <!-- Audio TTS -->
+    <div class="card">
+      <label>🎙️ Audio (TTS)</label>
+      <button id="enTtsBtn" onclick="generateEnglishTts()"
+        style="padding:10px 20px;background:#1a7340;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px">
+        🎙️ Generate Audio (TTS)
+      </button>
+      <div id="enTtsLoading" class="hidden" style="color:#666;font-size:14px;margin-bottom:8px">⏳ Generating audio and uploading to Buzzsprout...</div>
+      <div id="enTtsResult" class="hidden">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <a id="enAudioDownloadLink" href="#" download style="padding:7px 14px;background:#0073aa;color:#fff;border-radius:7px;text-decoration:none;font-size:13px">⬇️ Download MP3</a>
+          <span id="enAudioStatus" style="font-size:13px;color:#27ae60;font-weight:600"></span>
+        </div>
+        <label style="font-size:13px;color:#666">Buzzsprout URL:</label>
+        <input id="enAudioUrl" type="text" placeholder="https://..." style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;margin-top:4px">
+      </div>
+    </div>
+
+    <div id="enLogs2" style="margin:12px 0"></div>
+
+    <button onclick="publishEnglishArticle()" id="enPublishBtn"
+      style="width:100%;padding:14px;background:var(--purple);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">
+      Upload to WordPress ➜
+    </button>
+
+    <div id="enApproveSection" class="hidden" style="margin-top:16px;background:#f0faf5;border:1.5px solid #27ae60;border-radius:12px;padding:16px;text-align:center">
+      <p style="margin:0 0 10px;font-weight:600;color:#1a7340">✅ Article saved as draft in WordPress</p>
+      <button onclick="approveEnglishPost()" id="enApproveBtn"
+        style="padding:10px 24px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+        Publish Now ➜
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   English Article Upload — JS
+═══════════════════════════════════════════════ */
+
+let enCleanedText     = '';
+let enAnalysisData    = null;
+let enSelectedOpening = null;
+let enSelectedQuotes  = [];
+let enUploadedMediaId = null;
+let enPublishedPostId = null;
+let enBuzzsproutId    = '';
+let enBuzzsproutPodId = '';
+let enAudioUrl        = '';
+let enMp3Blob         = null;
+
+// Build WordPress HTML for English articles: each paragraph wrapped in <p dir="ltr">
+// with blockquote pull-quotes inserted at ~1/3 and ~2/3 of the article.
+function buildEnglishContent(text, quote1, quote2) {
+  // Normalize: strip residual HTML except <strong>, preserve bold with temp marker
+  const normalized = text
+    .replace(/<strong>(.*?)<\/strong>/gi, '\x00$1\x00')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\x00(.*?)\x00/g, '<strong>$1</strong>')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+
+  const paragraphs = normalized.split(/\n+/).map(p => p.trim()).filter(Boolean);
+  if (!paragraphs.length) return '';
+
+  const total = paragraphs.length;
+  const q1Idx = Math.max(1, Math.floor(total / 3));
+  const q2Idx = Math.max(q1Idx + 1, Math.floor(2 * total / 3));
+
+  let html = '';
+  paragraphs.forEach((para, i) => {
+    if (i === q1Idx && quote1)
+      html += `<blockquote>\n<p dir="ltr">${quote1}</p>\n</blockquote>\n\n`;
+    if (i === q2Idx && quote2)
+      html += `<blockquote>\n<p dir="ltr">${quote2}</p>\n</blockquote>\n\n`;
+    html += `<p dir="ltr">${para}</p>\n\n`;
+  });
+
+  return html.trim();
+}
+
+// init date — ברירת מחדל: חודש קודם, אותו יום (או היום האחרון של החודש הקודם אם לא קיים)
+(function() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  // נסה לשים את אותו יום בחודש הקודם
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate(),
+                        now.getHours(), now.getMinutes());
+  // אם getDate() השתנה זה אומר שהיום לא קיים בחודש הקודם — נחזור ליום האחרון
+  if (prev.getDate() !== now.getDate()) {
+    prev.setDate(0); // יום 0 = יום האחרון של החודש הקודם
+  }
+  document.getElementById('enPublishDate').value =
+    `${prev.getFullYear()}-${pad(prev.getMonth()+1)}-${pad(prev.getDate())}T${pad(prev.getHours())}:${pad(prev.getMinutes())}`;
+})();
+
+function updateEnLogs(logs, container) {
+  const el = document.getElementById(container);
+  if (!el || !logs?.length) return;
+  el.innerHTML = logs.slice(-6).map(l =>
+    `<div style="font-size:12px;color:#666;padding:2px 0">[${new Date(l.time).toLocaleTimeString('en-US')}] ${escHtml(l.message)}</div>`
+  ).join('');
+}
+
+async function uploadEnImageNow(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('enImageStatus');
+  status.className = 'upload-status';
+  status.textContent = 'Uploading image...';
+  try {
+    const fd = new FormData();
+    fd.append('image', file);
+    const r = await fetch('/upload-image', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (d.success) {
+      enUploadedMediaId = d.mediaId;
+      status.className = 'upload-status ok';
+      status.textContent = '✓ Image uploaded';
+    } else {
+      status.className = 'upload-status err';
+      status.textContent = 'Error: ' + d.error;
+    }
+  } catch (e) {
+    status.className = 'upload-status err';
+    status.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function startProcessEn() {
+  const text = document.getElementById('enArticleText').value;
+  if (!text.trim()) { alert('Please enter article text'); return; }
+  const btn = document.getElementById('enProcessBtn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+  document.getElementById('enLogs1').innerHTML = 'Processing...';
+  try {
+    const res  = await fetch('/process-en', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
+    const data = await res.json();
+    updateEnLogs(data.logs, 'enLogs1');
+    if (!data.success) { alert('Error: ' + data.error); btn.disabled = false; btn.textContent = 'Process Article ➜'; return; }
+
+    enAnalysisData = data.analysis;
+    enCleanedText  = data.cleanedText || '';
+
+    // Fill title & author
+    document.getElementById('enTitleField').value = enAnalysisData.title || '';
+    const authorSel = document.getElementById('enAuthorField');
+    const matchedAuthor = [...authorSel.options].find(o => o.value.toLowerCase() === (enAnalysisData.author || '').toLowerCase());
+    if (matchedAuthor) authorSel.value = matchedAuthor.value;
+    else if (enAnalysisData.author === 'מערכת') authorSel.value = 'מערכת';
+
+    // Opening options
+    const openCont = document.getElementById('enOpeningOptions');
+    openCont.innerHTML = '';
+    enSelectedOpening = null;
+    [enAnalysisData.opening1, enAnalysisData.opening2].forEach((txt, i) => {
+      if (!txt) return;
+      const card = document.createElement('div');
+      card.className = 'idea-card';
+      card.style.cssText = 'direction:ltr;text-align:left;font-family:Georgia,serif';
+      card.innerHTML = `<span class="idea-num">${i + 1}</span> ${escHtml(txt)}`;
+      card.onclick = () => {
+        document.querySelectorAll('#enOpeningOptions .idea-card').forEach(c => c.classList.remove('chosen'));
+        card.classList.add('chosen');
+        enSelectedOpening = txt;
+      };
+      openCont.appendChild(card);
+    });
+
+    // Quote options (pick 2)
+    const quoteCont = document.getElementById('enQuoteOptions');
+    quoteCont.innerHTML = '';
+    enSelectedQuotes = [];
+    (enAnalysisData.quotes || []).forEach((q, i) => {
+      const card = document.createElement('div');
+      card.className = 'idea-card';
+      card.style.cssText = 'direction:ltr;text-align:left;font-family:Georgia,serif';
+      card.innerHTML = `<span class="idea-num">${i + 1}</span> ${escHtml(q)}`;
+      card.onclick = () => {
+        const already = enSelectedQuotes.includes(q);
+        if (already) {
+          enSelectedQuotes = enSelectedQuotes.filter(x => x !== q);
+          card.classList.remove('chosen');
+        } else if (enSelectedQuotes.length < 2) {
+          enSelectedQuotes.push(q);
+          card.classList.add('chosen');
+        }
+      };
+      quoteCont.appendChild(card);
+    });
+
+    document.getElementById('en-step1').classList.add('hidden');
+    document.getElementById('en-step2').classList.remove('hidden');
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Process Article ➜';
+  }
+}
+
+async function generateEnglishTts() {
+  const title      = document.getElementById('enTitleField').value.trim();
+  const authorName = document.getElementById('enAuthorField').value;
+  if (!enCleanedText) { alert('Please process the article first'); return; }
+
+  const btn = document.getElementById('enTtsBtn');
+  btn.disabled = true;
+  document.getElementById('enTtsLoading').classList.remove('hidden');
+  document.getElementById('enTtsResult').classList.add('hidden');
+
+  try {
+    const res  = await fetch('/generate-tts', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title, authorName, articleText: enCleanedText })
+    });
+    const data = await res.json();
+    updateEnLogs(data.logs, 'enLogs2');
+    if (!data.success) { alert('TTS error: ' + data.error); btn.disabled = false; document.getElementById('enTtsLoading').classList.add('hidden'); return; }
+
+    enBuzzsproutId    = data.episodeId || '';
+    enBuzzsproutPodId = data.podcastId || '';
+    enAudioUrl        = data.audioUrl  || '';
+
+    document.getElementById('enAudioUrl').value = enAudioUrl;
+    document.getElementById('enAudioStatus').textContent = `✓ Episode ${enBuzzsproutId} uploaded`;
+
+    // Download link (fetch the MP3 and make blob URL)
+    if (enAudioUrl) {
+      document.getElementById('enAudioDownloadLink').href = enAudioUrl;
+      document.getElementById('enAudioDownloadLink').download = `${title || 'article'}.mp3`;
+    }
+
+    document.getElementById('enTtsLoading').classList.add('hidden');
+    document.getElementById('enTtsResult').classList.remove('hidden');
+    btn.textContent = '✓ Audio Ready';
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false;
+    document.getElementById('enTtsLoading').classList.add('hidden');
+  }
+}
+
+async function publishEnglishArticle() {
+  if (!enSelectedOpening) { alert('Please choose an opening sentence'); return; }
+  if (enSelectedQuotes.length < 2) { alert('Please choose 2 quotes'); return; }
+
+  const btn = document.getElementById('enPublishBtn');
+  btn.disabled = true; btn.textContent = 'Publishing...';
+
+  // בניית embed אודיו לאנגלית (Buzzsprout TTS)
+  let audioEmbed = '';
+  if (enBuzzsproutId && enBuzzsproutPodId) {
+    audioEmbed = `<div id="buzzsprout-player-${enBuzzsproutId}"></div>` +
+      `<script src="https://www.buzzsprout.com/${enBuzzsproutPodId}/${enBuzzsproutId}.js` +
+      `?container_id=buzzsprout-player-${enBuzzsproutId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n\n`;
+  } else {
+    const effectiveAudioUrl = document.getElementById('enAudioUrl').value.trim() || enAudioUrl;
+    if (effectiveAudioUrl) audioEmbed = `<p><a href="${effectiveAudioUrl}">🎧 Listen</a></p>\n\n`;
+  }
+  // Build LTR English HTML: each paragraph gets dir="ltr", blockquotes at 1/3 and 2/3
+  const content = audioEmbed + buildEnglishContent(enCleanedText, enSelectedQuotes[0], enSelectedQuotes[1]);
+
+  try {
+    const res  = await fetch('/publish-en', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        title:          document.getElementById('enTitleField').value,
+        content,
+        excerpt:        enSelectedOpening,
+        date:           new Date(document.getElementById('enPublishDate').value).toISOString(),
+        tags:           enAnalysisData.tags   || [],
+        topics:         enAnalysisData.topics || [],
+        authorName:     document.getElementById('enAuthorField').value,
+        featuredMediaId: enUploadedMediaId || null,
+      })
+    });
+    const data = await res.json();
+    updateEnLogs(data.logs, 'enLogs2');
+    if (data.success) {
+      enPublishedPostId = data.result.id;
+      btn.style.display = 'none';
+      document.getElementById('enApproveSection').classList.remove('hidden');
+    } else {
+      alert('Error: ' + data.error);
+      btn.disabled = false; btn.textContent = 'Upload to WordPress ➜';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Upload to WordPress ➜';
+  }
+}
+
+async function approveEnglishPost() {
+  const btn = document.getElementById('enApproveBtn');
+  btn.disabled = true; btn.textContent = 'Publishing...';
+  try {
+    const res  = await fetch('/approve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ postId: enPublishedPostId }) });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✅ Published!';
+      btn.style.background = '#888';
+      if (data.url) window.open(data.url, '_blank');
+    } else {
+      alert('Error: ' + data.error);
+      btn.disabled = false; btn.textContent = 'Publish Now ➜';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Publish Now ➜';
+  }
+}
 </script>
 </body>
 </html>

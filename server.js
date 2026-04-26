@@ -16,7 +16,8 @@ const app = express();
 // אוסף המשתמשים: admin + solelim (עריכה בלבד)
 const USERS = {
   [process.env.APP_USER || 'admin']: process.env.APP_PASSWORD || 'changeme',
-  'solelim': 'solelim'
+  'solelim': 'solelim',
+  'english': 'english'
 };
 
 app.use(basicAuth({
@@ -29,6 +30,13 @@ app.use(basicAuth({
 function requireAdmin(req, res, next) {
   const adminUser = process.env.APP_USER || 'admin';
   if (req.auth && req.auth.user === adminUser) return next();
+  res.status(403).json({ error: 'אין הרשאה' });
+}
+
+// middleware שמאפשר גם למשתמש english
+function requireAdminOrEnglish(req, res, next) {
+  const adminUser = process.env.APP_USER || 'admin';
+  if (req.auth && (req.auth.user === adminUser || req.auth.user === 'english')) return next();
   res.status(403).json({ error: 'אין הרשאה' });
 }
 
@@ -240,19 +248,34 @@ app.post('/edit-stage2', async (req, res) => {
       'https://api.anthropic.com/v1/messages',
       {
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        system: `אתה כותב כותרות לתוכן ישראלי-לאומי. הכותרות שלך חדות, מעוררות סקרנות ומושכות לקרוא — לא סיכומים.
+        max_tokens: 400,
+        system: `אתה עורך ראשי של פרסום ישראלי-לאומי מוביל. תפקידך: לכתוב כותרות שגורמות לאנשים לעצור הכל ולקרוא.
 
-כללים:
-- עד 6 מילים בכותרת
-- לא לסכם את הטקסט — לעורר שאלה, מתח או תובנה חדה
-- שפה ישירה, פעילה, לא אקדמית
-- אפשר להשתמש בניגוד, פרדוקס, שאלה רטורית, או אמירה נועזת
-- אסור להתחיל ב"כיצד", "מדוע", "על", "הסיפור של"
-- הכותרת צריכה לגרום לאדם לעצור ולקרוא`,
+כללי ברזל:
+- עד 7 מילים — כל מילה חייבת להרוויח את מקומה
+- אסור לסכם — הכותרת מציתה, לא מספרת
+- שפה חדה, ישירה, נוקבת — לא אקדמית ולא ביורוקרטית
+- כלים מותרים: ניגוד חריף, אירוניה, שאלה שמוציאה מדעת, הצהרה נועזת, מתח עצור
+- אסור להתחיל ב: "כיצד", "מדוע", "על", "הסיפור של", "בעקבות", "לאחר"
+- אסור לכתוב כותרת שמתחילה בשם פרטי סתמי
+- הכותרת הטובה ביותר מרגישה כמו אמת שאסור לומר בקול — אבל היא כאן
+
+תקינות לשונית — חובה:
+- התאמת זכר/נקבה, יחיד/רבים בין כל מילות הכותרת
+- לא לכתוב "וודאי" אלא "ודאי", לא "שהם" כשאפשר "שהם" וכו'
+- לא להשתמש בשפה מסורבלת — כל מילה חייבת להישמע טבעית בעל פה
+- לפני כתיבה: לקרוא את הכותרת בקול ולוודא שהיא זורמת, חדה ותקינה
+
+דוגמאות לסגנון הנכון:
+✓ "מי מפחד מהאמת הזאת"
+✓ "הם ידעו. הם שתקו"
+✓ "ישראל לא מרשה לעצמה להפסיד"
+✓ "הבגידה שכולם ראו, איש לא אמר"
+✓ "הנה מה שהתקשורת לא תספר לך"`,
         messages: [{
           role: 'user',
-          content: `כתוב 2 כותרות חזקות ומושכות למאמר הזה. שונות לחלוטין מהכותרת המקורית: "${originalTitle}".
+          content: `כתוב 2 כותרות שונות לחלוטין זו מזו ושונות מהכותרת המקורית: "${originalTitle}".
+אחת — חדה ופרובוקטיבית. השנייה — דרמטית ורגשית.
 החזר JSON בלבד: {"titles":["כותרת 1","כותרת 2"]}
 
 תחילת המאמר:
@@ -579,7 +602,7 @@ async function publishToWordPress(data) {
 }
 
 // העלאת תמונה לוורדפרס
-app.post('/upload-image', requireAdmin, upload.single('image'), async (req, res) => {
+app.post('/upload-image', requireAdminOrEnglish, upload.single('image'), async (req, res) => {
   try {
     addLog('מעלה תמונה לוורדפרס...');
     const imageBuffer = fs.readFileSync(req.file.path);
@@ -795,7 +818,7 @@ app.post('/publish-booklet', requireAdmin, upload.single('pdf'), async (req, res
 });
 
 // אישור ופרסום טיוטה
-app.post('/approve', requireAdmin, async (req, res) => {
+app.post('/approve', requireAdminOrEnglish, async (req, res) => {
   try {
     const { postId } = req.body;
     addLog(`מאשר פרסום פוסט ${postId}...`);
@@ -859,21 +882,94 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
-// ─── יצירת תמונה שנייה עם DALL-E סגנון שונה ────────────────────────────────
-async function generateDalleVariant(prompt, style) {
+// ─── יצירת דגל ישראל מדויק (SVG → PNG) ──────────────────────────────────────
+function createIsraeliFlagBuffer(flagWidth) {
+  const w = flagWidth;
+  const h = Math.round(w * 2 / 3);
+  const stripeH = Math.round(h * 0.13);
+  const topY    = Math.round(h * 0.195);
+  const botY    = h - topY - stripeH;
+  const cx = w / 2, cy = h / 2;
+  const r  = Math.round(w * 0.115);   // רדיוס המגן דוד
+  const sw = Math.max(3, Math.round(w * 0.019)); // עובי קו
+  const s60 = 0.866, c60 = 0.5;      // sin/cos 60°
+  // משולש עליון (▲) ומשולש תחתון (▽)
+  const up = `${cx},${cy - r} ${cx + r * s60},${cy + r * c60} ${cx - r * s60},${cy + r * c60}`;
+  const dn = `${cx},${cy + r} ${cx + r * s60},${cy - r * c60} ${cx - r * s60},${cy - r * c60}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    <rect width="${w}" height="${h}" fill="white"/>
+    <rect x="0" y="${topY}" width="${w}" height="${stripeH}" fill="#0038B8"/>
+    <rect x="0" y="${botY}" width="${w}" height="${stripeH}" fill="#0038B8"/>
+    <polygon points="${up}" fill="none" stroke="#0038B8" stroke-width="${sw}" stroke-linejoin="miter"/>
+    <polygon points="${dn}" fill="none" stroke="#0038B8" stroke-width="${sw}" stroke-linejoin="miter"/>
+  </svg>`;
+  return Buffer.from(svg, 'utf-8');
+}
+
+// ─── הדבק דגל ישראל על תמונה שנוצרה ─────────────────────────────────────────
+// הדגל מוצג ממולא (frontal) — כמו שער מגזין, לא כדגל ברקע.
+// לסצנות שבהן הדגל הוא האלמנט הראשי זה נראה טבעי ועוצמתי.
+async function overlayIsraeliFlag(imageBuf) {
+  const meta  = await sharp(imageBuf).metadata();
+  const imgW  = meta.width, imgH = meta.height;
+  // דגל גדול — 82% מרוחב התמונה, ממוקם במרכז לכיסוי הדגל של ה-AI
+  const flagW = Math.round(imgW * 0.82);
+  const flagH = Math.round(flagW * 2 / 3);
+  // סיבוב קל אקראי (-6° עד +6°) — פחות סטטי
+  const rotateDeg = (Math.random() * 12 - 6);
+  const flagSvgBuf = createIsraeliFlagBuffer(flagW);
+  // צור PNG עם סיבוב קל, ורקע שקוף
+  const flagPng = await sharp(flagSvgBuf)
+    .rotate(rotateDeg, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+  const rotMeta = await sharp(flagPng).metadata();
+  // ממוקם במרכז אופקי, שליש עליון אנכי
+  const left = Math.round((imgW - rotMeta.width)  / 2);
+  const top  = Math.round((imgH - rotMeta.height) / 2 - imgH * 0.08);
+  return sharp(imageBuf)
+    .composite([{ input: flagPng, left, top, blend: 'over' }])
+    .png()
+    .toBuffer();
+}
+
+// ─── יצירת תמונה — Grok (xAI Aurora) עם fallback ל-gpt-image-1 ──────────────
+async function generateDalleVariant(prompt, _style) {
+  // נסה Grok קודם אם יש מפתח
+  if (process.env.XAI_API_KEY) {
+    try {
+      addLog('🤖 שולח ל-Grok (xAI)...');
+      const xaiRes = await axios.post(
+        'https://api.x.ai/v1/images/generations',
+        { model: 'grok-2-image', prompt, n: 1 },
+        { headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
+      );
+      const imgData = xaiRes.data.data[0];
+      if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
+      const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
+      return Buffer.from(imgRes.data);
+    } catch (xaiErr) {
+      const msg = xaiErr.response?.data?.error?.message || xaiErr.message;
+      addLog(`⚠️ Grok נכשל (${msg}) — עובר ל-gpt-image-1`);
+    }
+  }
+  // fallback: gpt-image-1
+  addLog('🤖 שולח ל-gpt-image-1 (OpenAI)...');
   const dalleRes = await axios.post(
     'https://api.openai.com/v1/images/generations',
-    { model: 'dall-e-3', prompt, size: '1024x1024', quality: 'hd', style, n: 1, response_format: 'url' },
-    { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 60000 }
+    { model: 'gpt-image-1', prompt, size: '1024x1024', quality: 'high', n: 1 },
+    { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
   );
-  const imgRes = await axios.get(dalleRes.data.data[0].url, { responseType: 'arraybuffer', timeout: 30000 });
+  const imgData = dalleRes.data.data[0];
+  if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
+  const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
   return Buffer.from(imgRes.data);
 }
 
 // ─── מדריך רעיונות ויזואליים + הנדסת פרומפטים (שני מצבים) ─────────────────
-const VISUAL_SYSTEM_PROMPT = `You are a world-class visual concept designer for Israeli editorial and political content.
+const VISUAL_SYSTEM_PROMPT = `You are an editorial image director for a leading Israeli news publication.
 
-Your task is to convert article themes into powerful conceptual image prompts — symbolic, dramatic, and visually striking, in the style of Israeli editorial and Zionist media.
+Your job: given an article, produce 4 image concepts that look like they could appear on the front page of a serious Israeli newspaper or magazine — MAARIV, YEDIOTH, or a political journal.
 
 The system operates in TWO MODES.
 
@@ -881,101 +977,60 @@ The system operates in TWO MODES.
 MODE: IDEAS
 ===========
 
-Goal:
-Generate 4 distinct visual concepts for the article.
+Based on the article, generate 4 distinct and powerful visual concepts for square (1:1) editorial images for an Israeli publication.
 
-Think in SYMBOLS and METAPHORS — not literal moments.
-The images serve editorial content about Israeli society, Jewish identity, Zionism, current events, history, and values.
+Step 1: Identify the core message and emotional tone (e.g. conflict, division, unity, identity, injustice, reflection, tension, hope, cynicism).
 
-Core visual vocabulary (use when contextually appropriate):
-* Jewish symbols: Star of David, menorah, Torah scroll, Western Wall, olive tree, tree of life, ancient coins
-* National symbols: Israeli flag, IDF soldier, Jerusalem skyline, desert landscape
-* Power metaphors: lion (strength/sovereignty), scales of justice, gavel, compass, shield
-* Emotional elements: single candle (memory/hope), praying hands, rays of light breaking through darkness
-* Struggle/conflict: chains, broken walls, fire, stormy sky, crumbling stone
-* Heritage: ancient parchment, stone texture, archaeological fragments, carved Hebrew letters in stone
+Step 2: For each concept, translate the idea into a clear and strong visual metaphor.
 
-Rules:
-* Each idea pairs a core SYMBOL with an ATMOSPHERE and a MEANING
-* Think conceptually — what visual metaphor captures the article's message?
-* Make it dramatic: golden light, fire glow, dark contrast, rays of hope, stormy mood
-* All concepts must be rooted in Israeli/Jewish visual identity
-* Avoid generic or culturally neutral imagery
+Requirements:
+- Each concept must be significantly different from the others (different metaphor, not just variation).
+- Each concept must be simple, clear, and immediately understandable.
+- Focus on symbolic and emotional impact, not literal illustration of the text.
+- Avoid generic or cliché ideas.
+
+Balance requirement — MANDATORY:
+- Exactly ONE concept must be bold, cynical, provocative, or sharply critical.
+  Use a striking, unexpected, or uncomfortable visual metaphor for strong emotional impact.
+  Mark it with "cynical": true in the JSON.
+- The other three can be more subtle, calm, poetic, or powerful in a different way.
+- Maintain diversity in tone across all four.
+
+Creative guidelines:
+- Prefer contrast (light vs darkness, individual vs crowd, broken vs whole, silence vs noise).
+- Use strong symbolic elements (broken objects, reflections, barriers, shadows, scale differences).
+- Consider irony, exaggeration, role reversal, or visual contradiction.
+- Keep compositions minimal — one main idea per image.
+- Aim for striking, thought-provoking, and memorable images.
+
+Do NOT include text inside the images.
+Do NOT generate full prompts — only conceptual ideas in Hebrew.
 
 Output format — Return ONLY valid JSON:
-{"summary": "2-3 משפטים בעברית על המסר המרכזי", "ideas": [{"he": "תיאור קצר בעברית של הרעיון הוויזואלי"}, {"he": "..."}, {"he": "..."}, {"he": "..."}]}
+{"summary": "2-3 משפטים בעברית על המסר המרכזי של המאמר", "ideas": [{"title": "כותרת 2-4 מילים", "scene": "תיאור חד-משפטי של הסצנה הוויזואלית", "metaphor": "המטפורה הוויזואלית המרכזית", "message": "המסר הרגשי שהתמונה מעבירה", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": true}]}
 
 ====================================
 MODE: PROMPTS
 =============
 
-Input: A single visual concept
-Goal: Generate TWO prompts of the SAME concept in two different visual styles.
+Input: A visual scene described in Hebrew for an Israeli publication.
+Task: Translate and expand it into two English image prompts — one photorealistic, one illustrated.
 
----
+Stay faithful to the original scene. Include every person, object, and location mentioned.
 
-## CONCEPT BREAKDOWN (internal — do NOT output this, use it only to guide your writing)
+Prompt A — Press photograph: professional photojournalism style, natural lighting, realistic. No text in image. Square composition.
 
-Before writing the prompts, mentally decide:
-- CORE SYMBOL: The central symbolic element
-- SUPPORTING ELEMENTS: 1–2 secondary elements
-- ATMOSPHERE: Lighting and mood
-- FIGURE (if any): Described specifically
+Prompt B — Editorial illustration: hand-crafted artistic style, painted quality, rich colors, magazine cover feeling. No text in image. Square composition.
 
-## ISRAELI VISUAL ELEMENTS — MANDATORY DESCRIPTIONS
-
-### Israeli Flag
-Whenever a flag appears — unless explicitly stated otherwise — it is the Israeli flag.
-NEVER write "Israeli flag" alone. Always use this exact visual description:
-"a rectangular white flag with one thick horizontal blue stripe near the top edge and one thick horizontal blue stripe near the bottom edge, and a single blue Star of David (two overlapping equilateral triangles forming a six-pointed star) centered between the two stripes — the flag is waving in the wind"
-
-### IDF Soldier
-Whenever a soldier or military figure appears, describe as an IDF combat soldier:
-"wearing olive-drab (dark green) IDF combat fatigues, green military boots, an olive or tan-colored combat vest with equipment pouches, and a green IDF beret or Mitznefet (camouflage helmet cover) — carrying a Tavor or M16 assault rifle"
-Do NOT use a generic military uniform, a navy uniform, or a peaked officer's cap.
-
----
-
-## PROMPT A — DRAMATIC EDITORIAL PHOTO
-
-Style: photorealistic, cinematic, like a powerful magazine cover or documentary still.
-
-A dramatic, photorealistic editorial image.
-[Core symbol] is the focal point, [atmosphere].
-[Supporting elements] reinforce the symbolic meaning.
-[Figure if present, described concretely].
-High contrast lighting — deep shadows, warm golden or fiery highlights.
-Textured surfaces: ancient stone, worn metal, aged parchment, fabric in wind.
-Cinematic depth of field. Rich detail. Emotionally powerful.
-No text, no letters, no writing of any kind anywhere in the image.
-
----
-
-## PROMPT B — SYMBOLIC CONCEPT ART
-
-Style: dramatic digital concept art, bold and painterly, like political illustration or cinematic poster art.
-
-A dramatic digital concept art image.
-[Core symbol] glowing, radiating, or lit from within, [atmosphere].
-[Supporting elements] integrated as symbolic layers.
-[Figure if present].
-Bold painterly rendering. Vivid color contrast — deep darks with glowing, saturated highlights.
-Epic scale and mood. Emotionally striking and visually iconic.
-No text, no letters, no writing of any kind anywhere in the image.
-
----
-
-OUTPUT FORMAT for PROMPTS mode — output only the two prompts, nothing else:
+OUTPUT — write only the two prompts:
 Prompt A:
 [paragraph]
 
 Prompt B:
 [paragraph]`;
 
-// ─── סגנון קצר המצורף בסוף הפרומפט ─────────────────────────────────────────
-const DALL_E_STYLE_SUFFIX = `
-
-Square 1:1 composition. No text, no letters, no words, no Hebrew characters, no Latin characters, no numbers anywhere in the image.`;
+// ─── הנחייה קצרה המצורפת לכל פרומפט שנשלח ליצירת תמונה ──────────────────
+const DALL_E_STYLE_SUFFIX = ` Square 1:1 composition. No text, no letters, no numbers anywhere in the image.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
@@ -1008,22 +1063,21 @@ async function expandToTwoPrompts(idea) {
           { role: 'system', content: VISUAL_SYSTEM_PROMPT },
           { role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }
         ],
-        max_tokens: 2000 },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 45000 }
+        max_tokens: 1200 },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
     );
     const text = result.data.choices[0].message.content;
-    addLog(`פרומפטים שנוצרו (${text.length} תווים)`);
     const promptAMatch = text.match(/Prompt A:\s*([\s\S]+?)(?=\n\s*Prompt B:|$)/i);
     const promptBMatch = text.match(/Prompt B:\s*([\s\S]+?)$/i);
-    if (!promptAMatch) addLog('⚠️ לא נמצא Prompt A בפלט GPT — משתמש בפולבק');
-    if (!promptBMatch) addLog('⚠️ לא נמצא Prompt B בפלט GPT — משתמש בפולבק');
+    if (!promptAMatch) addLog('⚠️ לא נמצא Prompt A — משתמש בפולבק');
+    if (!promptBMatch) addLog('⚠️ לא נמצא Prompt B — משתמש בפולבק');
     const promptA = (promptAMatch ? promptAMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
     const promptB = (promptBMatch ? promptBMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
+    addLog(`📷 A: ${promptA.length} תווים | 🎨 B: ${promptB.length} תווים`);
     return { promptA, promptB };
   } catch (e) {
     addLog(`⚠️ expandToTwoPrompts נכשל: ${e.message} — משתמש בפולבק`);
-    const fallback = idea + DALL_E_STYLE_SUFFIX;
-    return { promptA: fallback, promptB: fallback };
+    return { promptA: idea + DALL_E_STYLE_SUFFIX, promptB: idea + DALL_E_STYLE_SUFFIX };
   }
 }
 
@@ -1047,11 +1101,10 @@ app.post('/image-ideas', async (req, res) => {
 
 INPUT:
 ${text.slice(0, 3500)}
-${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas must align with this.\n` : ''}
-Generate 4 distinct visual ideas based on this article. Each idea should reflect a different moment, angle, or interpretation. No style labels — only describe what is seen.`
+${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas must align with this direction.\n` : ''}`
           }
         ],
-        max_tokens: 900,
+        max_tokens: 1400,
         response_format: { type: 'json_object' }
       },
       { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
@@ -1078,10 +1131,10 @@ app.post('/generate-image', async (req, res) => {
     addLog('יוצר 📷 ריאלי ו-✏️ ציור במקביל...');
     const ts = Date.now();
 
-    // הרץ שני סגנונות DALL-E במקביל: Prompt A natural (עיתונאי) + Prompt B vivid (קונספט ארט)
-    const [dalleSettled, geminiSettled] = await Promise.allSettled([
+    // שני סגנונות DALL-E במקביל — שניהם natural (vivid גורם למראה AI מבריק)
+    const [dalleSettled, artisticSettled] = await Promise.allSettled([
       generateDalleVariant(promptA, 'natural'),
-      generateDalleVariant(promptB, 'vivid')
+      generateDalleVariant(promptB, 'natural')
     ]);
 
     // שמור תמונות שהצליחו
@@ -1101,18 +1154,51 @@ app.post('/generate-image', async (req, res) => {
       result.dalle = await saveImagePair(dalleSettled.value, 'dalle');
       addLog('📷 ריאלי — נשמר בהצלחה');
     } else {
-      addLog(`📷 קולנועי נכשל: ${dalleSettled.reason?.message}`);
+      const dalleErr = dalleSettled.reason?.response?.data?.error?.message || dalleSettled.reason?.message || 'שגיאה לא ידועה';
+      addLog(`📷 ריאלי נכשל: ${dalleErr}`);
     }
 
-    if (geminiSettled.status === 'fulfilled') {
-      result.gemini = await saveImagePair(geminiSettled.value, 'gemini');
-      addLog('✏️ ציור — נשמר בהצלחה');
+    if (artisticSettled.status === 'fulfilled') {
+      result.artistic = await saveImagePair(artisticSettled.value, 'artistic');
+      addLog('🎨 אמנותי — נשמר בהצלחה');
     } else {
-      addLog(`🎨 אמנותי נכשל: ${geminiSettled.reason?.message}`);
+      const artisticErr = artisticSettled.reason?.response?.data?.error?.message || artisticSettled.reason?.message || 'שגיאה לא ידועה';
+      addLog(`🎨 vivid נכשל: ${artisticErr} — מנסה שנית עם natural`);
+      // Fallback: retry Prompt B with natural style
+      try {
+        const retryBuf = await generateDalleVariant(promptB, 'natural');
+        result.artistic = await saveImagePair(retryBuf, 'artistic');
+        addLog('🎨 אמנותי (retry natural) — נשמר בהצלחה');
+      } catch (retryErr) {
+        const retryErrMsg = retryErr?.response?.data?.error?.message || retryErr.message;
+        addLog(`🎨 אמנותי נכשל גם בניסיון שני: ${retryErrMsg}`);
+      }
     }
 
-    if (!result.dalle && !result.gemini) {
+    if (!result.dalle && !result.artistic) {
       return res.status(500).json({ success: false, error: 'שתי יצירות התמונה נכשלו', logs });
+    }
+
+    // ── הדבק דגל ישראל: בדוק גם רעיון וגם פרומפטים שנוצרו ─────────────────────
+    const needsFlag = /דגל|flag/i.test(ideaHe || '')
+                   || /flag/i.test(ideaEn || '')
+                   || /flag/i.test(promptA)
+                   || /flag/i.test(promptB);
+    if (needsFlag) {
+      addLog('🇮🇱 מזהה בקשה לדגל — מייצר דגל ישראל מדויק ומדביק על התמונות...');
+      for (const key of ['dalle', 'artistic']) {
+        if (!result[key]) continue;
+        try {
+          const noLogoBuf  = fs.readFileSync(path.join(GENERATED_DIR, result[key].noLogoFile));
+          const withFlag   = await overlayIsraeliFlag(noLogoBuf);
+          const withFlagAndLogo = await applyLogoToImage(withFlag, 'bottom-left');
+          fs.writeFileSync(path.join(GENERATED_DIR, result[key].noLogoFile),   withFlag);
+          fs.writeFileSync(path.join(GENERATED_DIR, result[key].withLogoFile), withFlagAndLogo);
+          addLog(`✅ דגל ישראל הודבק על תמונת ${key}`);
+        } catch (flagErr) {
+          addLog(`⚠️ שגיאה בהדבקת דגל על ${key}: ${flagErr.message}`);
+        }
+      }
     }
 
     addLog('התמונות מוכנות!');
@@ -1225,6 +1311,261 @@ app.get('/recent-images', requireAdmin, (req, res) => {
   }
 });
 // ────────────────────────────────────────────────────────────────────────────
+
+// ─── English Article Feature ─────────────────────────────────────────────────
+
+const ENGLISH_AUTHORS = ['Itay Asman', 'Ben Yakov Sabo', 'Udi Ben Hamu'];
+
+const HEBREW_TAGS_LIST = 'ימין ושמאל, דיפ סטייט, אליטות, מוצש וזכויותיהם של ישראל, גבורה, הפרוגרס, עסקת חטופים, מלחמת זהות, מלחמה, אחדות בעם ישראל, גיוס חרדים, ראש הממשלה, תקשורת, חירות מחשבה, תודעה היסטורית, תפיסות ביטחוניות, יהדות במרחב הציבורי, היסטוריה, חטופים, השב״כ, מערכת המשפט, מערכת הביטחון, מחאות קפלן, אחריות לאומית, החברה החרדית, הרבעון הרביעי, דמוקרטיה, הנהגת המדינה, עיצוב תודעה, מחנה הימין, שליטה במקורות הכוח, תפיסות מוסריות, חירות, מנהיגות צבאית, ממשלה ואחריות, דתיים לאומיים, אחים לנשק, נפתלי בנט, דת ומדינה, ציבוריות וצבא, מוסר, אהוד ברק, מדיניות ציבורית, הרמטכ"ל, אסלאם, היועמשית, משפחות החטופים, טראמפ, ליברליזם, ציונות דתית, תורת הרב קוק, רפורמה משפטית, עולם התורה, משפחות שכולות, קצר לפני שבת, תודעה ציבורית, בית המשפט, עברית, נבחרי ציבור, הסכמי אוסלו, תורת ישראל, עיתון הארץ, עופר וינטר, הנהגה יהודית, ערכים לאומיים, מלחמת תרבות, עוצמה לאומית, חינוך לערכים, חנוכה, הקונספציה, שנאה, טרור, חזון, ערוץ 14, עיצוב זיכרון לאומי, זיכרון ותקומה, פוסטמודרניזם, השתקה, רוח צה"ל, מקצועיות בצבא, קבוצת השתייכות, אסטרטגיה';
+const HEBREW_CATEGORIES_LIST = 'התיישבות, זהות יהודית, חינוך, לאומיות, משפטים, פוליטיקה, פילוסופיה, צבא וביטחון, תקשורת';
+
+// ניתוח מאמר אנגלי עם Claude
+async function analyzeEnglishArticle(text) {
+  addLog('Analyzing English article with Claude...');
+  const response = await axios.post(
+    'https://api.anthropic.com/v1/messages',
+    {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: `Analyze the following English article and return JSON only (no extra text, no explanations). Do NOT use double-quotes (") inside string values — use single quotes (') instead.
+
+{
+  "title": "article title",
+  "author": "author name extracted from first line (after / or |), or empty string",
+  "opening1": "one compelling English sentence (max 120 chars) that captures the core message — thought-provoking, not a technical description",
+  "opening2": "two compelling English sentences (max 200 chars total) that expand on the core message",
+  "topics": ["hebrewCategory1", "hebrewCategory2"],
+  "tags": ["hebrewTag1", "hebrewTag2", "hebrewTag3", "hebrewTag4"],
+  "quotes": ["verbatimQuote1", "verbatimQuote2", "verbatimQuote3"]
+}
+
+Topics — choose EXACTLY 2 from this list only, exact spelling:
+${HEBREW_CATEGORIES_LIST}
+
+Tags — choose 4-6 from this list only, exact spelling, no hyphens:
+${HEBREW_TAGS_LIST}
+
+Quotes — extract EXACTLY 3 verbatim sentences from the article body (1-2 sentences each, copied word-for-word, no changes).
+
+The article:
+${text}`
+      }]
+    },
+    {
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      }
+    }
+  );
+  addLog('English analysis complete');
+  const content = response.data.content[0].text;
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Claude did not return valid JSON');
+  let jsonStr = jsonMatch[0];
+  try { return JSON.parse(jsonStr); }
+  catch (e) {
+    jsonStr = jsonStr.replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ').replace(/,(\s*[}\]])/g, '$1');
+    try { return JSON.parse(jsonStr); }
+    catch (e2) { throw new Error(`Invalid JSON: ${e2.message}`); }
+  }
+}
+
+// פיצול טקסט ל-chunks לפי TTS (4000 תווים מקסימום)
+function splitIntoTtsChunks(text, maxChars = 4000) {
+  if (text.length <= maxChars) return [text];
+  const chunks = [];
+  let remaining = text;
+  while (remaining.length > maxChars) {
+    const slice = remaining.slice(0, maxChars);
+    const lastBreak = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('.\n'), slice.lastIndexOf('! '), slice.lastIndexOf('? '));
+    const cutAt = lastBreak > maxChars * 0.6 ? lastBreak + 1 : maxChars;
+    chunks.push(remaining.slice(0, cutAt).trim());
+    remaining = remaining.slice(cutAt).trim();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
+// עיבוד מאמר אנגלי
+app.post('/process-en', requireAdminOrEnglish, express.json(), async (req, res) => {
+  logs = [];
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ success: false, error: 'Text required' });
+    addLog('Processing English article...');
+
+    const lines = text.trim().split('\n');
+    const firstLine = lines[0] || '';
+    const firstLineIsHtml = /<[a-zA-Z]/.test(firstLine);
+
+    // Title/author extraction only applies to plain-text input format
+    const slashIdx = firstLineIsHtml ? -1 : firstLine.search(/[/|\\]/);
+    const titlePart  = firstLineIsHtml ? '' : (slashIdx !== -1 ? firstLine.slice(0, slashIdx) : firstLine).replace(/\*/g, '').trim();
+    const authorPart = firstLineIsHtml ? '' : (slashIdx !== -1 ? firstLine.slice(slashIdx + 1).replace(/\(.*?\)/g, '').trim() : '');
+
+    // If HTML input, include all lines as body; otherwise skip first line (title/author)
+    let bodyLines = firstLineIsHtml ? lines : lines.slice(1);
+    while (bodyLines.length && !bodyLines[0].trim()) bodyLines.shift();
+
+    // Normalize body: if HTML, strip tags but preserve bold markers first
+    const rawBody = bodyLines.join('\n')
+      .replace(/<strong>(.*?)<\/strong>/gi, '*$1*')    // HTML bold → *bold*
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p\s*>/gi, '\n')
+      .replace(/<blockquote[^>]*>|<\/blockquote>/gi, '')
+      .replace(/<[^>]+>/g, '')                         // strip remaining tags
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    const cleanedText = rawBody
+      .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
+      .replace(/\*/g, '')
+      .replace(/https?:\/\/\S+/gi, '')
+      .replace(/[\+\(]?\d[\d\s\-\(\)]{7,}\d/g, '')
+      .trim();
+
+    const analysis = await analyzeEnglishArticle(text);
+    if (!analysis.title) analysis.title = titlePart;
+    if (!analysis.author) analysis.author = authorPart;
+
+    // ודא שהכותב ברשימה, אחרת מערכת
+    const knownAuthor = ENGLISH_AUTHORS.find(a => a.toLowerCase() === (analysis.author || '').toLowerCase());
+    analysis.author = knownAuthor || (analysis.author && ENGLISH_AUTHORS.some(a => a.toLowerCase().includes((analysis.author || '').toLowerCase().split(' ')[0])) ? analysis.author : 'מערכת');
+
+    addLog(`English article ready: "${analysis.title}" by ${analysis.author}`);
+    res.json({ success: true, analysis, cleanedText, logs });
+  } catch (e) {
+    addLog(`Error: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message, logs });
+  }
+});
+
+// יצירת TTS ו-Buzzsprout upload
+app.post('/generate-tts', requireAdminOrEnglish, express.json(), async (req, res) => {
+  logs = [];
+  try {
+    const { title, authorName, articleText } = req.body;
+    if (!articleText?.trim()) return res.status(400).json({ success: false, error: 'Article text required' });
+
+    // הסרת HTML לטקסט נקי
+    const plainText = articleText
+      .replace(/<strong>(.*?)<\/strong>/gi, '$1')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    // בניית סקריפט TTS
+    const ttsScript = [
+      title    ? `${title}.`            : '',
+      authorName ? `Written by ${authorName}.` : '',
+      '',
+      plainText
+    ].filter(s => s !== '').join('\n').trim();
+
+    const chunks = splitIntoTtsChunks(ttsScript);
+    addLog(`TTS: ${chunks.length} chunk(s), ${ttsScript.length} chars total`);
+
+    const os = require('os');
+    const tempFiles = [];
+
+    // יצירת MP3 לכל chunk
+    for (let i = 0; i < chunks.length; i++) {
+      addLog(`Generating audio chunk ${i + 1}/${chunks.length}...`);
+      const ttsRes = await axios.post(
+        'https://api.openai.com/v1/audio/speech',
+        { model: 'tts-1-hd', voice: 'nova', input: chunks[i], response_format: 'mp3' },
+        { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, responseType: 'arraybuffer', timeout: 120000 }
+      );
+      const tmpFile = path.join(os.tmpdir(), `tts-${Date.now()}-${i}.mp3`);
+      fs.writeFileSync(tmpFile, Buffer.from(ttsRes.data));
+      tempFiles.push(tmpFile);
+    }
+
+    let finalFile;
+    if (tempFiles.length === 1) {
+      finalFile = tempFiles[0];
+    } else {
+      // שרשור כל ה-chunks ל-MP3 אחד
+      finalFile = path.join(os.tmpdir(), `tts-${Date.now()}-final.mp3`);
+      const listFile = path.join(os.tmpdir(), `tts-list-${Date.now()}.txt`);
+      fs.writeFileSync(listFile, tempFiles.map(f => `file '${f.replace(/\\/g, '/')}'`).join('\n'));
+      await new Promise((resolve, reject) => {
+        ffmpeg()
+          .input(listFile)
+          .inputOptions(['-f concat', '-safe 0'])
+          .audioCodec('copy')
+          .on('end', resolve)
+          .on('error', reject)
+          .save(finalFile);
+      });
+      fs.unlinkSync(listFile);
+      tempFiles.forEach(f => { try { fs.unlinkSync(f); } catch {} });
+    }
+
+    addLog(`TTS audio ready: ${Math.round(fs.statSync(finalFile).size / 1024)}KB`);
+    addLog('Uploading to Buzzsprout...');
+    const buzzData = await uploadToBuzzsprout(finalFile, title || 'English Article');
+    fs.unlinkSync(finalFile);
+
+    addLog(`Buzzsprout episode ready: ${buzzData.id}`);
+    res.json({ success: true, episodeId: String(buzzData.id), audioUrl: buzzData.audio_url, podcastId: process.env.BUZZSPROUT_PODCAST_ID, logs });
+  } catch (e) {
+    addLog(`TTS error: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message, logs });
+  }
+});
+
+// פרסום מאמר אנגלי לוורדפרס
+app.post('/publish-en', requireAdminOrEnglish, express.json(), async (req, res) => {
+  logs = [];
+  try {
+    const { title, content, excerpt, date, tags, topics, authorName, featuredMediaId } = req.body;
+
+    // עטיפת תוכן ב-LTR ופונט אנגלי
+    const wrappedContent = `<div dir="ltr" style="text-align:left;font-family:Georgia,'Times New Roman',serif;line-height:1.8;">${content}</div>`;
+
+    const status = process.env.DEV_MODE === 'true' ? 'draft' : 'future';
+    const tagIds      = tags?.length   ? await getOrCreateTermIds(tags, 'tags') : [];
+    const categoryIds = topics?.length ? await getOrCreateTermIds(topics.slice(0, 2), 'categories') : [];
+
+    // הוספת קטגוריה "English" (מחוץ לרשימה הסגורה)
+    try {
+      const engSearch = await axios.get(`${process.env.WP_URL}/wp-json/wp/v2/categories?search=English`,
+        { auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD } });
+      let engCat = engSearch.data.find(c => c.name === 'English');
+      if (!engCat) {
+        const created = await axios.post(`${process.env.WP_URL}/wp-json/wp/v2/categories`, { name: 'English' },
+          { auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD } });
+        engCat = created.data;
+        addLog('Created "English" category in WordPress');
+      }
+      categoryIds.push(engCat.id);
+    } catch (e) { addLog(`Could not add English category: ${e.message}`); }
+
+    const authorId = authorName ? await findAuthorId(authorName) : null;
+
+    const postData = { title, content: wrappedContent, excerpt: excerpt || '', status, date, tags: tagIds, categories: categoryIds };
+    if (authorId)      postData.author         = authorId;
+    if (featuredMediaId) postData.featured_media = featuredMediaId;
+
+    const postRes = await axios.post(`${process.env.WP_URL}/wp-json/wp/v2/posts`, postData,
+      { auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD } });
+
+    addLog(`English article published! ID: ${postRes.data.id}`);
+    res.json({ success: true, result: { id: postRes.data.id, link: postRes.data.link }, logs });
+  } catch (e) {
+    addLog(`Error publishing: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message, logs });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
