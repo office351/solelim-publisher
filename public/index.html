@@ -735,7 +735,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   </div>
 
   <div class="landing-grid">
-    <div class="landing-card" onclick="showPage('page-edit')">
+    <div class="landing-card hebrew-only" onclick="showPage('page-edit')">
       <div class="icon">✏️</div>
       <h2>עריכת מאמר</h2>
       <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
@@ -1162,8 +1162,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     if (currentUser === adminUser) {
       // admin — רואה הכל, כולל english-only
     } else if (currentUser === 'english') {
-      // english — רואה רק את כרטיס האנגלית, לא את שאר ה-admin
+      // english — רואה רק את כרטיס האנגלית
       document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.hebrew-only').forEach(el => el.classList.add('hidden'));
       const grid = document.querySelector('.landing-grid');
       if (grid) grid.style.gridTemplateColumns = '1fr';
     } else {
