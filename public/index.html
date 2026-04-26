@@ -3074,7 +3074,7 @@ async function translateArticle() {
   document.getElementById('enTranslateLoading').classList.remove('hidden');
   document.getElementById('enTranslateResult').classList.add('hidden');
   try {
-    const res  = await fetch('/translate-en', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
+    const res  = await fetch('/translate-en', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
     const data = await res.json();
     if (!data.success) { alert('Translation error: ' + data.error); return; }
     enWhatsAppText = data.translated;
@@ -3192,7 +3192,7 @@ async function uploadEnImageNow(input) {
   try {
     const fd = new FormData();
     fd.append('image', file);
-    const r = await fetch('/upload-image', { method: 'POST', body: fd });
+    const r = await fetch('/upload-image', { method: 'POST', credentials: 'include', body: fd });
     const d = await r.json();
     if (d.success) {
       enUploadedMediaId = d.mediaId;
@@ -3215,7 +3215,7 @@ async function startProcessEn(textOverride) {
   if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
   document.getElementById('enLogs1').innerHTML = '<span style="color:#666">⏳ Analyzing article...</span>';
   try {
-    const res  = await fetch('/process-en', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
+    const res  = await fetch('/process-en', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
     const data = await res.json();
     updateEnLogs(data.logs, 'enLogs1');
     if (!data.success) { alert('Error: ' + data.error); btn.disabled = false; btn.textContent = 'Process Article ➜'; return; }
@@ -3291,7 +3291,7 @@ async function generateEnglishTts() {
 
   try {
     const res  = await fetch('/generate-tts', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ title, authorName, articleText: enCleanedText })
     });
     const data = await res.json();
@@ -3344,7 +3344,7 @@ async function publishEnglishArticle() {
 
   try {
     const res  = await fetch('/publish-en', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         title:          document.getElementById('enTitleField').value,
         content,
@@ -3376,7 +3376,7 @@ async function approveEnglishPost() {
   const btn = document.getElementById('enApproveBtn');
   btn.disabled = true; btn.textContent = 'Publishing...';
   try {
-    const res  = await fetch('/approve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ postId: enPublishedPostId }) });
+    const res  = await fetch('/approve', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ postId: enPublishedPostId }) });
     const data = await res.json();
     if (data.success) {
       btn.textContent = '✅ Published!';
