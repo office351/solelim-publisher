@@ -1509,12 +1509,21 @@ app.post('/generate-tts', requireAdminOrEnglish, express.json(), async (req, res
     }
 
     addLog(`TTS audio ready: ${Math.round(fs.statSync(finalFile).size / 1024)}KB`);
+
+    // שמור עותק זמני להורדה ישירה (נמחק אחרי 30 דקות)
+    const tempDir = path.join(__dirname, 'public', 'temp');
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+    const tempFileName = `tts-${Date.now()}.mp3`;
+    const tempPublicPath = path.join(tempDir, tempFileName);
+    fs.copyFileSync(finalFile, tempPublicPath);
+    setTimeout(() => { try { fs.unlinkSync(tempPublicPath); } catch {} }, 30 * 60 * 1000);
+
     addLog('Uploading to Buzzsprout...');
     const buzzData = await uploadToBuzzsprout(finalFile, title || 'English Article');
     fs.unlinkSync(finalFile);
 
     addLog(`Buzzsprout episode ready: ${buzzData.id}`);
-    res.json({ success: true, episodeId: String(buzzData.id), audioUrl: buzzData.audio_url, podcastId: process.env.BUZZSPROUT_PODCAST_ID, logs });
+    res.json({ success: true, episodeId: String(buzzData.id), audioUrl: buzzData.audio_url, podcastId: process.env.BUZZSPROUT_PODCAST_ID, tempDownloadUrl: `/temp/${tempFileName}`, logs });
   } catch (e) {
     addLog(`TTS error: ${e.message}`);
     res.status(500).json({ success: false, error: e.message, logs });

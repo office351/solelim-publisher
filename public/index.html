@@ -3142,9 +3142,10 @@ async function generateEnglishTts() {
     document.getElementById('enAudioUrl').value = enAudioUrl;
     document.getElementById('enAudioStatus').textContent = `✓ Episode ${enBuzzsproutId} uploaded`;
 
-    // Download link (fetch the MP3 and make blob URL)
-    if (enAudioUrl) {
-      document.getElementById('enAudioDownloadLink').href = enAudioUrl;
+    // Download link — משתמש בקובץ הזמני שלנו (same-origin, download עובד)
+    const dlUrl = data.tempDownloadUrl || enAudioUrl;
+    if (dlUrl) {
+      document.getElementById('enAudioDownloadLink').href = dlUrl;
       document.getElementById('enAudioDownloadLink').download = `${title || 'article'}.mp3`;
     }
 
