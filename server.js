@@ -560,7 +560,7 @@ async function findAuthorId(name) {
     const res = await axios.get(`${process.env.WP_URL}/wp-json/wp/v2/users?search=${encodeURIComponent(name)}&per_page=20`, {
       auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD }
     });
-    const user = res.data.find(u => u.name === name) || res.data[0];
+    const user = res.data.find(u => u.name.toLowerCase() === name.toLowerCase()) || res.data[0];
     return user?.id || null;
   } catch (e) {
     addLog(`לא הצלחתי למצוא כותב "${name}": ${e.message}`);
@@ -1376,7 +1376,7 @@ app.post('/translate-en', requireAdminOrEnglish, express.json(), async (req, res
   }
 });
 
-const ENGLISH_AUTHORS = ['Solelim Derech', 'Ezra Hyman', 'Itay Asman', 'Ben Yakov Sabo', 'Udi Ben Hamu'];
+const ENGLISH_AUTHORS = ['SOLELIM DERECH', 'Ezra Hyman', 'Itay Asman', 'Ben Yakov Sabo', 'Udi Ben Hamu'];
 
 const HEBREW_TAGS_LIST = 'ימין ושמאל, דיפ סטייט, אליטות, מוצש וזכויותיהם של ישראל, גבורה, הפרוגרס, עסקת חטופים, מלחמת זהות, מלחמה, אחדות בעם ישראל, גיוס חרדים, ראש הממשלה, תקשורת, חירות מחשבה, תודעה היסטורית, תפיסות ביטחוניות, יהדות במרחב הציבורי, היסטוריה, חטופים, השב״כ, מערכת המשפט, מערכת הביטחון, מחאות קפלן, אחריות לאומית, החברה החרדית, הרבעון הרביעי, דמוקרטיה, הנהגת המדינה, עיצוב תודעה, מחנה הימין, שליטה במקורות הכוח, תפיסות מוסריות, חירות, מנהיגות צבאית, ממשלה ואחריות, דתיים לאומיים, אחים לנשק, נפתלי בנט, דת ומדינה, ציבוריות וצבא, מוסר, אהוד ברק, מדיניות ציבורית, הרמטכ"ל, אסלאם, היועמשית, משפחות החטופים, טראמפ, ליברליזם, ציונות דתית, תורת הרב קוק, רפורמה משפטית, עולם התורה, משפחות שכולות, קצר לפני שבת, תודעה ציבורית, בית המשפט, עברית, נבחרי ציבור, הסכמי אוסלו, תורת ישראל, עיתון הארץ, עופר וינטר, הנהגה יהודית, ערכים לאומיים, מלחמת תרבות, עוצמה לאומית, חינוך לערכים, חנוכה, הקונספציה, שנאה, טרור, חזון, ערוץ 14, עיצוב זיכרון לאומי, זיכרון ותקומה, פוסטמודרניזם, השתקה, רוח צה"ל, מקצועיות בצבא, קבוצת השתייכות, אסטרטגיה';
 const HEBREW_CATEGORIES_LIST = 'התיישבות, זהות יהודית, חינוך, לאומיות, משפטים, פוליטיקה, פילוסופיה, צבא וביטחון, תקשורת';
@@ -1513,7 +1513,7 @@ app.post('/process-en', requireAdminOrEnglish, express.json(), async (req, res) 
     // ודא שהכותב ברשימה, אחרת Solelim Derech
     const knownAuthor = ENGLISH_AUTHORS.find(a => a.toLowerCase() === (analysis.author || '').toLowerCase())
       || ENGLISH_AUTHORS.find(a => (analysis.author || '').toLowerCase().split(' ').some(word => word.length > 2 && a.toLowerCase().includes(word)));
-    analysis.author = knownAuthor || 'Solelim Derech';
+    analysis.author = knownAuthor || 'SOLELIM DERECH';
 
     addLog(`English article ready: "${analysis.title}" by ${analysis.author}`);
     res.json({ success: true, analysis, cleanedText, logs });

@@ -2979,7 +2979,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     <div class="card">
       <label>Author:</label>
       <select id="enAuthorField" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:#fff">
-        <option value="Solelim Derech">Solelim Derech</option>
+        <option value="SOLELIM DERECH">SOLELIM DERECH</option>
         <option value="Ezra Hyman">Ezra Hyman</option>
         <option value="Itay Asman">Itay Asman</option>
         <option value="Ben Yakov Sabo">Ben Yakov Sabo</option>
@@ -3229,7 +3229,7 @@ async function startProcessEn(textOverride) {
     const authorSel = document.getElementById('enAuthorField');
     const matchedAuthor = [...authorSel.options].find(o => o.value.toLowerCase() === (enAnalysisData.author || '').toLowerCase());
     if (matchedAuthor) authorSel.value = matchedAuthor.value;
-    else authorSel.value = 'Solelim Derech'; // default fallback
+    else authorSel.value = 'SOLELIM DERECH'; // default fallback
 
     // Opening options
     const openCont = document.getElementById('enOpeningOptions');
