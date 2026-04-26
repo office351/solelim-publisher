@@ -3330,19 +3330,17 @@ async function publishEnglishArticle() {
   const btn = document.getElementById('enPublishBtn');
   btn.disabled = true; btn.textContent = 'Publishing...';
 
-  // בניית embed אודיו לאנגלית — תמיד קישור ישיר + player אם יש IDs
+  // בניית embed אודיו לאנגלית — HTML5 <audio> player (WordPress מאפשר, מוטמע יפה, לא דורש JS)
   let audioEmbed = '';
   const effectiveAudioUrl = document.getElementById('enAudioUrl').value.trim() || enAudioUrl;
-  if (enBuzzsproutId && enBuzzsproutPodId) {
-    const episodePage = effectiveAudioUrl || `https://www.buzzsprout.com/${enBuzzsproutPodId}/${enBuzzsproutId}`;
+  if (effectiveAudioUrl) {
     audioEmbed =
-      `<p dir="ltr"><a href="${episodePage}">🎧 Listen to the recording</a></p>\n` +
-      `<div id="buzzsprout-player-${enBuzzsproutId}"></div>` +
-      `<script src="https://www.buzzsprout.com/${enBuzzsproutPodId}/${enBuzzsproutId}.js` +
-      `?container_id=buzzsprout-player-${enBuzzsproutId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n` +
-      `<p dir="ltr">&nbsp;</p>\n`;
-  } else if (effectiveAudioUrl) {
-    audioEmbed = `<p dir="ltr"><a href="${effectiveAudioUrl}">🎧 Listen to the recording</a></p>\n` +
+      `<figure style="margin:0 0 8px">\n` +
+      `<audio controls style="width:100%">\n` +
+      `<source src="${effectiveAudioUrl}" type="audio/mpeg">\n` +
+      `<a href="${effectiveAudioUrl}">🎧 Listen to the recording</a>\n` +
+      `</audio>\n` +
+      `</figure>\n` +
       `<p dir="ltr">&nbsp;</p>\n`;
   }
   // Build LTR English HTML: each paragraph gets dir="ltr", blockquotes at 1/3 and 2/3
