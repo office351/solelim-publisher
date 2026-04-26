@@ -2979,10 +2979,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     <div class="card">
       <label>Author:</label>
       <select id="enAuthorField" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:#fff">
+        <option value="Solelim Derech">Solelim Derech</option>
+        <option value="Ezra Hyman">Ezra Hyman</option>
         <option value="Itay Asman">Itay Asman</option>
         <option value="Ben Yakov Sabo">Ben Yakov Sabo</option>
         <option value="Udi Ben Hamu">Udi Ben Hamu</option>
-        <option value="מערכת">מערכת (Editorial)</option>
       </select>
     </div>
 
@@ -3228,7 +3229,7 @@ async function startProcessEn(textOverride) {
     const authorSel = document.getElementById('enAuthorField');
     const matchedAuthor = [...authorSel.options].find(o => o.value.toLowerCase() === (enAnalysisData.author || '').toLowerCase());
     if (matchedAuthor) authorSel.value = matchedAuthor.value;
-    else if (enAnalysisData.author === 'מערכת') authorSel.value = 'מערכת';
+    else authorSel.value = 'Solelim Derech'; // default fallback
 
     // Opening options
     const openCont = document.getElementById('enOpeningOptions');
@@ -3329,15 +3330,20 @@ async function publishEnglishArticle() {
   const btn = document.getElementById('enPublishBtn');
   btn.disabled = true; btn.textContent = 'Publishing...';
 
-  // בניית embed אודיו לאנגלית (Buzzsprout TTS)
+  // בניית embed אודיו לאנגלית — תמיד קישור ישיר + player אם יש IDs
   let audioEmbed = '';
+  const effectiveAudioUrl = document.getElementById('enAudioUrl').value.trim() || enAudioUrl;
   if (enBuzzsproutId && enBuzzsproutPodId) {
-    audioEmbed = `<div id="buzzsprout-player-${enBuzzsproutId}"></div>` +
+    const episodePage = effectiveAudioUrl || `https://www.buzzsprout.com/${enBuzzsproutPodId}/${enBuzzsproutId}`;
+    audioEmbed =
+      `<p dir="ltr"><a href="${episodePage}">🎧 Listen to the recording</a></p>\n` +
+      `<div id="buzzsprout-player-${enBuzzsproutId}"></div>` +
       `<script src="https://www.buzzsprout.com/${enBuzzsproutPodId}/${enBuzzsproutId}.js` +
-      `?container_id=buzzsprout-player-${enBuzzsproutId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n\n`;
-  } else {
-    const effectiveAudioUrl = document.getElementById('enAudioUrl').value.trim() || enAudioUrl;
-    if (effectiveAudioUrl) audioEmbed = `<p><a href="${effectiveAudioUrl}">🎧 Listen</a></p>\n\n`;
+      `?container_id=buzzsprout-player-${enBuzzsproutId}&player=small" type="text/javascript" charset="utf-8"><\/script>\n` +
+      `<p dir="ltr">&nbsp;</p>\n`;
+  } else if (effectiveAudioUrl) {
+    audioEmbed = `<p dir="ltr"><a href="${effectiveAudioUrl}">🎧 Listen to the recording</a></p>\n` +
+      `<p dir="ltr">&nbsp;</p>\n`;
   }
   // Build LTR English HTML: each paragraph gets dir="ltr", blockquotes at 1/3 and 2/3
   const content = audioEmbed + buildEnglishContent(enCleanedText, enSelectedQuotes[0], enSelectedQuotes[1]);

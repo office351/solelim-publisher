@@ -1376,7 +1376,7 @@ app.post('/translate-en', requireAdminOrEnglish, express.json(), async (req, res
   }
 });
 
-const ENGLISH_AUTHORS = ['Itay Asman', 'Ben Yakov Sabo', 'Udi Ben Hamu'];
+const ENGLISH_AUTHORS = ['Solelim Derech', 'Ezra Hyman', 'Itay Asman', 'Ben Yakov Sabo', 'Udi Ben Hamu'];
 
 const HEBREW_TAGS_LIST = 'ימין ושמאל, דיפ סטייט, אליטות, מוצש וזכויותיהם של ישראל, גבורה, הפרוגרס, עסקת חטופים, מלחמת זהות, מלחמה, אחדות בעם ישראל, גיוס חרדים, ראש הממשלה, תקשורת, חירות מחשבה, תודעה היסטורית, תפיסות ביטחוניות, יהדות במרחב הציבורי, היסטוריה, חטופים, השב״כ, מערכת המשפט, מערכת הביטחון, מחאות קפלן, אחריות לאומית, החברה החרדית, הרבעון הרביעי, דמוקרטיה, הנהגת המדינה, עיצוב תודעה, מחנה הימין, שליטה במקורות הכוח, תפיסות מוסריות, חירות, מנהיגות צבאית, ממשלה ואחריות, דתיים לאומיים, אחים לנשק, נפתלי בנט, דת ומדינה, ציבוריות וצבא, מוסר, אהוד ברק, מדיניות ציבורית, הרמטכ"ל, אסלאם, היועמשית, משפחות החטופים, טראמפ, ליברליזם, ציונות דתית, תורת הרב קוק, רפורמה משפטית, עולם התורה, משפחות שכולות, קצר לפני שבת, תודעה ציבורית, בית המשפט, עברית, נבחרי ציבור, הסכמי אוסלו, תורת ישראל, עיתון הארץ, עופר וינטר, הנהגה יהודית, ערכים לאומיים, מלחמת תרבות, עוצמה לאומית, חינוך לערכים, חנוכה, הקונספציה, שנאה, טרור, חזון, ערוץ 14, עיצוב זיכרון לאומי, זיכרון ותקומה, פוסטמודרניזם, השתקה, רוח צה"ל, מקצועיות בצבא, קבוצת השתייכות, אסטרטגיה';
 const HEBREW_CATEGORIES_LIST = 'התיישבות, זהות יהודית, חינוך, לאומיות, משפטים, פוליטיקה, פילוסופיה, צבא וביטחון, תקשורת';
@@ -1488,7 +1488,8 @@ app.post('/process-en', requireAdminOrEnglish, express.json(), async (req, res) 
     const footerPatterns = [
       /^\s*\(?for\s+comments\s*[:：]/i,
       /^\s*for\s+more\s+articles\s*[:：]/i,
-      /^\s*to\s+join\s+the\s+group\s*[:：]?\s*$/i,
+      /^\s*to\s+join\s+the\s+group\s*[:：]/i,          // no $ — catches lines with URL on same line
+      /^\s*https?:\/\/chat\.whatsapp\.com/i,            // WhatsApp URL on its own line
       /^\s*[''""]?path\s+pavers[''""]?\s*$/i,
       /^\s*www\.solelim/i,
     ];
@@ -1509,9 +1510,10 @@ app.post('/process-en', requireAdminOrEnglish, express.json(), async (req, res) 
     if (!analysis.title) analysis.title = titlePart;
     if (!analysis.author) analysis.author = authorPart;
 
-    // ודא שהכותב ברשימה, אחרת מערכת
-    const knownAuthor = ENGLISH_AUTHORS.find(a => a.toLowerCase() === (analysis.author || '').toLowerCase());
-    analysis.author = knownAuthor || (analysis.author && ENGLISH_AUTHORS.some(a => a.toLowerCase().includes((analysis.author || '').toLowerCase().split(' ')[0])) ? analysis.author : 'מערכת');
+    // ודא שהכותב ברשימה, אחרת Solelim Derech
+    const knownAuthor = ENGLISH_AUTHORS.find(a => a.toLowerCase() === (analysis.author || '').toLowerCase())
+      || ENGLISH_AUTHORS.find(a => (analysis.author || '').toLowerCase().split(' ').some(word => word.length > 2 && a.toLowerCase().includes(word)));
+    analysis.author = knownAuthor || 'Solelim Derech';
 
     addLog(`English article ready: "${analysis.title}" by ${analysis.author}`);
     res.json({ success: true, analysis, cleanedText, logs });
