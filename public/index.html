@@ -63,30 +63,48 @@ body {
   gap: 10px;
 }
 
-/* ── HEADER ראשי (דף נחיתה בלבד) ── */
+/* ── HEADER ראשי ── */
 #page-landing .top-bar {
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #2563a0 100%);
+  background: linear-gradient(140deg, #0f2744 0%, #1a3a54 45%, #1e5080 100%);
   margin: 0 -16px 32px;
-  padding: 22px 32px 26px;
-  border-bottom: none;
-  border-radius: 0;
+  padding: 30px 34px 34px;
+  border-radius: 0 0 32px 32px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  border-bottom: none;
 }
-
+#page-landing .top-bar::before {
+  content: '';
+  position: absolute;
+  top: -80px; left: -60px;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, rgba(99,179,237,0.22) 0%, transparent 65%);
+  pointer-events: none;
+}
 #page-landing .top-bar::after {
   content: '';
   position: absolute;
-  bottom: -40px; right: -40px;
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(42,181,200,0.22) 0%, transparent 70%);
+  bottom: -60px; right: 10%;
+  width: 280px; height: 200px;
+  background: radial-gradient(ellipse, rgba(129,140,248,0.18) 0%, transparent 70%);
   pointer-events: none;
 }
-
 #page-landing .top-bar h1 {
-  color: white;
-  font-size: 20px;
-  font-weight: 700;
+  color: #fff;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  position: relative; z-index: 1;
+}
+#page-landing .top-bar .header-sub {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  margin: 0;
+  position: relative; z-index: 1;
 }
 
 
@@ -137,75 +155,127 @@ body {
   margin-top: 0;
 }
 
-/* ── LANDING CARDS ── */
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0 0 14px 2px;
+}
+
+/* ── LANDING GRID ── */
 .landing-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 12px;
+  gap: 13px;
 }
+@media (max-width: 560px) { .landing-grid { grid-template-columns: 1fr; } }
 
-@media (max-width: 580px) {
-  .landing-grid { grid-template-columns: 1fr; }
-}
-
+/* ── LANDING CARD ── */
 .landing-card {
-  background: var(--surface);
   border-radius: 20px;
-  padding: 36px 24px 30px;
-  text-align: center;
+  padding: 26px 22px 24px;
   cursor: pointer;
-  border: 1.5px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.22s, box-shadow 0.22s, transform 0.22s;
+  border: 1.5px solid transparent;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: transform 0.22s cubic-bezier(.34,1.3,.7,1), box-shadow 0.22s;
+  text-align: right;
 }
+.landing-card:hover { transform: translateY(-5px) scale(1.01); }
+.landing-card:active { transform: translateY(-1px) scale(1); }
 
-.landing-card::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0; left: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--teal), var(--navy));
-  opacity: 0;
-  transition: opacity 0.22s;
-}
-
-.landing-card:hover {
-  border-color: var(--teal);
-  box-shadow: 0 8px 32px rgba(42,181,200,0.18), 0 2px 8px rgba(0,0,0,0.06);
-  transform: translateY(-4px);
-}
-
-.landing-card:hover::before { opacity: 1; }
-.landing-card:active { transform: translateY(-1px); }
-
-.landing-card .icon {
-  font-size: 42px;
+/* icon wrap */
+.landing-card .icon-wrap {
+  width: 54px; height: 54px;
+  border-radius: 15px;
+  display: flex; align-items: center; justify-content: center;
   margin-bottom: 18px;
-  display: block;
-  line-height: 1;
+  transition: transform 0.22s cubic-bezier(.34,1.3,.7,1);
+  flex-shrink: 0;
 }
+.landing-card:hover .icon-wrap { transform: scale(1.12) rotate(-3deg); }
+.landing-card .icon-wrap svg { width: 26px; height: 26px; stroke-width: 2px; color: #fff; }
 
-.landing-card h2 {
-  color: var(--navy);
-  font-size: 19px;
-  font-weight: 700;
-  margin: 0 0 10px;
+.landing-card .card-title {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 0 7px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
-
-.landing-card p {
-  color: var(--text2);
-  font-size: 14px;
+.landing-card p:not(.card-title) {
+  font-size: 13px;
   line-height: 1.6;
   margin: 0;
+  opacity: 0.8;
 }
 
-/* כרטיס עריכת מאמר – סגנון סגול */
-.landing-card:first-child h2 { color: var(--purple); }
-.landing-card:first-child::before { background: linear-gradient(90deg, var(--purple), var(--navy)); }
-.landing-card:first-child:hover { border-color: var(--purple); box-shadow: 0 8px 32px rgba(123,45,139,0.18); }
+/* חץ */
+.card-arrow {
+  position: absolute;
+  bottom: 20px; left: 20px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.08);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.18s, transform 0.18s;
+}
+.landing-card:hover .card-arrow { background: rgba(0,0,0,0.15); transform: translateX(-3px); }
+.card-arrow svg { width: 14px; height: 14px; }
+
+/* כרטיס סגול — עריכת מאמר */
+.card-purple {
+  background: linear-gradient(145deg, #f3e8ff, #ede1fa, #ddd0f5);
+  border-color: #d8b8f0;
+  box-shadow: 0 4px 24px rgba(139,92,246,0.14);
+}
+.card-purple:hover { box-shadow: 0 14px 40px rgba(139,92,246,0.25); border-color: #c49de8; }
+.card-purple .icon-wrap { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 6px 18px rgba(139,92,246,0.45); }
+.card-purple .card-title { color: #4c1d95; }
+.card-purple p:not(.card-title) { color: #6b3fa0; }
+.card-purple .card-arrow svg { color: #7c3aed; }
+
+/* כרטיס טורקיז — פרסום מאמר */
+.card-teal {
+  background: linear-gradient(145deg, #e0f7fa, #d4f2f7, #b8eaf2);
+  border-color: #a0dde8;
+  box-shadow: 0 4px 24px rgba(6,182,212,0.13);
+}
+.card-teal:hover { box-shadow: 0 14px 40px rgba(6,182,212,0.24); border-color: #7dcfdf; }
+.card-teal .icon-wrap { background: linear-gradient(135deg, #06b6d4, #0891b2); box-shadow: 0 6px 18px rgba(6,182,212,0.45); }
+.card-teal .card-title { color: #0c4a6e; }
+.card-teal p:not(.card-title) { color: #1e6a8a; }
+.card-teal .card-arrow svg { color: #0891b2; }
+
+/* כרטיס כתום — חוברת שבועית */
+.card-orange {
+  background: linear-gradient(145deg, #fff7ed, #ffecd5, #fed7aa);
+  border-color: #f8c88a;
+  box-shadow: 0 4px 24px rgba(249,115,22,0.12);
+}
+.card-orange:hover { box-shadow: 0 14px 40px rgba(249,115,22,0.22); border-color: #f5a84a; }
+.card-orange .icon-wrap { background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 6px 18px rgba(249,115,22,0.45); }
+.card-orange .card-title { color: #7c2d12; }
+.card-orange p:not(.card-title) { color: #9a3d1a; }
+.card-orange .card-arrow svg { color: #ea580c; }
+
+/* כרטיס ירוק — English Article */
+.card-green {
+  background: linear-gradient(145deg, #f0fdf4, #dcfce7, #bbf7d0);
+  border-color: #86efac;
+  box-shadow: 0 4px 24px rgba(34,197,94,0.12);
+}
+.card-green:hover { box-shadow: 0 14px 40px rgba(34,197,94,0.22); border-color: #4ade80; }
+.card-green .icon-wrap { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 6px 18px rgba(34,197,94,0.45); }
+.card-green .card-title { color: #14532d; }
+.card-green p:not(.card-title) { color: #166534; }
+.card-green .card-arrow svg { color: #16a34a; }
 
 /* ספינר טעינה כללי */
 .loading-spinner {
@@ -246,7 +316,7 @@ body {
 /* footer link (ניהול קבוצות) */
 .landing-footer {
   text-align: center;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 .landing-footer a {
   color: var(--text3);
@@ -256,11 +326,15 @@ body {
   padding: 10px 18px;
   border-radius: 10px;
   transition: all 0.15s;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
 }
 .landing-footer a:hover {
-  color: var(--teal);
-  background: var(--teal-light);
+  color: #0891b2;
+  background: #e0f7fa;
+  border-color: #a0dde8;
 }
 
 /* ── FORMS ── */
@@ -765,36 +839,88 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 <div id="page-landing">
   <div class="top-bar">
     <h1>
-      <img src="/logo.png" style="height:34px;width:auto;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;vertical-align:middle" alt="לוגו">
+      <img src="/logo.png" onerror="this.style.display='none'"
+        style="height:38px;border-radius:10px;background:rgba(255,255,255,0.13);padding:4px;vertical-align:middle;margin-left:13px" alt="לוגו">
       מערכת פרסום תוכן
     </h1>
+    <p class="header-sub">סוללים דרך · בחר פעולה להמשך</p>
   </div>
 
+  <p class="section-label">בחר פעולה</p>
+
   <div class="landing-grid">
-    <div class="landing-card hebrew-only" onclick="showPage('page-edit')">
-      <div class="icon">✏️</div>
-      <h2>עריכת מאמר</h2>
-      <p>הגהה, הדגשות, יצירת תמונה עם AI, ושליחה לקבוצת וואטסאפ</p>
+
+    <div class="landing-card card-purple hebrew-only" onclick="showPage('page-edit')">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </div>
+      <p class="card-title">עריכת מאמר</p>
+      <p>הגהה, הדגשות, יצירת תמונה עם AI ושליחה לוואטסאפ</p>
+      <div class="card-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
     </div>
-    <div class="landing-card admin-only" onclick="showPage('page-upload')">
-      <div class="icon">📤</div>
-      <h2>פרסום מאמר</h2>
-      <p>עיבוד מאמר עם AI, העלאת תמונה ואודיו, פרסום לוורדפרס</p>
+
+    <div class="landing-card card-teal admin-only" onclick="showPage('page-upload')">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"/>
+          <line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+      </div>
+      <p class="card-title">פרסום מאמר</p>
+      <p>עיבוד AI, העלאת תמונה ואודיו, פרסום לוורדפרס</p>
+      <div class="card-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
     </div>
-    <div class="landing-card admin-only" onclick="showPage('page-booklet')">
-      <div class="icon">📚</div>
-      <h2>חוברת שבועית</h2>
-      <p>העלאת קובץ PDF ופרסום אוטומטי לוורדפרס עם כל ההגדרות הקבועות</p>
+
+    <div class="landing-card card-orange admin-only" onclick="showPage('page-booklet')">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          <line x1="9" y1="7" x2="15" y2="7"/>
+          <line x1="9" y1="11" x2="15" y2="11"/>
+        </svg>
+      </div>
+      <p class="card-title">חוברת שבועית</p>
+      <p>העלאת PDF ופרסום אוטומטי לוורדפרס</p>
+      <div class="card-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
     </div>
-    <div class="landing-card english-only" onclick="showPage('page-upload-en')">
-      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f1fa-1f1f8.svg" alt="🇺🇸" style="width:58px;height:auto"></div>
-      <h2>English Article</h2>
-      <p>Process &amp; publish an English article — AI analysis, TTS audio, WordPress upload</p>
+
+    <div class="landing-card card-green english-only" onclick="showPage('page-upload-en')">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+      <p class="card-title">English Article</p>
+      <p>AI analysis, TTS audio &amp; WordPress upload</p>
+      <div class="card-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
     </div>
+
   </div>
 
   <div class="landing-footer admin-only">
-    <a onclick="showPage('page-groups')">⚙️ ניהול קבוצות וואטסאפ</a>
+    <a onclick="showPage('page-groups')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+      </svg>
+      ניהול קבוצות וואטסאפ
+    </a>
   </div>
 </div>
 
