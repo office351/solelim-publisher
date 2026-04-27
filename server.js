@@ -841,6 +841,33 @@ const GENERATED_DIR = path.join(__dirname, 'public', 'generated');
 const LOGO_PATH     = path.join(__dirname, 'public', 'logo.png');
 if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
+// ─── ניקוי אוטומטי: תמונות ו-MP3 זמניים מעל 3 ימים ────────────────────────
+function cleanOldFiles() {
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  let deleted = 0;
+  // תמונות שנוצרו
+  try {
+    for (const f of fs.readdirSync(GENERATED_DIR)) {
+      const fp = path.join(GENERATED_DIR, f);
+      if (now - fs.statSync(fp).mtimeMs > THREE_DAYS) { fs.unlinkSync(fp); deleted++; }
+    }
+  } catch {}
+  // MP3 זמניים
+  const tempDir = path.join(__dirname, 'public', 'temp');
+  try {
+    if (fs.existsSync(tempDir)) {
+      for (const f of fs.readdirSync(tempDir)) {
+        const fp = path.join(tempDir, f);
+        if (now - fs.statSync(fp).mtimeMs > THREE_DAYS) { fs.unlinkSync(fp); deleted++; }
+      }
+    }
+  } catch {}
+  if (deleted > 0) console.log(`[cleanup] נמחקו ${deleted} קבצים ישנים`);
+}
+cleanOldFiles();                                    // ריצה בהפעלה
+setInterval(cleanOldFiles, 6 * 60 * 60 * 1000);   // כל 6 שעות
+
 async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
   const img  = sharp(imageBuffer);
   const meta = await img.metadata();
@@ -987,6 +1014,17 @@ const VISUAL_SYSTEM_PROMPT = `You are an editorial image director for a leading 
 
 Your job: given an article, produce 4 image concepts that look like they could appear on the front page of a serious Israeli newspaper or magazine — MAARIV, YEDIOTH, or a political journal.
 
+CRITICAL — ISRAELI CONTEXT (DEFAULT FOR ALL CONTENT):
+All articles are written for an Israeli audience. Unless a foreign country is explicitly named in the article, ALWAYS apply these defaults:
+- "army" / "military" / "soldiers" = IDF (Israeli Defense Forces) — Israeli military uniforms, green IDF gear, Israeli soldiers
+- "flag" = Israeli flag — blue and white with Star of David
+- "state" / "country" / "nation" = State of Israel
+- "city" / "urban scenes" = Israeli city (Tel Aviv, Jerusalem, or generic Israeli urban landscape)
+- "parliament" / "government building" = Israeli Knesset
+- "court" / "justice" = Israeli Supreme Court building
+- "streets" / "protest" / "crowd" = Israeli streets, Israeli demonstrators
+If a specific foreign country, army, or flag is explicitly mentioned in the article — use that. Otherwise: Israel only.
+
 The system operates in TWO MODES.
 
 ====================================
@@ -1046,7 +1084,7 @@ Prompt B:
 [paragraph]`;
 
 // ─── הנחייה קצרה המצורפת לכל פרומפט שנשלח ליצירת תמונה ──────────────────
-const DALL_E_STYLE_SUFFIX = ` Square 1:1 composition. No text, no letters, no numbers anywhere in the image.`;
+const DALL_E_STYLE_SUFFIX = ` Square 1:1 composition. No text, no letters, no numbers anywhere in the image. IMPORTANT: This is an Israeli publication — unless a specific foreign country is explicitly described, all soldiers wear IDF uniforms, all flags are Israeli (blue and white, Star of David), all settings are Israeli.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
