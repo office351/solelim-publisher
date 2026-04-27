@@ -1043,15 +1043,20 @@ MODE: IDEAS
 
 Based on the article, generate 4 distinct and powerful visual concepts for square (1:1) editorial images for an Israeli publication.
 
-Step 1: Identify the core message and emotional tone (e.g. conflict, division, unity, identity, injustice, reflection, tension, hope, cynicism).
+Step 1: Identify the core message and emotional tone (e.g. conflict, division, unity, identity, injustice, reflection, tension, hope, cynicism). Name it explicitly before building visuals.
 
-Step 2: For each concept, translate the idea into a clear and strong visual metaphor.
+Step 2: For each concept, build a layered visual scene. Think through each of these dimensions:
+- SUBJECT: What is the main subject? (a person, object, abstract shape, landscape)
+- COMPOSITION: How is it arranged? (split, isolated vs crowd, above vs below, center vs margin)
+- LIGHTING: What does the light tell? (warm vs cold sides, one lit/one dark, chiaroscuro, harsh vs soft, a single shaft of light)
+- MATERIALS & TEXTURE: What materials carry symbolic weight? (cracked stone, broken glass, mirror, water, iron, fire, shadow, soil)
+- ATMOSPHERE: What is the overall mood? (oppressive, hopeful, ironic, tense, melancholy, defiant, absurd)
 
 Requirements:
 - Each concept must be significantly different from the others (different metaphor, not just variation).
-- Each concept must be simple, clear, and immediately understandable.
+- Each concept must work as a standalone image — striking even without knowing the article.
 - Focus on symbolic and emotional impact, not literal illustration of the text.
-- Avoid generic or cliché ideas.
+- Avoid generic, cliché, or static ideas. Prefer dynamic tension and visual contradiction.
 
 Balance requirement — MANDATORY:
 - Exactly ONE concept must be bold, cynical, provocative, or sharply critical.
@@ -1061,17 +1066,19 @@ Balance requirement — MANDATORY:
 - Maintain diversity in tone across all four.
 
 Creative guidelines:
-- Prefer contrast (light vs darkness, individual vs crowd, broken vs whole, silence vs noise).
-- Use strong symbolic elements (broken objects, reflections, barriers, shadows, scale differences).
+- Visual contrast is your primary tool: light vs darkness, warm vs cold tones, individual vs crowd, broken vs whole, silence vs noise.
+- Lighting can tell the whole story — use it as a narrative device (one side bathed in warm gold, the other in cold blue shadow).
+- Materials and textures add meaning: stone = power/permanence, cracked earth = fracture/instability, mirror/glass = reflection/distortion, iron = rigidity, fire = urgency, water = flow/instability.
+- Use strong symbolic elements: cracked objects, distorted reflections, tilted scales, barriers, shadows, scale differences, empty chairs, locked doors.
 - Consider irony, exaggeration, role reversal, or visual contradiction.
-- Keep compositions minimal — one main idea per image.
-- Aim for striking, thought-provoking, and memorable images.
+- Minimal composition — one dominant idea per image, no clutter.
+- The image must be able to carry its message without any text.
 
 Do NOT include text inside the images.
 Do NOT generate full prompts — only conceptual ideas in Hebrew.
 
-Output format — Return ONLY valid JSON:
-{"summary": "2-3 משפטים בעברית על המסר המרכזי של המאמר", "ideas": [{"title": "כותרת 2-4 מילים", "scene": "תיאור חד-משפטי של הסצנה הוויזואלית", "metaphor": "המטפורה הוויזואלית המרכזית", "message": "המסר הרגשי שהתמונה מעבירה", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": true}]}
+Output format — Return ONLY valid JSON. The "scene" field must be 2-3 rich sentences covering: what we see, lighting and color contrast, materials and textures, atmosphere and mood:
+{"summary": "2-3 משפטים בעברית על המסר המרכזי של המאמר", "ideas": [{"title": "כותרת 2-4 מילים", "scene": "2-3 משפטים: מה רואים בתמונה, מה התאורה והצבעים, אילו חומרים ואווירה", "metaphor": "המטפורה הוויזואלית המרכזית במשפט אחד", "message": "המסר הרגשי שהתמונה מעבירה במשפט אחד", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": false}, {"title": "...", "scene": "...", "metaphor": "...", "message": "...", "cynical": true}]}
 
 ====================================
 MODE: PROMPTS
@@ -1080,13 +1087,19 @@ MODE: PROMPTS
 Input: A visual scene described in Hebrew for an Israeli publication.
 Task: Translate and expand it into two English image prompts — one photorealistic, one illustrated.
 
-Stay faithful to the original scene. Include every person, object, and location mentioned.
+Stay faithful to the original scene. Preserve every visual element mentioned: subjects, objects, lighting direction, color contrast (warm/cold), materials, textures, and atmosphere.
 
-Prompt A — Press photograph: professional photojournalism style, natural lighting, realistic. No text in image. Square composition.
+Enrich each prompt with specific sensory details:
+- Lighting: direction, quality (harsh/soft), temperature (warm golden vs cold blue), contrast ratio
+- Materials: specify textures (cracked stone, aged wood, polished iron, frosted glass, dark soil)
+- Atmosphere: time of day, air quality, silence or noise implied, emotional tension
+- Composition: where the eye lands first, foreground vs background, negative space
 
-Prompt B — Editorial illustration: hand-crafted artistic style, painted quality, rich colors, magazine cover feeling. No text in image. Square composition.
+Prompt A — Documentary photograph style: shot by an award-winning photojournalist, natural available light, 35mm lens, high contrast, hyper-realistic, no studio feel. No text in image. Square 1:1 composition.
 
-OUTPUT — write only the two prompts:
+Prompt B — Editorial illustration style: painted by a master editorial illustrator, bold graphic shapes, intentional color palette (specify 2-3 dominant colors), rich texture, strong symbolic composition, magazine cover quality. No text in image. Square 1:1 composition.
+
+OUTPUT — write only the two prompts, no preamble:
 Prompt A:
 [paragraph]
 
@@ -1168,7 +1181,7 @@ ${text.slice(0, 3500)}
 ${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas must align with this direction.\n` : ''}`
           }
         ],
-        max_tokens: 1400,
+        max_tokens: 2000,
         response_format: { type: 'json_object' }
       },
       { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
