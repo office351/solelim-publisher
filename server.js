@@ -954,17 +954,32 @@ async function generateDalleVariant(prompt, _style) {
       addLog(`⚠️ Grok נכשל (${msg}) — עובר ל-gpt-image-1`);
     }
   }
-  // fallback: gpt-image-1
-  addLog('🤖 שולח ל-gpt-image-1 (OpenAI)...');
-  const dalleRes = await axios.post(
+  // fallback 1: gpt-image-1
+  try {
+    addLog('🤖 שולח ל-gpt-image-1 (OpenAI)...');
+    const dalleRes = await axios.post(
+      'https://api.openai.com/v1/images/generations',
+      { model: 'gpt-image-1', prompt, size: '1024x1024', quality: 'high', n: 1 },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
+    );
+    const imgData = dalleRes.data.data[0];
+    if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
+    const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
+    return Buffer.from(imgRes.data);
+  } catch (gptImgErr) {
+    const msg = gptImgErr.response?.data?.error?.message || gptImgErr.message;
+    addLog(`⚠️ gpt-image-1 נכשל (${msg}) — עובר ל-dall-e-3`);
+  }
+  // fallback 2: dall-e-3 (זמין לכל חשבון OpenAI)
+  addLog('🤖 שולח ל-dall-e-3 (OpenAI)...');
+  const dalle3Res = await axios.post(
     'https://api.openai.com/v1/images/generations',
-    { model: 'gpt-image-1', prompt, size: '1024x1024', quality: 'high', n: 1 },
+    { model: 'dall-e-3', prompt, size: '1024x1024', quality: 'standard', n: 1 },
     { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
   );
-  const imgData = dalleRes.data.data[0];
-  if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
-  const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
-  return Buffer.from(imgRes.data);
+  const dalle3Data = dalle3Res.data.data[0];
+  const dalle3ImgRes = await axios.get(dalle3Data.url, { responseType: 'arraybuffer', timeout: 30000 });
+  return Buffer.from(dalle3ImgRes.data);
 }
 
 // ─── מדריך רעיונות ויזואליים + הנדסת פרומפטים (שני מצבים) ─────────────────
