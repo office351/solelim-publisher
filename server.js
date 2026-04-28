@@ -186,8 +186,8 @@ app.post('/edit-stage1', (req, res) => {
   // עבודה ברקע – ללא מגבלת זמן HTTP
   (async () => {
     try {
-      // פיצול לחלקים לפי פסקאות — כל חלק עד 2500 תווים
-      const CHUNK_SIZE = 2500;
+      // פיצול לחלקים לפי פסקאות — כל חלק עד 5000 תווים
+      const CHUNK_SIZE = 5000;
       const lines = text.split('\n');
       const chunks = [];
       let current = [];
@@ -217,15 +217,15 @@ app.post('/edit-stage1', (req, res) => {
       for (let ci = 0; ci < chunks.length; ci++) {
         const chunk = chunks[ci];
         editJobs.set(jobId, { ...editJobs.get(jobId), progress: `מגיה חלק ${ci + 1} מתוך ${chunks.length}…` });
-        const maxTok = Math.min(Math.ceil(chunk.length / 1.8) + 300, 2500);
+        const maxTok = Math.min(Math.ceil(chunk.length / 1.8) + 400, 4000);
         const proofRes = await withTimeout(
           axios.post(
             'https://api.anthropic.com/v1/messages',
             { model: 'claude-haiku-4-5-20251001', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
               messages: [{ role: 'user', content: chunk }] },
-            { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 50000 }
+            { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
           ),
-          45000
+          85000
         );
         proofedChunks.push(proofRes.data.content[0].text.trim());
       }
