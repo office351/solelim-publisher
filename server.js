@@ -1102,48 +1102,37 @@ MODE: PROMPTS
 =============
 
 Input: A visual scene described in Hebrew for an Israeli publication.
-Task: Translate and expand it into two English image generation prompts — one photorealistic, one illustrated.
+Task: Write two short, powerful English image prompts — one photorealistic, one illustrated.
 
-CRITICAL RULE: Vague prompts produce weak, generic images. Every element must be hyper-specific. Never write "dramatic lighting" — write exactly what the light source is, its direction, its temperature, and what shadows it casts. Never write "strong composition" — describe precisely what fills the frame and where.
+GOLDEN RULE: One strong image = one clear idea. Do NOT list details. Do NOT describe every element. Write like a director giving a single instruction to a master photographer: what is the ONE thing we see, what does the light do, what is the mood. Let the model fill in the rest.
 
-STRUCTURE each prompt in this exact order:
-
-1. SUBJECT — The single dominant element. What it is, what it's doing, its exact physical state (worn, cracked, pristine, burning). One sentence.
-2. COMPOSITION — Precise framing: what fills what percentage of frame, camera angle (eye-level / low-angle / bird's eye), negative space placement.
-3. LIGHTING — Exact source (single overhead lamp / raking side light from the left / cold northern daylight through a narrow window). Temperature (tungsten warm amber / cold blue fluorescent / golden hour). Shadow hardness (sharp-edged hard shadow / soft diffused shadow). Contrast level.
-4. MATERIALS & TEXTURE — Every surface described in tactile detail: "weathered concrete with exposed rebar", "cracked dried earth like a mosaic", "polished cold iron", "aged yellowed paper".
-5. ATMOSPHERE — Time of day, emotional weight, the silence or tension in the scene.
+Each prompt: 2–4 sentences maximum. No bullet points. No technical camera specs.
 
 ---
 
-Prompt A — Photojournalism:
-Style: Award-winning editorial photograph, Magnum Photos quality, published in TIME Magazine or Der Spiegel.
-Choose and name exactly ONE of these camera setups:
-  • Leica M11, 35mm f/2, Kodak Tri-X 400 grain, black and white
-  • Canon EOS R5, 85mm f/1.4, razor-thin depth of field, natural color
-  • Hasselblad medium format, 80mm, ultra-sharp throughout the frame
-Rendering: Ultra-sharp in-focus area with precise selective blur only where compositionally justified. Hyper-realistic surface textures — every crack, pore, fiber visible. Zero post-processing glow or softness. No studio feel. No stock photo composition.
+Prompt A — Photorealistic editorial photograph:
+- State the single dominant subject and its emotional state
+- Describe the lighting in one sentence (direction + quality + temperature)
+- Name the mood and visual weight
+- End with: "Award-winning editorial photography. Cinematic quality."
 
-Prompt B — Editorial Illustration:
-Choose and name exactly ONE of these style anchors:
-  • "Cold War political poster, Constructivist style (El Lissitzky), flat bold shapes"
-  • "TIME Magazine cover illustration, graphic symbolism, Christoph Niemann style"
-  • "Polish School of Posters, stark symbolism, limited palette"
-  • "Soviet-era graphic propaganda aesthetic, reappropriated for modern commentary"
-Color: Specify EXACTLY 2-3 dominant colors by name. No other colors anywhere in the image. High contrast between them.
-Rendering: Bold clean graphic shapes, no photographic gradients, no painterly softness. Every element deliberate and symbolic. Zero clutter. The message readable in 2 seconds.
+Prompt B — Graphic editorial illustration:
+- State the same concept rendered as a bold, flat illustration
+- Specify exactly 2 dominant colors (name them)
+- Name one style reference: e.g. "TIME Magazine cover", "Soviet propaganda poster reappropriated", "stark Polish poster art", "New Yorker editorial illustration"
+- End with: "Bold graphic shapes. No gradients. Zero clutter."
 
-No text, no letters, no numbers in either image. Square 1:1 composition.
+No text in either image. Square 1:1 composition.
 
-OUTPUT — write only the two prompts, no preamble, no explanation:
+OUTPUT — write only the two prompts, no preamble:
 Prompt A:
-[paragraph]
+[2-4 sentences]
 
 Prompt B:
-[paragraph]`;
+[2-4 sentences]`;
 
 // ─── הנחייה קצרה המצורפת לכל פרומפט שנשלח ליצירת תמונה ──────────────────
-const DALL_E_STYLE_SUFFIX = ` Square 1:1 composition. No text, no letters, no numbers anywhere in the image. Do not add flags, national symbols, or any elements not mentioned in the prompt. Ultra-sharp focus on the subject. Professional editorial quality. Every detail rendered with precision.`;
+const DALL_E_STYLE_SUFFIX = ` No text or letters in the image. Square 1:1 composition. High quality.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
@@ -1176,7 +1165,7 @@ async function expandToTwoPrompts(idea) {
           { role: 'system', content: VISUAL_SYSTEM_PROMPT },
           { role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }
         ],
-        max_tokens: 1800 },
+        max_tokens: 800 },
       { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
     );
     const text = result.data.choices[0].message.content;
