@@ -1893,14 +1893,15 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         alert('השרת לא עודכן עדיין — נא לעשות Manual Deploy ב-Render ולנסות שוב.');
         return;
       }
-      const jobId = startResp.jobId;
+      let currentJobId = startResp.jobId;
 
-      // polling עד שהשרת מסיים (מקסימום 2 דקות)
+      // polling עד שהשרת מסיים (מקסימום 3 דקות)
       let data1;
       const pollStart    = Date.now();
-      const pollDeadline = pollStart + 2 * 60 * 1000;
+      const pollDeadline = pollStart + 3 * 60 * 1000;
       const stageEl      = document.getElementById('editLoadingStage');
       let pollErrors     = 0;
+      let autoRetried    = false; // רק ניסיון חוזר אחד אוטומטי
 
       while (true) {
         await new Promise(r => setTimeout(r, 2500));
@@ -1912,15 +1913,29 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         if (Date.now() > pollDeadline) {
           stopEditLoading(false);
           btn.style.display = ''; btn.disabled = false;
-          alert('ההגהה לקחה יותר מ-2 דקות — השרת עלול להיות עמוס. נסה שוב.');
+          alert('ההגהה לקחה יותר מ-3 דקות — השרת עלול להיות עמוס. נסה שוב.');
           return;
         }
 
         try {
-          const pollRes = await fetch(`/edit-poll/${jobId}`);
+          const pollRes = await fetch(`/edit-poll/${currentJobId}`);
           if (!pollRes.ok) throw new Error(`HTTP ${pollRes.status}`);
           const poll = await pollRes.json();
           pollErrors = 0;
+
+          // השרת אותחל באמצע — הפעל מחדש בשקט (פעם אחת בלבד)
+          if (poll.done && !poll.success && poll.error && poll.error.includes('לא נמצאה') && !autoRetried) {
+            autoRetried = true;
+            const retryResp = await fetch('/edit-stage1', {
+              method: 'POST', headers: hdrs, credentials: 'include',
+              body: JSON.stringify({ text })
+            }).then(r => r.json());
+            if (retryResp.success && retryResp.jobId) {
+              currentJobId = retryResp.jobId;
+              continue; // המשך polling עם jobId החדש
+            }
+          }
+
           if (stageEl && poll.progress) stageEl.textContent = `${poll.progress} (${elapsed} שנ')`;
           if (poll.done) { data1 = poll; break; }
         } catch (pollErr) {
