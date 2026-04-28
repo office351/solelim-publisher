@@ -215,7 +215,7 @@ app.post('/edit-stage1', async (req, res) => {
       for (let ci = 0; ci < chunks.length; ci++) {
         const chunk = chunks[ci];
         const tStart = Date.now();
-        editJobs.set(jobId, { ...editJobs.get(jobId), progress: `מגיה חלק ${ci + 1} מתוך ${chunks.length}…` });
+        console.log(`[הגהה] מגיה חלק ${ci + 1} מתוך ${chunks.length}…`);
         const maxTok = Math.min(Math.ceil(chunk.length / 1.3) + 800, 8000);
         console.log(`[הגהה] חלק ${ci + 1}: ${chunk.length} תווים, maxTok=${maxTok}`);
         try {
