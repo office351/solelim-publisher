@@ -1107,7 +1107,7 @@ Prompt B:
 [2-4 sentences]`;
 
 // ─── קידומת איכות המצורפת לכל פרומפט שנשלח לגרוק ────────────────────────────
-const IMAGE_QUALITY_PREFIX = `Create a high-quality image according to the following description. The image must have excellent depth and dimension, professional cinematic lighting with soft volumetric shadows, rich but clean tonal range, sharp focus on the main subject, subtle atmospheric perspective, refined textures, masterful composition and elegant balance. Studio quality, highly detailed yet not overcrowded, premium rendering, best quality, 8k resolution. `;
+const IMAGE_QUALITY_PREFIX = `High quality editorial image. Professional lighting, sharp focus on the main subject, masterful composition, rich tonal range, refined textures, atmospheric depth. Premium render, highly detailed. `;
 const DALL_E_STYLE_SUFFIX = ` No text or letters in the image. Square 1:1 composition.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
@@ -1119,7 +1119,7 @@ app.post('/translate-idea', async (req, res) => {
       'https://api.anthropic.com/v1/messages',
       { model: 'claude-haiku-4-5-20251001',
         max_tokens: 200,
-        system: 'Translate the Hebrew image idea to concise English. Return only the translated description, nothing else.',
+        system: 'Translate the Hebrew image description to English. Preserve every visual detail — subjects, lighting, colors, materials, mood, atmosphere. Return only the translated description, nothing else.',
         messages: [{ role: 'user', content: idea }] },
       { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
     );
