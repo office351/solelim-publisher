@@ -328,11 +328,23 @@ app.post('/edit-stage2', async (req, res) => {
 - אסור לכתוב כותרת שמתחילה בשם פרטי סתמי
 - הכותרת הטובה ביותר מרגישה כמו אמת שאסור לומר בקול — אבל היא כאן
 
-תקינות לשונית — חובה:
+══ תקינות לשונית — חובה מוחלטת ══
+דקדוק:
 - התאמת זכר/נקבה, יחיד/רבים בין כל מילות הכותרת
-- לא לכתוב "וודאי" אלא "ודאי", לא "שהם" כשאפשר "שהם" וכו'
-- לא להשתמש בשפה מסורבלת — כל מילה חייבת להישמע טבעית בעל פה
-- לפני כתיבה: לקרוא את הכותרת בקול ולוודא שהיא זורמת, חדה ותקינה
+- כינויי קניין: זהותנו (לא זהותינו), עמנו (לא עמינו), ביתנו (לא ביתינו)
+- כינוי גוף חסר: "הצבא כלי" → "הצבא הוא כלי"; "השלטון שחיתות" → "השלטון הוא שחיתות"
+- שאלות: "האם" מופיעה כשצריך
+- מקף כפול (—) ולא מינוס כשמפרידים
+
+כתיב תקני:
+- וודאי → ודאי | דוגמא → דוגמה | בכלל לא → כלל לא (כשמשמעות "לא בשום אופן")
+- להשתמש ב-ה' השאלה במקום "האם" כשמתאים: "האמת ידועה?" ולא "האם האמת ידועה?"
+- לא להשתמש בגרש (׳) בשום צורה בכותרות
+
+בדיקה לפני שליחה:
+1. קרא את הכותרת בקול — האם היא זורמת ותקינה?
+2. בדוק התאמת מין ומספר של כל זוג מילים סמוכות
+3. האם כל מילה הכרחית? אם לא — מחק
 
 דוגמאות לסגנון הנכון:
 ✓ "מי מפחד מהאמת הזאת"
@@ -977,56 +989,6 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
     .toBuffer();
 }
 
-// ─── יצירת דגל ישראל מדויק (SVG → PNG) ──────────────────────────────────────
-function createIsraeliFlagBuffer(flagWidth) {
-  const w = flagWidth;
-  const h = Math.round(w * 2 / 3);
-  const stripeH = Math.round(h * 0.13);
-  const topY    = Math.round(h * 0.195);
-  const botY    = h - topY - stripeH;
-  const cx = w / 2, cy = h / 2;
-  const r  = Math.round(w * 0.115);   // רדיוס המגן דוד
-  const sw = Math.max(3, Math.round(w * 0.019)); // עובי קו
-  const s60 = 0.866, c60 = 0.5;      // sin/cos 60°
-  // משולש עליון (▲) ומשולש תחתון (▽)
-  const up = `${cx},${cy - r} ${cx + r * s60},${cy + r * c60} ${cx - r * s60},${cy + r * c60}`;
-  const dn = `${cx},${cy + r} ${cx + r * s60},${cy - r * c60} ${cx - r * s60},${cy - r * c60}`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-    <rect width="${w}" height="${h}" fill="white"/>
-    <rect x="0" y="${topY}" width="${w}" height="${stripeH}" fill="#0038B8"/>
-    <rect x="0" y="${botY}" width="${w}" height="${stripeH}" fill="#0038B8"/>
-    <polygon points="${up}" fill="none" stroke="#0038B8" stroke-width="${sw}" stroke-linejoin="miter"/>
-    <polygon points="${dn}" fill="none" stroke="#0038B8" stroke-width="${sw}" stroke-linejoin="miter"/>
-  </svg>`;
-  return Buffer.from(svg, 'utf-8');
-}
-
-// ─── הדבק דגל ישראל על תמונה שנוצרה ─────────────────────────────────────────
-// הדגל מוצג ממולא (frontal) — כמו שער מגזין, לא כדגל ברקע.
-// לסצנות שבהן הדגל הוא האלמנט הראשי זה נראה טבעי ועוצמתי.
-async function overlayIsraeliFlag(imageBuf) {
-  const meta  = await sharp(imageBuf).metadata();
-  const imgW  = meta.width, imgH = meta.height;
-  // דגל גדול — 82% מרוחב התמונה, ממוקם במרכז לכיסוי הדגל של ה-AI
-  const flagW = Math.round(imgW * 0.82);
-  const flagH = Math.round(flagW * 2 / 3);
-  // סיבוב קל אקראי (-6° עד +6°) — פחות סטטי
-  const rotateDeg = (Math.random() * 12 - 6);
-  const flagSvgBuf = createIsraeliFlagBuffer(flagW);
-  // צור PNG עם סיבוב קל, ורקע שקוף
-  const flagPng = await sharp(flagSvgBuf)
-    .rotate(rotateDeg, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toBuffer();
-  const rotMeta = await sharp(flagPng).metadata();
-  // ממוקם במרכז אופקי, שליש עליון אנכי
-  const left = Math.round((imgW - rotMeta.width)  / 2);
-  const top  = Math.round((imgH - rotMeta.height) / 2 - imgH * 0.08);
-  return sharp(imageBuf)
-    .composite([{ input: flagPng, left, top, blend: 'over' }])
-    .png()
-    .toBuffer();
-}
 
 // ─── יצירת תמונה — Grok (xAI Aurora) עם fallback ל-gpt-image-1 ──────────────
 async function generateDalleVariant(prompt, _style) {
@@ -1309,28 +1271,6 @@ app.post('/generate-image', async (req, res) => {
 
     if (!result.dalle && !result.artistic) {
       return res.status(500).json({ success: false, error: 'שתי יצירות התמונה נכשלו', logs });
-    }
-
-    // ── הדבק דגל ישראל: בדוק גם רעיון וגם פרומפטים שנוצרו ─────────────────────
-    const needsFlag = /דגל|flag/i.test(ideaHe || '')
-                   || /flag/i.test(ideaEn || '')
-                   || /flag/i.test(promptA)
-                   || /flag/i.test(promptB);
-    if (needsFlag) {
-      addLog('🇮🇱 מזהה בקשה לדגל — מייצר דגל ישראל מדויק ומדביק על התמונות...');
-      for (const key of ['dalle', 'artistic']) {
-        if (!result[key]) continue;
-        try {
-          const noLogoBuf  = fs.readFileSync(path.join(GENERATED_DIR, result[key].noLogoFile));
-          const withFlag   = await overlayIsraeliFlag(noLogoBuf);
-          const withFlagAndLogo = await applyLogoToImage(withFlag, 'bottom-left');
-          fs.writeFileSync(path.join(GENERATED_DIR, result[key].noLogoFile),   withFlag);
-          fs.writeFileSync(path.join(GENERATED_DIR, result[key].withLogoFile), withFlagAndLogo);
-          addLog(`✅ דגל ישראל הודבק על תמונת ${key}`);
-        } catch (flagErr) {
-          addLog(`⚠️ שגיאה בהדבקת דגל על ${key}: ${flagErr.message}`);
-        }
-      }
     }
 
     addLog('התמונות מוכנות!');
