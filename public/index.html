@@ -1880,73 +1880,23 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     const hdrs = { 'Content-Type': 'application/json' };
 
     try {
-      // ── שלב 1: הגהה לשונית – שולח ברקע, מצביע כל 3 שניות ──
-      const res1 = await fetch('/edit-stage1', {
-        method: 'POST', headers: hdrs, body: JSON.stringify({ text })
-      });
-      const startResp = await res1.json();
+      // ── שלב 1: הגהה לשונית – בקשה סינכרונית אחת (ממתין לתשובה) ──
+      const stageEl = document.getElementById('editLoadingStage');
+      const reqStart = Date.now();
+      const timer = setInterval(() => {
+        const s = Math.round((Date.now() - reqStart) / 1000);
+        if (stageEl) stageEl.textContent = `מגיה טקסט… (${s} שניות)`;
+      }, 1000);
 
-      // אם השרת ישן ועדיין מחזיר את התוצאה ישר (ללא jobId)
-      if (!startResp.jobId) {
-        stopEditLoading(false);
-        btn.style.display = ''; btn.disabled = false;
-        alert('השרת לא עודכן עדיין — נא לעשות Manual Deploy ב-Render ולנסות שוב.');
-        return;
-      }
-      let currentJobId = startResp.jobId;
-
-      // polling עד שהשרת מסיים (מקסימום 3 דקות)
       let data1;
-      const pollStart    = Date.now();
-      const pollDeadline = pollStart + 3 * 60 * 1000;
-      const stageEl      = document.getElementById('editLoadingStage');
-      let pollErrors     = 0;
-      let autoRetried    = false; // רק ניסיון חוזר אחד אוטומטי
-
-      while (true) {
-        await new Promise(r => setTimeout(r, 2500));
-
-        // עדכון טיימר גלוי
-        const elapsed = Math.round((Date.now() - pollStart) / 1000);
-        if (stageEl) stageEl.textContent = `מגיה טקסט… (${elapsed} שניות)`;
-
-        if (Date.now() > pollDeadline) {
-          stopEditLoading(false);
-          btn.style.display = ''; btn.disabled = false;
-          alert('ההגהה לקחה יותר מ-3 דקות — השרת עלול להיות עמוס. נסה שוב.');
-          return;
-        }
-
-        try {
-          const pollRes = await fetch(`/edit-poll/${currentJobId}`);
-          if (!pollRes.ok) throw new Error(`HTTP ${pollRes.status}`);
-          const poll = await pollRes.json();
-          pollErrors = 0;
-
-          // השרת אותחל באמצע — הפעל מחדש בשקט (פעם אחת בלבד)
-          if (poll.done && !poll.success && poll.error && poll.error.includes('לא נמצאה') && !autoRetried) {
-            autoRetried = true;
-            const retryResp = await fetch('/edit-stage1', {
-              method: 'POST', headers: hdrs, credentials: 'include',
-              body: JSON.stringify({ text })
-            }).then(r => r.json());
-            if (retryResp.success && retryResp.jobId) {
-              currentJobId = retryResp.jobId;
-              continue; // המשך polling עם jobId החדש
-            }
-          }
-
-          if (stageEl && poll.progress) stageEl.textContent = `${poll.progress} (${elapsed} שנ')`;
-          if (poll.done) { data1 = poll; break; }
-        } catch (pollErr) {
-          pollErrors++;
-          if (pollErrors >= 4) {
-            stopEditLoading(false);
-            btn.style.display = ''; btn.disabled = false;
-            alert('בעיית תקשורת עם השרת בזמן ההגהה — נסה שוב.');
-            return;
-          }
-        }
+      try {
+        const res1 = await fetch('/edit-stage1', {
+          method: 'POST', headers: hdrs, credentials: 'include',
+          body: JSON.stringify({ text })
+        });
+        data1 = await res1.json();
+      } finally {
+        clearInterval(timer);
       }
 
       if (!data1.success) {

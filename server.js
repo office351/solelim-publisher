@@ -177,18 +177,12 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
-// שלב 1: הגהה לשונית – מתחיל ברקע ומחזיר jobId מיד
-app.post('/edit-stage1', (req, res) => {
+// שלב 1: הגהה לשונית – סינכרוני (ממתין לתשובה, אין polling)
+app.post('/edit-stage1', async (req, res) => {
   const { text } = req.body;
   if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
-  const jobId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  editJobs.set(jobId, { status: 'pending', createdAt: Date.now(), progress: '' });
-  res.json({ success: true, jobId }); // חוזר מיד ללקוח
-
-  // עבודה ברקע – ללא מגבלת זמן HTTP
-  (async () => {
-    try {
+  try {
       // פיצול לחלקים לפי פסקאות — כל חלק עד 5000 תווים
       const CHUNK_SIZE = 5000;
       const lines = text.split('\n');
@@ -279,27 +273,17 @@ app.post('/edit-stage1', (req, res) => {
       bodyLines = normalizeStructuredSpacing(bodyLines);
 
       const body = bodyLines.join('\n').trim();
-      editJobs.set(jobId, {
-        status: 'done', createdAt: Date.now(),
-        data: { success: true, correctedText, originalTitle, body,
-          siteUrl: process.env.SITE_URL || process.env.WP_URL || '' }
-      });
+      res.json({ success: true, correctedText, originalTitle, body,
+        siteUrl: process.env.SITE_URL || process.env.WP_URL || '' });
     } catch (error) {
-      editJobs.set(jobId, {
-        status: 'done', createdAt: Date.now(),
-        data: { success: false, error: error.message }
-      });
+      console.error('[הגהה] שגיאה:', error.message);
+      res.status(500).json({ success: false, error: error.message });
     }
-  })();
 });
 
-// בדיקת סטטוס משימת הגהה
+// תאימות לאחור — poll לא נדרש יותר אבל נשאר כדי לא לשבור גרסאות ישנות
 app.get('/edit-poll/:jobId', (req, res) => {
-  const job = editJobs.get(req.params.jobId);
-  if (!job) return res.json({ done: true, success: false, error: 'המשימה לא נמצאה — השרת אותחל באמצע. אנא נסה שוב.' });
-  if (job.status === 'pending') return res.json({ done: false, progress: job.progress || '' });
-  editJobs.delete(req.params.jobId);
-  res.json({ done: true, ...job.data });
+  res.json({ done: true, success: false, error: 'polling לא בשימוש — נא לרענן את הדף.' });
 });
 
 // שלב 2: הצעות כותרת (Haiku – מהיר, עד 20 שניות)
