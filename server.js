@@ -291,7 +291,8 @@ app.post('/edit-stage1', (req, res) => {
 // בדיקת סטטוס משימת הגהה
 app.get('/edit-poll/:jobId', (req, res) => {
   const job = editJobs.get(req.params.jobId);
-  if (!job || job.status === 'pending') return res.json({ done: false, progress: job?.progress || '' });
+  if (!job) return res.json({ done: true, success: false, error: 'המשימה לא נמצאה — השרת אותחל באמצע. אנא נסה שוב.' });
+  if (job.status === 'pending') return res.json({ done: false, progress: job.progress || '' });
   editJobs.delete(req.params.jobId);
   res.json({ done: true, ...job.data });
 });
