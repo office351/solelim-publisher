@@ -1178,7 +1178,7 @@ ${text.slice(0, 3500)}
 ${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas must align with this direction.\n` : ''}`
         }]
       },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } }
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 45000 }
     );
 
     const rawText = ideasRes.data.content[0].text;
@@ -1192,7 +1192,7 @@ ${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas mu
   }
 });
 
-// יצירת תמונה — DALL-E 3 x2 (📷 קולנועי + 🎨 אמנותי)
+// יצירת תמונה — Grok x2 (📷 ריאלי + 🎨 אמנותי)
 app.post('/generate-image', async (req, res) => {
   try {
     const { ideaEn, ideaHe } = req.body;
@@ -1204,7 +1204,7 @@ app.post('/generate-image', async (req, res) => {
     addLog('יוצר 📷 ריאלי ו-✏️ ציור במקביל...');
     const ts = Date.now();
 
-    // שני סגנונות DALL-E במקביל — שניהם natural (vivid גורם למראה AI מבריק)
+    // שני פרומפטים לגרוק במקביל
     const [dalleSettled, artisticSettled] = await Promise.allSettled([
       generateDalleVariant(promptA, 'natural'),
       generateDalleVariant(promptB, 'natural')
@@ -1235,17 +1235,8 @@ app.post('/generate-image', async (req, res) => {
       result.artistic = await saveImagePair(artisticSettled.value, 'artistic');
       addLog('🎨 אמנותי — נשמר בהצלחה');
     } else {
-      const artisticErr = artisticSettled.reason?.response?.data?.error?.message || artisticSettled.reason?.message || 'שגיאה לא ידועה';
-      addLog(`🎨 vivid נכשל: ${artisticErr} — מנסה שנית עם natural`);
-      // Fallback: retry Prompt B with natural style
-      try {
-        const retryBuf = await generateDalleVariant(promptB, 'natural');
-        result.artistic = await saveImagePair(retryBuf, 'artistic');
-        addLog('🎨 אמנותי (retry natural) — נשמר בהצלחה');
-      } catch (retryErr) {
-        const retryErrMsg = retryErr?.response?.data?.error?.message || retryErr.message;
-        addLog(`🎨 אמנותי נכשל גם בניסיון שני: ${retryErrMsg}`);
-      }
+      const artisticErr = artisticSettled.reason?.message || 'שגיאה לא ידועה';
+      addLog(`🎨 אמנותי נכשל: ${artisticErr}`);
     }
 
     if (!result.dalle && !result.artistic) {
