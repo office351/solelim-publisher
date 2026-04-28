@@ -1499,10 +1499,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('extraLogoResult').classList.add('hidden');
 
     const loading = document.getElementById('imageGenLoading');
-    document.getElementById('imageGenLoadingText').textContent = 'יוצר תמונה עם DALL-E 3... (עד 30 שניות)';
+    document.getElementById('imageGenLoadingText').textContent = 'יוצר תמונה עם Grok... (עד 60 שניות)';
     loading.classList.remove('hidden');
 
-    updateLogs([{ time: new Date().toISOString(), message: 'שולח בקשה ל-DALL-E 3...' }]);
+    updateLogs([{ time: new Date().toISOString(), message: 'שולח בקשה לגרוק...' }]);
 
     try {
       const res = await fetch('/generate-image', {
@@ -1515,12 +1515,14 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
       if (!data.success) { alert('שגיאה ביצירת תמונה: ' + data.error); resetImageGen(); return; }
 
-      imageGenData.noLogoFile   = data.noLogoFile;
-      imageGenData.withLogoFile = data.withLogoFile;
+      // השרת מחזיר data.dalle ו-data.artistic — בחר את הראשונה שהצליחה
+      const chosen = data.dalle || data.artistic;
+      imageGenData.noLogoFile   = chosen.noLogoFile;
+      imageGenData.withLogoFile = chosen.withLogoFile;
       imageGenData.extraLogoFile = '';
 
-      document.getElementById('noLogoImg').src   = data.noLogoUrl   + '?t=' + Date.now();
-      document.getElementById('withLogoImg').src = data.withLogoUrl + '?t=' + Date.now();
+      document.getElementById('noLogoImg').src   = chosen.noLogoUrl   + '?t=' + Date.now();
+      document.getElementById('withLogoImg').src = chosen.withLogoUrl + '?t=' + Date.now();
       document.getElementById('ideaChosenLabel').textContent = '✨ ' + (data.ideaHe || ideaHe);
 
       document.querySelectorAll('.logo-pos-btn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
