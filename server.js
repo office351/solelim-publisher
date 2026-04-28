@@ -229,8 +229,16 @@ app.post('/edit-stage1', async (req, res) => {
             85000
           );
           console.log(`[הגהה] חלק ${ci + 1} הושלם תוך ${((Date.now()-tStart)/1000).toFixed(1)}s`);
-          // כווץ שורות ריקות עודפות שהמודל הוסיף — מקסימום שורה ריקה אחת ברצף
-          const proofedText = proofRes.data.content[0].text.trim().replace(/\n{3,}/g, '\n\n');
+          // שמור על מבנה השורות הריקות של המקור
+          const origHasBlanks = /\n\n/.test(chunk);
+          let proofedText = proofRes.data.content[0].text.trim();
+          if (!origHasBlanks) {
+            // המקור לא כלל שורות ריקות — הסר כל שורה ריקה שהמודל הוסיף
+            proofedText = proofedText.replace(/\n{2,}/g, '\n');
+          } else {
+            // המקור כלל שורות ריקות — אפשר עד אחת ברצף
+            proofedText = proofedText.replace(/\n{3,}/g, '\n\n');
+          }
           proofedChunks.push(proofedText);
         } catch (chunkErr) {
           console.error(`[הגהה] חלק ${ci + 1} נכשל אחרי ${((Date.now()-tStart)/1000).toFixed(1)}s: ${chunkErr.message}`);
