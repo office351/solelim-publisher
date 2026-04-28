@@ -219,7 +219,7 @@ app.post('/edit-stage1', (req, res) => {
         const chunk = chunks[ci];
         const tStart = Date.now();
         editJobs.set(jobId, { ...editJobs.get(jobId), progress: `מגיה חלק ${ci + 1} מתוך ${chunks.length}…` });
-        const maxTok = Math.min(Math.ceil(chunk.length / 1.8) + 400, 4000);
+        const maxTok = Math.min(Math.ceil(chunk.length / 1.3) + 800, 8000);
         console.log(`[הגהה] חלק ${ci + 1}: ${chunk.length} תווים, maxTok=${maxTok}`);
         try {
           const proofRes = await withTimeout(
