@@ -998,7 +998,7 @@ async function generateDalleVariant(prompt, _style) {
       addLog('🤖 שולח ל-Grok (xAI)...');
       const xaiRes = await axios.post(
         'https://api.x.ai/v1/images/generations',
-        { model: 'grok-2-image', prompt, n: 1 },
+        { model: 'grok-2-image-1212', prompt, n: 1 },
         { headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
       );
       const imgData = xaiRes.data.data[0];
@@ -1249,7 +1249,8 @@ app.post('/generate-image', async (req, res) => {
     }
 
     if (!result.dalle && !result.artistic) {
-      return res.status(500).json({ success: false, error: 'שתי יצירות התמונה נכשלו', logs });
+      const lastErr = logs.filter(l => l.message.includes('נכשל')).map(l => l.message).join(' | ');
+      return res.status(500).json({ success: false, error: `שתי יצירות התמונה נכשלו — ${lastErr}`, logs });
     }
 
     addLog('התמונות מוכנות!');
