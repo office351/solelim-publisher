@@ -177,8 +177,6 @@ function normalizeStructuredSpacing(lines) {
       prevBlank  = true;
       prevMarker = false;
     } else {
-      // וודא שורה ריקה לפני סמן-פסקה (אם הקודמת לא ריקה ולא ראשית המסמך)
-      if (isMarker && !prevBlank && result.length > 0) result.push('');
       result.push(line);
       prevBlank  = false;
       prevMarker = isMarker;
