@@ -213,21 +213,30 @@ app.post('/edit-stage1', (req, res) => {
       ]);
 
       // הגהה לכל חלק בנפרד (סדרתי כדי לא לעמוס)
+      console.log(`[הגהה] מתחיל ${chunks.length} חלקים, סה"כ ${text.length} תווים`);
       const proofedChunks = [];
       for (let ci = 0; ci < chunks.length; ci++) {
         const chunk = chunks[ci];
+        const tStart = Date.now();
         editJobs.set(jobId, { ...editJobs.get(jobId), progress: `מגיה חלק ${ci + 1} מתוך ${chunks.length}…` });
         const maxTok = Math.min(Math.ceil(chunk.length / 1.8) + 400, 4000);
-        const proofRes = await withTimeout(
-          axios.post(
-            'https://api.anthropic.com/v1/messages',
-            { model: 'claude-haiku-4-5-20251001', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
-              messages: [{ role: 'user', content: chunk }] },
-            { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
-          ),
-          85000
-        );
-        proofedChunks.push(proofRes.data.content[0].text.trim());
+        console.log(`[הגהה] חלק ${ci + 1}: ${chunk.length} תווים, maxTok=${maxTok}`);
+        try {
+          const proofRes = await withTimeout(
+            axios.post(
+              'https://api.anthropic.com/v1/messages',
+              { model: 'claude-haiku-4-5-20251001', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
+                messages: [{ role: 'user', content: chunk }] },
+              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
+            ),
+            85000
+          );
+          console.log(`[הגהה] חלק ${ci + 1} הושלם תוך ${((Date.now()-tStart)/1000).toFixed(1)}s`);
+          proofedChunks.push(proofRes.data.content[0].text.trim());
+        } catch (chunkErr) {
+          console.error(`[הגהה] חלק ${ci + 1} נכשל אחרי ${((Date.now()-tStart)/1000).toFixed(1)}s: ${chunkErr.message}`);
+          throw chunkErr;
+        }
       }
 
       const correctedText = proofedChunks.join('\n');
