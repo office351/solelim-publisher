@@ -1007,35 +1007,10 @@ async function generateDalleVariant(prompt, _style) {
       return Buffer.from(imgRes.data);
     } catch (xaiErr) {
       const msg = xaiErr.response?.data?.error?.message || xaiErr.message;
-      addLog(`⚠️ Grok נכשל (${msg}) — עובר ל-gpt-image-1`);
+      throw new Error(`Grok נכשל: ${msg}`);
     }
   }
-  // fallback 1: gpt-image-1
-  try {
-    addLog('🤖 שולח ל-gpt-image-1 (OpenAI)...');
-    const dalleRes = await axios.post(
-      'https://api.openai.com/v1/images/generations',
-      { model: 'gpt-image-1', prompt, size: '1024x1024', quality: 'high', n: 1 },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
-    );
-    const imgData = dalleRes.data.data[0];
-    if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
-    const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
-    return Buffer.from(imgRes.data);
-  } catch (gptImgErr) {
-    const msg = gptImgErr.response?.data?.error?.message || gptImgErr.message;
-    addLog(`⚠️ gpt-image-1 נכשל (${msg}) — עובר ל-dall-e-3`);
-  }
-  // fallback 2: dall-e-3 (זמין לכל חשבון OpenAI)
-  addLog('🤖 שולח ל-dall-e-3 (OpenAI)...');
-  const dalle3Res = await axios.post(
-    'https://api.openai.com/v1/images/generations',
-    { model: 'dall-e-3', prompt, size: '1024x1024', quality: 'standard', n: 1 },
-    { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
-  );
-  const dalle3Data = dalle3Res.data.data[0];
-  const dalle3ImgRes = await axios.get(dalle3Data.url, { responseType: 'arraybuffer', timeout: 30000 });
-  return Buffer.from(dalle3ImgRes.data);
+  throw new Error('XAI_API_KEY לא מוגדר');
 }
 
 // ─── מדריך רעיונות ויזואליים + הנדסת פרומפטים (שני מצבים) ─────────────────
@@ -1131,8 +1106,9 @@ Prompt A:
 Prompt B:
 [2-4 sentences]`;
 
-// ─── הנחייה קצרה המצורפת לכל פרומפט שנשלח ליצירת תמונה ──────────────────
-const DALL_E_STYLE_SUFFIX = ` No text or letters in the image. Square 1:1 composition. High quality.`;
+// ─── קידומת איכות המצורפת לכל פרומפט שנשלח לגרוק ────────────────────────────
+const IMAGE_QUALITY_PREFIX = `Create a high-quality image according to the following description. The image must have excellent depth and dimension, professional cinematic lighting with soft volumetric shadows, rich but clean tonal range, sharp focus on the main subject, subtle atmospheric perspective, refined textures, masterful composition and elegant balance. Studio quality, highly detailed yet not overcrowded, premium rendering, best quality, 8k resolution. `;
+const DALL_E_STYLE_SUFFIX = ` No text or letters in the image. Square 1:1 composition.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
@@ -1140,16 +1116,14 @@ app.post('/translate-idea', async (req, res) => {
     const { idea } = req.body;
     if (!idea?.trim()) return res.status(400).json({ success: false, error: 'חסר רעיון' });
     const result = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      { model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'Translate the Hebrew image idea to concise English. Return only the translated description, nothing else.' },
-          { role: 'user', content: idea }
-        ],
-        max_tokens: 200 },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 15000 }
+      'https://api.anthropic.com/v1/messages',
+      { model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        system: 'Translate the Hebrew image idea to concise English. Return only the translated description, nothing else.',
+        messages: [{ role: 'user', content: idea }] },
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 15000 }
     );
-    res.json({ success: true, en: result.data.choices[0].message.content.trim() });
+    res.json({ success: true, en: result.data.content[0].text.trim() });
   } catch (error) {
     res.json({ success: true, en: req.body.idea }); // fallback: שלח עברית
   }
@@ -1159,27 +1133,25 @@ app.post('/translate-idea', async (req, res) => {
 async function expandToTwoPrompts(idea) {
   try {
     const result = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      { model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: VISUAL_SYSTEM_PROMPT },
-          { role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }
-        ],
-        max_tokens: 800 },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 30000 }
+      'https://api.anthropic.com/v1/messages',
+      { model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        system: VISUAL_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }] },
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 30000 }
     );
-    const text = result.data.choices[0].message.content;
+    const text = result.data.content[0].text;
     const promptAMatch = text.match(/Prompt A:\s*([\s\S]+?)(?=\n\s*Prompt B:|$)/i);
     const promptBMatch = text.match(/Prompt B:\s*([\s\S]+?)$/i);
     if (!promptAMatch) addLog('⚠️ לא נמצא Prompt A — משתמש בפולבק');
     if (!promptBMatch) addLog('⚠️ לא נמצא Prompt B — משתמש בפולבק');
-    const promptA = (promptAMatch ? promptAMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
-    const promptB = (promptBMatch ? promptBMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
+    const promptA = IMAGE_QUALITY_PREFIX + (promptAMatch ? promptAMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
+    const promptB = IMAGE_QUALITY_PREFIX + (promptBMatch ? promptBMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
     addLog(`📷 A: ${promptA.length} תווים | 🎨 B: ${promptB.length} תווים`);
     return { promptA, promptB };
   } catch (e) {
     addLog(`⚠️ expandToTwoPrompts נכשל: ${e.message} — משתמש בפולבק`);
-    return { promptA: idea + DALL_E_STYLE_SUFFIX, promptB: idea + DALL_E_STYLE_SUFFIX };
+    return { promptA: IMAGE_QUALITY_PREFIX + idea + DALL_E_STYLE_SUFFIX, promptB: IMAGE_QUALITY_PREFIX + idea + DALL_E_STYLE_SUFFIX };
   }
 }
 
@@ -1192,27 +1164,26 @@ app.post('/image-ideas', async (req, res) => {
     addLog('מנתח מאמר ויוצר רעיונות ויזואליים...');
 
     const ideasRes = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
+      'https://api.anthropic.com/v1/messages',
       {
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: VISUAL_SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: `MODE: IDEAS
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: VISUAL_SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: `MODE: IDEAS
 
 INPUT:
 ${text.slice(0, 3500)}
 ${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas must align with this direction.\n` : ''}`
-          }
-        ],
-        max_tokens: 2000,
-        response_format: { type: 'json_object' }
+        }]
       },
-      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' } }
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } }
     );
 
-    const result = JSON.parse(ideasRes.data.choices[0].message.content);
+    const rawText = ideasRes.data.content[0].text;
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const result = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
     addLog(`התקבלו ${result.ideas?.length || 0} רעיונות לתמונה`);
     res.json({ success: true, summary: result.summary || '', ideas: result.ideas, logs });
   } catch (error) {
