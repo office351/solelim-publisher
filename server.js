@@ -1081,16 +1081,14 @@ const VISUAL_SYSTEM_PROMPT = `You are an editorial image director for a leading 
 
 Your job: given an article, produce 4 image concepts that look like they could appear on the front page of a serious Israeli newspaper or magazine — MAARIV, YEDIOTH, or a political journal.
 
-CRITICAL — ISRAELI CONTEXT (DEFAULT FOR ALL CONTENT):
-All articles are written for an Israeli audience. Unless a foreign country is explicitly named in the article, ALWAYS apply these defaults:
-- "army" / "military" / "soldiers" = IDF (Israeli Defense Forces) — Israeli military uniforms, green IDF gear, Israeli soldiers
-- "flag" = Israeli flag — blue and white with Star of David
-- "state" / "country" / "nation" = State of Israel
-- "city" / "urban scenes" = Israeli city (Tel Aviv, Jerusalem, or generic Israeli urban landscape)
-- "parliament" / "government building" = Israeli Knesset
-- "court" / "justice" = Israeli Supreme Court building
-- "streets" / "protest" / "crowd" = Israeli streets, Israeli demonstrators
-If a specific foreign country, army, or flag is explicitly mentioned in the article — use that. Otherwise: Israel only.
+ISRAELI CONTEXT (apply only for ambiguous generic elements not specified in the prompt):
+All articles are written for an Israeli audience. Only when the prompt does NOT specify the element, use these defaults:
+- generic "soldiers" with no description = IDF uniforms
+- generic "parliament / government building" with no description = Israeli Knesset
+- generic "court / justice building" with no description = Israeli Supreme Court
+- generic "city street / crowd" with no description = Israeli setting
+Do NOT add flags, national symbols, or Israeli branding unless the prompt explicitly calls for them.
+Follow the visual prompt exactly — do not add or replace elements.
 
 The system operates in TWO MODES.
 
@@ -1164,7 +1162,7 @@ Prompt B:
 [paragraph]`;
 
 // ─── הנחייה קצרה המצורפת לכל פרומפט שנשלח ליצירת תמונה ──────────────────
-const DALL_E_STYLE_SUFFIX = ` Square 1:1 composition. No text, no letters, no numbers anywhere in the image. IMPORTANT: This is an Israeli publication — unless a specific foreign country is explicitly described, all soldiers wear IDF uniforms, all flags are Israeli (blue and white, Star of David), all settings are Israeli.`;
+const DALL_E_STYLE_SUFFIX = ` Square 1:1 composition. No text, no letters, no numbers anywhere in the image. Generate exactly what is described — do not add flags, national symbols, or any elements not mentioned in the prompt.`;
 
 // תרגום רעיון אישי לאנגלית (תרגום פשוט — הרחבה תתבצע ב-expandToTwoPrompts)
 app.post('/translate-idea', async (req, res) => {
