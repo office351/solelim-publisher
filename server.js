@@ -1824,7 +1824,7 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .pbar{position:fixed;inset:0 0 auto 0;z-index:999;background:#1a3a54;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:9px 18px}
 .pbar-t{font-size:15px;font-weight:700}.pbar-b{display:flex;gap:8px}
 .pb{border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.pb-p{background:#f5a623;color:#fff}.pb-c{background:#555;color:#fff}
+.pb-p{background:#f5a623;color:#fff}.pb-g{background:#27ae60;color:#fff}.pb-c{background:#555;color:#fff}
 @media screen{body{padding-top:52px}}
 
 /* ── עמודים ── */
@@ -1886,7 +1886,8 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 <div class="pbar">
   <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
   <div class="pbar-b">
-    <button class="pb pb-p" onclick="window.print()">🖨️ הדפס / שמור PDF</button>
+    <button class="pb pb-p" onclick="window.print()">🖨️ שמור PDF</button>
+    <button class="pb pb-g" onclick="if(window.opener&&window.opener.continueToPublish){window.opener.continueToPublish();}window.close()">📤 העלה לאתר</button>
     <button class="pb pb-c" onclick="window.close()">✕ סגור</button>
   </div>
 </div>
