@@ -1760,30 +1760,33 @@ function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg
     const excerpt   = dec((p.excerpt.rendered || '').replace(/<[^>]+>/g, '').trim());
     const content   = p.content.rendered
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
       .replace(/<div[^>]*buzzsprout[^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1')
       .replace(/<p[^>]*>\s*<\/p>/g, '')
       .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
       .replace(/&quot;/g, '"').replace(/&amp;/g, '&');
     return { title, author, imageUrl, isoDate, excerpt, content };
   });
 
+  const artLabels = ['ראשון','שני','שלישי','רביעי'];
   const articlesHTML = articles.map((a, i) => `
-<div class="bk-page" data-pagenum="${i + 3}">
+<div class="bk-page">
+  <div class="art-num">מאמר ${artLabels[i] || i + 1}</div>
   ${a.imageUrl ? `<div class="art-img-wrap"><img class="art-img" src="${a.imageUrl}" alt="" loading="eager"></div>` : ''}
   <h2 class="art-title">${a.title}</h2>
-  <p class="art-meta">${a.author ? `<span class="art-author">✍ ${a.author}</span> &nbsp;·&nbsp; ` : ''}<span class="art-date" data-iso="${a.isoDate}"></span></p>
+  ${a.author ? `<p class="art-meta"><span class="art-author">✍ ${a.author}</span></p>` : ''}
   ${a.excerpt ? `<p class="art-excerpt">${a.excerpt}</p>` : ''}
   <div class="art-body">${a.content}</div>
-  <div class="art-pagenum">${i + 3}</div>
 </div>`).join('\n');
 
   // עמוד שער
   const coverPage = hasCoverImg
-    ? `<div class="bk-page bk-static-page">
+    ? `<div class="bk-page bk-static-page bk-first">
         <img src="${STATIC}cover.jpg" alt="שער" style="width:100%;display:block">
         <div class="cv-badge-overlay">${bookletNumber}</div>
        </div>`
-    : `<div class="bk-page bk-cover">
+    : `<div class="bk-page bk-cover bk-first">
         <div class="cv-badge">${bookletNumber}</div>
         <div class="cv-body">
           <img src="${logoUrl}" class="cv-logo" onerror="this.style.display='none'" alt="סוללים דרך">
@@ -1851,27 +1854,28 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .bk-contact a{color:#1e8a6b!important}
 
 /* ── מאמרים ── */
+.art-num{display:block;text-align:center;font-size:12px;font-weight:900;color:#1e8a6b;letter-spacing:3px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #e8f4ef}
 .art-img-wrap{display:flex;justify-content:center;margin-bottom:20px}
 .art-img{width:90mm;height:90mm;object-fit:cover;border-radius:10px;display:block}
-.art-title{font-size:22px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:8px}
-.art-meta{font-size:17px;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.art-title{font-size:22px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:8px;text-align:center}
+.art-meta{font-size:17px;color:#555;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
 .art-author{font-weight:700;color:#1a3a54}
-.art-date{color:#777}
-.art-excerpt{font-size:17px;color:#333;line-height:1.75;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8f4ef;font-style:italic}
+.art-excerpt{font-size:17px;color:#333;line-height:1.75;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8f4ef;font-style:italic;text-align:right}
 .art-body{font-size:16px;line-height:1.95;color:#222}
 .art-body p{margin-bottom:13px}.art-body strong{font-weight:700;color:#111}
 .art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:14px 20px;margin:20px 0;border-radius:0 8px 8px 0;font-size:18px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
 .art-body blockquote p{margin:0}
-.art-pagenum{text-align:center;font-size:13px;color:#bbb;margin-top:22px;letter-spacing:1px}
 
 /* ── הדפסה ── */
 @media print{
   @page{size:A4;margin:0}
   body{background:#fff;padding-top:0}
   .pbar{display:none!important}
-  .bk-page{width:100%;min-height:100vh;margin:0;padding:15mm 18mm;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .bk-static-page{padding:0!important}
-  .cv-foot,.cv-badge,.cv-badge-overlay,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2,.art-body blockquote,.art-excerpt{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bk-page{width:100%;margin:0;padding:18mm 22mm;page-break-before:always;break-before:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bk-first{page-break-before:auto!important;break-before:auto!important}
+  .bk-static-page{padding:0!important;height:100vh;overflow:hidden}
+  .bk-static-page img{width:100%;height:100%;object-fit:cover;display:block}
+  .cv-foot,.cv-badge,.cv-badge-overlay,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2,.art-body blockquote,.art-excerpt,.art-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>

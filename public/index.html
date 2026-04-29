@@ -891,7 +891,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         </svg>
       </div>
       <p class="card-title">חוברת שבועית</p>
-      <p>העלאת PDF ופרסום אוטומטי לוורדפרס</p>
+      <p>יצירת חוברת שבועית ופרסום אוטומטי לוורדפרס</p>
       <div class="card-arrow">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </div>
@@ -1466,13 +1466,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   async function loadLastBookletNumber() {
     const input = document.getElementById('bookletNumber');
-    if (!input || input.value.trim()) return; // לא לדרוס אם המשתמש כבר הקליד
+    if (!input) return;
     try {
       const res  = await fetch('/booklet/last-number');
       const data = await res.json();
-      if (data.nextNumber && !input.value.trim()) {
+      if (data.nextNumber) {
         input.value = data.nextNumber;
-        input.placeholder = 'מספר ' + data.nextNumber + ' (אוטומטי)';
       }
     } catch(e) { /* שקט במקרה של שגיאה */ }
   }
