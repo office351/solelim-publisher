@@ -1089,12 +1089,32 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
       <button onclick="generateBookletPreview()" id="bkGenBtn"
         style="background:#e67e22;color:#fff;width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
-        ✨ צור חוברת לתצוגה מקדימה
+        ✨ צור חוברת
       </button>
 
       <div id="bkGenLoading" class="hidden" style="text-align:center;padding:20px">
         <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">📚</div>
         <p style="color:#e67e22;font-weight:bold;margin-top:8px">בונה את החוברת...</p>
+      </div>
+
+      <div id="bkGenResult" class="hidden" style="margin-top:14px">
+        <div style="background:#eef8f4;border:2px solid #1e8a6b;border-radius:12px;padding:16px;text-align:center">
+          <p style="color:#1e8a6b;font-weight:700;margin-bottom:14px;font-size:15px">✅ החוברת נוצרה בהצלחה!</p>
+          <div style="display:flex;gap:10px;margin-bottom:8px">
+            <button onclick="openBookletPrint()"
+              style="flex:1;background:#1a3a54;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
+              🖨️ פתח ושמור PDF
+            </button>
+            <button onclick="continueToPublish()"
+              style="flex:1;background:#27ae60;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
+              📤 העלה לאתר
+            </button>
+          </div>
+          <button onclick="resetBookletGen()"
+            style="width:100%;background:none;border:1px solid #ccc;color:#888;padding:7px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">
+            ↩ חזור וערוך
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1465,13 +1485,14 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   async function loadLastBookletNumber() {
-    const input = document.getElementById('bookletNumber');
-    if (!input) return;
     try {
       const res  = await fetch('/booklet/last-number');
       const data = await res.json();
       if (data.nextNumber) {
-        input.value = data.nextNumber;
+        const prep    = document.getElementById('bkPrepNumber');
+        const publish = document.getElementById('bookletNumber');
+        if (prep)    prep.value    = data.nextNumber;
+        if (publish) publish.value = data.nextNumber;
       }
     } catch(e) { /* שקט במקרה של שגיאה */ }
   }
@@ -1521,6 +1542,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     el.style.color = n === 4 ? '#27ae60' : '#888';
   }
 
+  let bkLastHtml = null;
+  let bkLastNum  = null;
+  let bkWin      = null;
+
   async function generateBookletPreview() {
     const num = document.getElementById('bkPrepNumber').value.trim();
     if (!num)                 { alert('נא להזין מספר חוברת'); return; }
@@ -1528,7 +1553,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
     const genBtn  = document.getElementById('bkGenBtn');
     const loading = document.getElementById('bkGenLoading');
+    const result  = document.getElementById('bkGenResult');
     genBtn.disabled = true;
+    result.classList.add('hidden');
     loading.classList.remove('hidden');
 
     try {
@@ -1540,17 +1567,50 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
+      bkLastHtml = data.html;
+      bkLastNum  = num;
+
       // פתח בחלון חדש
-      const win = window.open('about:blank', '_blank');
-      win.document.open();
-      win.document.write(data.html);
-      win.document.close();
+      bkWin = window.open('about:blank', '_blank');
+      bkWin.document.open();
+      bkWin.document.write(data.html);
+      bkWin.document.close();
+
+      // הצג כפתורי המשך
+      genBtn.style.display = 'none';
+      result.classList.remove('hidden');
     } catch(e) {
       alert('שגיאה ביצירת החוברת: ' + e.message);
-    } finally {
       genBtn.disabled = false;
+    } finally {
       loading.classList.add('hidden');
     }
+  }
+
+  function openBookletPrint() {
+    if (!bkLastHtml) return;
+    if (!bkWin || bkWin.closed) {
+      bkWin = window.open('about:blank', '_blank');
+      bkWin.document.open();
+      bkWin.document.write(bkLastHtml);
+      bkWin.document.close();
+    } else {
+      bkWin.focus();
+    }
+  }
+
+  function continueToPublish() {
+    if (bkLastNum) document.getElementById('bookletNumber').value = bkLastNum;
+    switchBookletTab('publish');
+  }
+
+  function resetBookletGen() {
+    bkLastHtml = null;
+    bkLastNum  = null;
+    const btn = document.getElementById('bkGenBtn');
+    btn.style.display = '';
+    btn.disabled = false;
+    document.getElementById('bkGenResult').classList.add('hidden');
   }
 
   async function uploadStaticPages() {
