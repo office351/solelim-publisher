@@ -1756,7 +1756,7 @@ function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg
     const imageUrl  = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
     const author    = p._embedded?.author?.[0]?.name || '';
     const title     = dec(p.title.rendered.replace(/<[^>]+>/g, ''));
-    const pubDate   = hebrewDate(new Date(p.date));
+    const isoDate   = p.date; // המרה לעברית תתבצע בדפדפן
     const excerpt   = dec((p.excerpt.rendered || '').replace(/<[^>]+>/g, '').trim());
     const content   = p.content.rendered
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -1764,14 +1764,14 @@ function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg
       .replace(/<p[^>]*>\s*<\/p>/g, '')
       .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
       .replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-    return { title, author, imageUrl, pubDate, excerpt, content };
+    return { title, author, imageUrl, isoDate, excerpt, content };
   });
 
   const articlesHTML = articles.map((a, i) => `
 <div class="bk-page" data-pagenum="${i + 3}">
-  ${a.imageUrl ? `<img class="art-img" src="${a.imageUrl}" alt="" crossorigin="anonymous">` : ''}
+  ${a.imageUrl ? `<img class="art-img" src="${a.imageUrl}" alt="" loading="eager">` : ''}
   <h2 class="art-title">${a.title}</h2>
-  <p class="art-meta">${a.author ? `<span class="art-author">✍ ${a.author}</span> &nbsp;·&nbsp; ` : ''}${a.pubDate}</p>
+  <p class="art-meta">${a.author ? `<span class="art-author">✍ ${a.author}</span> &nbsp;·&nbsp; ` : ''}<span class="art-date" data-iso="${a.isoDate}"></span></p>
   ${a.excerpt ? `<p class="art-excerpt">${a.excerpt}</p>` : ''}
   <div class="art-body">${a.content}</div>
   <div class="art-pagenum">${i + 3}</div>
@@ -1851,16 +1851,17 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .bk-contact a{color:#1e8a6b!important}
 
 /* ── מאמרים ── */
-.art-img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;margin-bottom:18px}
+.art-img{width:100%;max-height:280px;object-fit:cover;border-radius:10px;display:block;margin-bottom:20px}
 .art-title{font-size:22px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:8px}
-.art-meta{font-size:18px;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.art-meta{font-size:17px;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .art-author{font-weight:700;color:#1a3a54}
-.art-excerpt{font-size:18px;color:#333;line-height:1.7;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8f4ef;font-style:italic}
-.art-body{font-size:13px;line-height:2.3;color:#222}
-.art-body p{margin-bottom:11px}.art-body strong{font-weight:700;color:#111}
-.art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:13px 18px;margin:18px 0;border-radius:0 8px 8px 0;font-size:16px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
+.art-date{color:#777}
+.art-excerpt{font-size:17px;color:#333;line-height:1.75;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8f4ef;font-style:italic}
+.art-body{font-size:16px;line-height:1.95;color:#222}
+.art-body p{margin-bottom:13px}.art-body strong{font-weight:700;color:#111}
+.art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:14px 20px;margin:20px 0;border-radius:0 8px 8px 0;font-size:18px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
 .art-body blockquote p{margin:0}
-.art-pagenum{text-align:center;font-size:12px;color:#bbb;margin-top:20px;letter-spacing:1px}
+.art-pagenum{text-align:center;font-size:13px;color:#bbb;margin-top:22px;letter-spacing:1px}
 
 /* ── הדפסה ── */
 @media print{
@@ -1889,6 +1890,15 @@ ${articlesHTML}
 ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>` : ''}
 <script>
 (function(){
+  // תאריכים עבריים (דפדפן תמיד תומך)
+  var heFmt=null;
+  try{ heFmt=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long',year:'numeric'}); }catch(e){}
+  document.querySelectorAll('.art-date[data-iso]').forEach(function(el){
+    try{
+      var d=new Date(el.dataset.iso);
+      el.textContent = heFmt ? heFmt.format(d) : d.toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'});
+    }catch(e){}
+  });
   ${!hasCoverImg ? `
   try{
     var d=new Date(),fmtD=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long'}),
