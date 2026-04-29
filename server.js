@@ -715,6 +715,31 @@ app.post('/upload-image', requireAdminOrEnglish, upload.single('image'), async (
   }
 });
 
+// העלאת מדיה כללית (תמונה / סרטון) לוורדפרס — מחזיר url + mediaId
+app.post('/upload-media', requireAdmin, upload.single('media'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'לא נשלח קובץ' });
+    const buffer = fs.readFileSync(req.file.path);
+    const response = await axios.post(
+      `${process.env.WP_URL}/wp-json/wp/v2/media`,
+      buffer,
+      {
+        headers: {
+          'Content-Disposition': `attachment; filename="${req.file.originalname}"`,
+          'Content-Type': req.file.mimetype,
+        },
+        auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      }
+    );
+    fs.unlinkSync(req.file.path);
+    res.json({ success: true, mediaId: response.data.id, url: response.data.source_url, mimeType: req.file.mimetype });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // עדכון פרק ב-Buzzsprout
 app.post('/update-episode', requireAdmin, async (req, res) => {
   const { episodeId, title, author } = req.body;

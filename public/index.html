@@ -955,6 +955,32 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <label>קובץ אודיו (MP3 / WAV / OGG):</label>
       <input type="file" id="audioFile" accept=".mp3,.wav,.ogg" onchange="uploadAudioNow(this)">
       <p class="upload-status" id="audioStatus"></p>
+
+      <!-- ── מדיה נוספת ── -->
+      <div style="border-top:1px solid #eee;padding-top:14px;margin-top:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label style="margin:0;font-weight:600;font-size:14px">📎 מדיה נוספת (תוכנס בין סעיפים):</label>
+          <div style="display:flex;gap:6px">
+            <button type="button" onclick="triggerMediaAdd('image')"
+              style="background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit">📷 תמונה</button>
+            <button type="button" onclick="triggerMediaAdd('video-url')"
+              style="background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit">🔗 קישור</button>
+            <button type="button" onclick="triggerMediaAdd('video-file')"
+              style="background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit">🎬 סרטון</button>
+          </div>
+        </div>
+        <input type="file" id="mediaImageInput" accept="image/*" style="display:none" onchange="addMediaFile(this,'image')">
+        <input type="file" id="mediaVideoInput" accept="video/mp4,video/webm,video/*" style="display:none" onchange="addMediaFile(this,'video-file')">
+        <div id="mediaUrlPanel" style="display:none;gap:6px;margin-bottom:10px;background:#f8f8f8;padding:10px;border-radius:8px;border:1px solid #e0e0e0">
+          <input type="text" id="mediaUrlInput" placeholder="הדבק קישור YouTube / Vimeo..."
+            style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;direction:ltr">
+          <button onclick="confirmMediaUrl()"
+            style="background:#0073aa;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit">הוסף</button>
+          <button onclick="document.getElementById('mediaUrlPanel').style.display='none'"
+            style="background:#eee;border:none;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;font-family:inherit">✕</button>
+        </div>
+        <div id="mediaList" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -2960,11 +2986,19 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     return `<p><a href="${url}">🎧 האזן לפרק</a></p>\n&nbsp;\n`;
   }
 
-  function buildContent(text, quote1, quote2, audioUrl) {
+  function buildContent(text, quote1, quote2, audioUrl, mediaItems = []) {
     const audioHtml = buildAudioEmbed(audioUrl);
     const SEP = '\n<p>&nbsp;</p>\n';
-    const q1 = `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
-    const q2 = `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
+
+    // כל ה"הוספות": ציטוטים קודם, אחר כך מדיה
+    const allInserts = [];
+    if (quote1) allInserts.push(`${SEP}<blockquote>${quote1}</blockquote>${SEP}`);
+    if (quote2) allInserts.push(`${SEP}<blockquote>${quote2}</blockquote>${SEP}`);
+    mediaItems.filter(m => m.status === 'ready' && m.html).forEach(m => allInserts.push(`${SEP}${m.html}${SEP}`));
+
+    // קיצורים לשימוש בקוד ישן (בטוח)
+    const q1 = allInserts[0] || `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
+    const q2 = allInserts[1] || `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
 
     // זיהוי כותרת פסקה: ספרה/אות עברית/לטינית + פיסוק + רווח, עם עטיפת <strong> או בלעדיה
     // לדוגמה: "א. כותרת" / "A. Title" / "1. כותרת" / "<strong>ב. כותרת</strong>"
@@ -3009,17 +3043,19 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       }
 
       let result = audioHtml;
-      if (intro) result += intro + '\n\n'; // שורה ריקה אחת בין מבוא לפסקה הראשונה
+      if (intro) result += intro + '\n\n';
 
+      // פיזור כל ה-inserts בין הסעיפים לפי סדר
       for (let i = 0; i < sections.length; i++) {
         result += sections[i];
-        if      (i === 0 && sections.length > 1) result += q1; // ציטוט 1 אחרי פסקה ראשונה
-        else if (i === 1 && sections.length > 2) result += q2; // ציטוט 2 אחרי פסקה שנייה
-        else if (i < sections.length - 1)        result += '\n\n'; // פסקאות נוספות: שורה ריקה בלבד
+        if (i < sections.length - 1) {
+          result += allInserts[i] !== undefined ? allInserts[i] : '\n\n';
+        }
       }
-      // אם יש פחות פסקאות ממספר הציטוטים — הוסף בסוף
-      if (sections.length === 1) result += q1 + q2;
-      else if (sections.length === 2) result += q2;
+      // שאר ה-inserts שלא נכנסו (אם יש יותר inserts מ-gaps) — מצורפים בסוף
+      for (let i = sections.length - 1; i < allInserts.length; i++) {
+        result += allInserts[i];
+      }
 
       return result;
     }
@@ -3044,10 +3080,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
     const nonBlank = collapsed.filter(l => l.trim());
     const total = nonBlank.length;
-    if (total < 4) return `${audioHtml}${collapsed.join('\n')}${q1}${q2}`;
-
-    const q1pos = Math.floor(total / 3);
-    const q2pos = Math.floor(2 * total / 3);
+    if (total < 4) {
+      let r = `${audioHtml}${collapsed.join('\n')}`;
+      allInserts.forEach(ins => r += ins);
+      return r;
+    }
 
     function groupLines(arr) {
       const chunks = [];
@@ -3055,7 +3092,108 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       return chunks.join('\n\n');
     }
 
-    return `${audioHtml}${groupLines(nonBlank.slice(0, q1pos))}${q1}${groupLines(nonBlank.slice(q1pos, q2pos))}${q2}${groupLines(nonBlank.slice(q2pos))}`;
+    // חלוקה לחתיכות לפי מספר ה-inserts
+    const N = allInserts.length || 1;
+    const positions = Array.from({length: N}, (_, i) => Math.floor(total * (i + 1) / (N + 1)));
+
+    let result = audioHtml;
+    let prev = 0;
+    positions.forEach((pos, i) => {
+      result += groupLines(nonBlank.slice(prev, pos));
+      result += allInserts[i] || '';
+      prev = pos;
+    });
+    result += groupLines(nonBlank.slice(prev));
+    return result;
+  }
+
+  /* ────────── מדיה נוספת ────────── */
+  let pendingMediaItems = [];
+  let _mediaIdCtr = 0;
+
+  function triggerMediaAdd(type) {
+    if (type === 'image')      { document.getElementById('mediaImageInput').click(); return; }
+    if (type === 'video-file') { document.getElementById('mediaVideoInput').click(); return; }
+    const p = document.getElementById('mediaUrlPanel');
+    p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+    if (p.style.display === 'flex') document.getElementById('mediaUrlInput').focus();
+  }
+
+  function addMediaFile(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    const id = ++_mediaIdCtr;
+    const previewUrl = type === 'image' ? URL.createObjectURL(file) : null;
+    pendingMediaItems.push({ id, type, file, url: null, previewUrl, html: null, status: 'pending' });
+    input.value = '';
+    renderMediaList();
+  }
+
+  function videoUrlToEmbed(url) {
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (yt) return `<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube"><div class="wp-block-embed__wrapper"><iframe width="560" height="315" src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div></figure>`;
+    const vi = url.match(/vimeo\.com\/(\d+)/);
+    if (vi) return `<figure class="wp-block-embed is-type-video is-provider-vimeo wp-block-embed-vimeo"><div class="wp-block-embed__wrapper"><iframe src="https://player.vimeo.com/video/${vi[1]}" width="640" height="360" frameborder="0" allowfullscreen loading="lazy"></iframe></div></figure>`;
+    return null;
+  }
+
+  function confirmMediaUrl() {
+    const url = document.getElementById('mediaUrlInput').value.trim();
+    if (!url) return;
+    const html = videoUrlToEmbed(url);
+    if (!html) { alert('קישור לא מזוהה — הכנס קישור YouTube או Vimeo'); return; }
+    pendingMediaItems.push({ id: ++_mediaIdCtr, type: 'video-url', file: null, url, previewUrl: null, html, status: 'ready' });
+    document.getElementById('mediaUrlInput').value = '';
+    document.getElementById('mediaUrlPanel').style.display = 'none';
+    renderMediaList();
+  }
+
+  function removeMediaItem(id) {
+    pendingMediaItems = pendingMediaItems.filter(m => m.id !== id);
+    renderMediaList();
+  }
+
+  function renderMediaList() {
+    const list = document.getElementById('mediaList');
+    if (!list) return;
+    if (!pendingMediaItems.length) { list.innerHTML = ''; return; }
+    list.innerHTML = pendingMediaItems.map(m => {
+      const label = m.type === 'image' ? `📷 ${m.file?.name || 'תמונה'}`
+                  : m.type === 'video-file' ? `🎬 ${m.file?.name || 'סרטון'}`
+                  : `🔗 ${m.url}`;
+      const preview = m.previewUrl ? `<img src="${m.previewUrl}" style="width:44px;height:33px;object-fit:cover;border-radius:4px;flex-shrink:0">` : '';
+      const badge = m.status==='ready'?'<span style="color:#27ae60;font-size:12px">✓</span>'
+                  : m.status==='error' ?'<span style="color:#e74c3c;font-size:12px">⚠</span>'
+                  : '<span style="color:#aaa;font-size:12px">⏳</span>';
+      return `<div style="display:flex;align-items:center;gap:8px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:7px 10px">
+        ${preview}
+        <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</span>
+        ${badge}
+        <button onclick="removeMediaItem(${m.id})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;line-height:1;padding:0 2px">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  async function uploadPendingMedia() {
+    const toUpload = pendingMediaItems.filter(m => m.status === 'pending' && m.file);
+    for (const item of toUpload) {
+      item.status = 'uploading';
+      renderMediaList();
+      try {
+        const fd = new FormData();
+        fd.append('media', item.file);
+        const r = await fetch('/upload-media', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.success) {
+          item.url = d.url;
+          item.html = item.type === 'image'
+            ? `<figure class="wp-block-image size-large aligncenter"><img src="${d.url}" loading="lazy"/></figure>`
+            : `<figure class="wp-block-video aligncenter"><video controls src="${d.url}" preload="metadata"></video></figure>`;
+          item.status = 'ready';
+        } else { item.status = 'error'; }
+      } catch(e) { item.status = 'error'; }
+      renderMediaList();
+    }
   }
 
   async function startProcess() {
@@ -3118,6 +3256,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         document.getElementById('audioStatus').textContent = 'שגיאה: ' + e.message;
       }
       pendingAudioFile = null;
+    }
+
+    // העלאת מדיה נוספת אם קיימת
+    if (pendingMediaItems.some(m => m.status === 'pending')) {
+      await uploadPendingMedia();
     }
 
     const formData = new FormData();
@@ -3208,7 +3351,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     btn.textContent = 'מפרסם...';
 
     const audioUrl = document.getElementById('audioUrl').value;
-    const content  = buildContent(cleanedText, selectedQuotes[0], selectedQuotes[1], audioUrl);
+    const content  = buildContent(cleanedText, selectedQuotes[0], selectedQuotes[1], audioUrl, pendingMediaItems);
 
     try {
       const response = await fetch('/publish', {
