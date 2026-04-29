@@ -1725,7 +1725,10 @@ app.post('/publish-en', requireAdminOrEnglish, express.json(), async (req, res) 
 });
 
 // ─── חוברת שבועית: בניית HTML להדפסה ────────────────────────────────────────
-function buildBookletHTML(bookletNumber, posts, logoUrl) {
+function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg) {
+  const logoUrl = origin + '/logo.png';
+  const STATIC  = origin + '/booklet-static/';
+
   const INTRO_HTML = [
     `<p>'סוללים דרך' הינו מיזם העוסק בתודעה והסברה שהחל לפני מספר שנים לאור הצורך להבין את המתרחש במרחב הציבורי באופן ענייני, ללא משוא פנים ומתוך שיח בוגר ומקצועי.</p>`,
     `<p>לאט לאט הצטרפו למיזם אנשים רבים, עד שכיום הקהילה הגיעה לכ-15 אלף חברים (!) שמקבלים מאמר בכל יום.</p>`,
@@ -1740,27 +1743,71 @@ function buildBookletHTML(bookletNumber, posts, logoUrl) {
     .replace(/&#8230;/g, '…').replace(/&amp;/g, '&')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
 
+  // תאריך עברי — Node.js 13+ תומך ב-ca-hebrew
+  const hebrewDate = d => {
+    try {
+      return new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(d);
+    } catch(e) {
+      return d.toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+    }
+  };
+
   const articles = posts.map(p => {
     const imageUrl  = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
     const author    = p._embedded?.author?.[0]?.name || '';
     const title     = dec(p.title.rendered.replace(/<[^>]+>/g, ''));
-    const pubDate   = new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+    const pubDate   = hebrewDate(new Date(p.date));
+    const excerpt   = dec((p.excerpt.rendered || '').replace(/<[^>]+>/g, '').trim());
     const content   = p.content.rendered
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<div[^>]*buzzsprout[^>]*>[\s\S]*?<\/div>/gi, '')
       .replace(/<p[^>]*>\s*<\/p>/g, '')
       .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
       .replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-    return { title, author, imageUrl, pubDate, content };
+    return { title, author, imageUrl, pubDate, excerpt, content };
   });
 
-  const articlesHTML = articles.map(a => `
-<div class="bk-page">
+  const articlesHTML = articles.map((a, i) => `
+<div class="bk-page" data-pagenum="${i + 3}">
   ${a.imageUrl ? `<img class="art-img" src="${a.imageUrl}" alt="" crossorigin="anonymous">` : ''}
   <h2 class="art-title">${a.title}</h2>
-  <p class="art-meta">${a.author ? `✍ ${a.author} &nbsp;·&nbsp; ` : ''}${a.pubDate}</p>
+  <p class="art-meta">${a.author ? `<span class="art-author">✍ ${a.author}</span> &nbsp;·&nbsp; ` : ''}${a.pubDate}</p>
+  ${a.excerpt ? `<p class="art-excerpt">${a.excerpt}</p>` : ''}
   <div class="art-body">${a.content}</div>
+  <div class="art-pagenum">${i + 3}</div>
 </div>`).join('\n');
+
+  // עמוד שער
+  const coverPage = hasCoverImg
+    ? `<div class="bk-page bk-static-page">
+        <img src="${STATIC}cover.jpg" alt="שער" style="width:100%;height:100%;object-fit:contain;display:block">
+        <div class="cv-badge-overlay">${bookletNumber}</div>
+       </div>`
+    : `<div class="bk-page bk-cover">
+        <div class="cv-badge">${bookletNumber}</div>
+        <div class="cv-body">
+          <img src="${logoUrl}" class="cv-logo" onerror="this.style.display='none'" alt="סוללים דרך">
+          <div class="cv-brand">סוללים דרך</div>
+          <div class="cv-tag">בונים חירות תודעתית</div>
+          <div class="cv-week">מאמרי השבוע</div>
+          <div class="cv-dates" id="cvDates">טוען...</div>
+          <div class="cv-year" id="cvYear"></div>
+        </div>
+        <div class="cv-foot">
+          <a href="https://www.solelim-derech.co.il">www.solelim-derech.co.il</a>
+          <div class="qr-box"><canvas id="qrCvs"></canvas></div>
+        </div>
+       </div>`;
+
+  // עמוד הקדמה
+  const introPage = hasIntroImg
+    ? `<div class="bk-page bk-static-page">
+        <img src="${STATIC}intro.jpg" alt="הקדמה" style="width:100%;height:100%;object-fit:contain;display:block">
+       </div>`
+    : `<div class="bk-page bk-intro">
+        <h2>מי אנחנו?</h2>
+        ${INTRO_HTML}
+       </div>`;
 
   return `<!DOCTYPE html>
 <html dir="rtl" lang="he">
@@ -1776,10 +1823,15 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .pb{border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .pb-p{background:#f5a623;color:#fff}.pb-c{background:#555;color:#fff}
 @media screen{body{padding-top:52px}}
+
+/* ── עמודים ── */
 .bk-page{background:#fff;width:210mm;margin:12px auto;padding:18mm 20mm;min-height:297mm;position:relative;overflow:hidden}
-/* ── שער ── */
+.bk-static-page{padding:0!important}
+
+/* ── שער דינמי ── */
 .bk-cover{display:flex;flex-direction:column;align-items:center;padding:0}
 .cv-badge{position:absolute;top:0;right:0;background:#1a3a54;color:#fff;font-size:22px;font-weight:900;padding:10px 16px;border-radius:0 0 0 14px;min-width:50px;text-align:center}
+.cv-badge-overlay{position:absolute;top:12mm;left:12mm;background:#1a3a54;color:#fff;font-size:22px;font-weight:900;padding:10px 16px;border-radius:8px;min-width:50px;text-align:center}
 .cv-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 40px;width:100%}
 .cv-logo{width:120px;height:auto;margin-bottom:14px}
 .cv-brand{font-size:48px;font-weight:900;color:#1a3a54;line-height:1}
@@ -1790,28 +1842,34 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .cv-foot{background:#1e8a6b;width:100%;padding:22px;text-align:center;margin-top:auto}
 .cv-foot a{color:#fff;font-size:13px;display:block;margin-bottom:12px;text-decoration:none}
 .qr-box{display:inline-block;background:#fff;border-radius:6px;padding:6px}
-/* ── הקדמה ── */
+
+/* ── הקדמה דינמית ── */
 .bk-intro{padding:20mm 22mm}
 .bk-intro h2{font-size:26px;font-weight:900;color:#1a3a54;padding-bottom:12px;border-bottom:3px solid #1e8a6b;margin-bottom:22px}
 .bk-intro p{font-size:15px;line-height:2.1;color:#2a2a2a;margin-bottom:16px}
 .bk-contact{font-size:13px!important;color:#999!important;margin-top:20px!important}
 .bk-contact a{color:#1e8a6b!important}
+
 /* ── מאמרים ── */
-.art-img{width:100%;max-height:200px;object-fit:cover;border-radius:10px;display:block;margin-bottom:16px}
-.art-title{font-size:23px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:7px}
-.art-meta{font-size:13px;color:#999;margin-bottom:18px}
-.art-body{font-size:14px;line-height:2.1;color:#222}
-.art-body p{margin-bottom:12px}.art-body strong{font-weight:700;color:#111}
-.art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;font-size:15px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
+.art-img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;display:block;margin-bottom:18px}
+.art-title{font-size:22px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:8px}
+.art-meta{font-size:18px;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.art-author{font-weight:700;color:#1a3a54}
+.art-excerpt{font-size:18px;color:#333;line-height:1.7;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e8f4ef;font-style:italic}
+.art-body{font-size:13px;line-height:2.3;color:#222}
+.art-body p{margin-bottom:11px}.art-body strong{font-weight:700;color:#111}
+.art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:13px 18px;margin:18px 0;border-radius:0 8px 8px 0;font-size:16px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
 .art-body blockquote p{margin:0}
+.art-pagenum{text-align:center;font-size:12px;color:#bbb;margin-top:20px;letter-spacing:1px}
+
 /* ── הדפסה ── */
 @media print{
   @page{size:A4;margin:0}
   body{background:#fff;padding-top:0}
   .pbar{display:none!important}
   .bk-page{width:100%;min-height:100vh;margin:0;padding:15mm 18mm;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .cv-foot,.cv-badge,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .art-body blockquote{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bk-static-page{padding:0!important}
+  .cv-foot,.cv-badge,.cv-badge-overlay,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2,.art-body blockquote,.art-excerpt{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>
@@ -1824,72 +1882,92 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   </div>
 </div>
 
-<!-- שער -->
-<div class="bk-page bk-cover">
-  <div class="cv-badge">${bookletNumber}</div>
-  <div class="cv-body">
-    <img src="${logoUrl}" class="cv-logo" onerror="this.style.display='none'" alt="סוללים דרך">
-    <div class="cv-brand">סוללים דרך</div>
-    <div class="cv-tag">בונים חירות תודעתית</div>
-    <div class="cv-week">מאמרי השבוע</div>
-    <div class="cv-dates" id="cvDates">טוען...</div>
-    <div class="cv-year" id="cvYear"></div>
-  </div>
-  <div class="cv-foot">
-    <a href="https://www.solelim-derech.co.il">www.solelim-derech.co.il</a>
-    <div class="qr-box"><canvas id="qrCvs"></canvas></div>
-  </div>
-</div>
-
-<!-- הקדמה -->
-<div class="bk-page bk-intro">
-  <h2>מי אנחנו?</h2>
-  ${INTRO_HTML}
-</div>
-
-<!-- מאמרים -->
+${coverPage}
+${introPage}
 ${articlesHTML}
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>` : ''}
 <script>
 (function(){
+  ${!hasCoverImg ? `
   try{
-    var d=new Date();
-    var fmtD=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long'});
-    var fmtY=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{year:'numeric'});
-    var dow=d.getDay();
-    var sun=new Date(d); sun.setDate(d.getDate()-dow);
-    var thu=new Date(sun); thu.setDate(sun.getDate()+4);
+    var d=new Date(),fmtD=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long'}),
+        fmtY=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{year:'numeric'}),
+        dow=d.getDay(),sun=new Date(d),thu=new Date(d);
+    sun.setDate(d.getDate()-dow); thu.setDate(d.getDate()-dow+4);
     document.getElementById('cvDates').textContent=fmtD.format(sun)+' — '+fmtD.format(thu);
     document.getElementById('cvYear').textContent=fmtY.format(d);
   }catch(e){}
-  try{
-    QRCode.toCanvas(document.getElementById('qrCvs'),'https://www.solelim-derech.co.il',
-      {width:70,color:{dark:'#1a3a54',light:'#ffffff'}},function(){});
-  }catch(e){}
+  try{QRCode.toCanvas(document.getElementById('qrCvs'),'https://www.solelim-derech.co.il',{width:70,color:{dark:'#1a3a54',light:'#ffffff'}},function(){});}catch(e){}
+  ` : ''}
 })();
 </script>
 </body>
 </html>`;
 }
 
-// שליפת 10 מאמרים אחרונים מ-WordPress
+// שליפת 10 מאמרים אחרונים מ-WordPress (ללא חוברות וללא אנגלית)
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
   try {
     const r = await axios.get(
-      `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=10&_embed&status=publish`,
+      `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=20&_embed&status=publish`,
       { timeout: 15000 }
     );
-    const posts = r.data.map(p => ({
-      id: p.id,
-      date: p.date,
-      dateLabel: new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' }),
-      title: p.title.rendered.replace(/<[^>]+>/g, '')
-        .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)),
-      imageUrl: p._embedded?.['wp:featuredmedia']?.[0]?.source_url || ''
-    }));
+    const BOOKLET_TAG = 'חוברת שבועית להדפסה';
+    const heRe = /[\u05D0-\u05EA]/;
+
+    const posts = r.data
+      .filter(p => {
+        // סנן חוברות
+        const terms = (p._embedded?.['wp:term'] || []).flat();
+        if (terms.some(t => t.taxonomy === 'post_tag' && t.name === BOOKLET_TAG)) return false;
+        // סנן מאמרים באנגלית (כותרת ללא עברית)
+        const rawTitle = p.title.rendered.replace(/<[^>]+>/g, '');
+        return heRe.test(rawTitle);
+      })
+      .slice(0, 10)
+      .map(p => {
+        let dateLabel;
+        try {
+          dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(p.date));
+        } catch(e) {
+          dateLabel = new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+        }
+        return {
+          id: p.id,
+          date: p.date,
+          dateLabel,
+          title: p.title.rendered.replace(/<[^>]+>/g, '')
+            .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)),
+          imageUrl: p._embedded?.['wp:featuredmedia']?.[0]?.source_url || ''
+        };
+      });
+
     res.json({ success: true, posts });
   } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// העלאת תמונות סטטיות (שער / הקדמה)
+const BOOKLET_STATIC_DIR = path.join(__dirname, 'public', 'booklet-static');
+app.post('/booklet/upload-static', requireAdmin, upload.fields([
+  { name: 'cover', maxCount: 1 },
+  { name: 'intro', maxCount: 1 }
+]), async (req, res) => {
+  if (!fs.existsSync(BOOKLET_STATIC_DIR)) fs.mkdirSync(BOOKLET_STATIC_DIR, { recursive: true });
+  const saved = [];
+  try {
+    for (const type of ['cover', 'intro']) {
+      const file = req.files?.[type]?.[0];
+      if (!file) continue;
+      const buf = fs.readFileSync(file.path);
+      fs.unlinkSync(file.path);
+      await sharp(buf).jpeg({ quality: 95 }).toFile(path.join(BOOKLET_STATIC_DIR, `${type}.jpg`));
+      saved.push(type);
+    }
+    res.json({ success: true, saved });
+  } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
 });
@@ -1911,8 +1989,12 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
     );
     postsData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const origin  = req.protocol + '://' + req.get('host');
-    const html    = buildBookletHTML(bookletNumber, postsData, origin + '/logo.png');
+    if (!fs.existsSync(BOOKLET_STATIC_DIR)) fs.mkdirSync(BOOKLET_STATIC_DIR, { recursive: true });
+    const hasCoverImg = fs.existsSync(path.join(BOOKLET_STATIC_DIR, 'cover.jpg'));
+    const hasIntroImg = fs.existsSync(path.join(BOOKLET_STATIC_DIR, 'intro.jpg'));
+
+    const origin = req.protocol + '://' + req.get('host');
+    const html   = buildBookletHTML(bookletNumber, postsData, origin, hasCoverImg, hasIntroImg);
     res.json({ success: true, html });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

@@ -1046,6 +1046,32 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           style="width:140px;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:18px;font-family:inherit;direction:rtl;font-weight:700">
       </div>
 
+      <!-- הגדרות חד-פעמיות: תמונות סטטיות -->
+      <details style="margin-bottom:18px;border:1px solid #ffe0c0;border-radius:10px;overflow:hidden">
+        <summary style="padding:10px 14px;background:#fff8f0;cursor:pointer;font-size:13px;font-weight:700;color:#e67e22;list-style:none;display:flex;align-items:center;gap:8px">
+          ⚙️ הגדרות חד-פעמיות: עמוד שער ועמוד הקדמה
+          <span style="font-weight:400;color:#888;font-size:12px">(מאפשר להחליף את עמוד השער והקדמה בתמונות שלך)</span>
+        </summary>
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+          <p style="font-size:13px;color:#666;margin:0">העלה תמונת PNG/JPG של כל עמוד. ישמרו לשימוש חוזר בכל חוברת.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">📄 עמוד שער (ללא מספר — מספר יוצב אוטומטית)</label>
+              <input type="file" id="bkCoverFile" accept="image/*" style="font-size:13px;width:100%">
+            </div>
+            <div style="flex:1;min-width:200px">
+              <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">📄 עמוד הקדמה (סטטי, ישמר לתמיד)</label>
+              <input type="file" id="bkIntroFile" accept="image/*" style="font-size:13px;width:100%">
+            </div>
+          </div>
+          <button onclick="uploadStaticPages()" id="bkStaticBtn"
+            style="background:#e67e22;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;align-self:flex-start">
+            💾 שמור תמונות
+          </button>
+          <p id="bkStaticMsg" style="font-size:13px;display:none"></p>
+        </div>
+      </details>
+
       <div style="margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <label style="font-weight:bold;font-size:14px">בחר עד 4 מאמרים (לפי סדר פרסום):</label>
@@ -1511,6 +1537,33 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     } finally {
       genBtn.disabled = false;
       loading.classList.add('hidden');
+    }
+  }
+
+  async function uploadStaticPages() {
+    const coverFile = document.getElementById('bkCoverFile').files[0];
+    const introFile = document.getElementById('bkIntroFile').files[0];
+    if (!coverFile && !introFile) { alert('בחר לפחות תמונה אחת להעלאה'); return; }
+    const btn = document.getElementById('bkStaticBtn');
+    const msg = document.getElementById('bkStaticMsg');
+    btn.disabled = true; btn.textContent = '⏳ שומר...';
+    msg.style.display = 'none';
+    try {
+      const fd = new FormData();
+      if (coverFile) fd.append('cover', coverFile);
+      if (introFile) fd.append('intro', introFile);
+      const res  = await fetch('/booklet/upload-static', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      msg.textContent = `✅ נשמר: ${data.saved.join(', ')}`;
+      msg.style.color = '#27ae60'; msg.style.display = 'block';
+      document.getElementById('bkCoverFile').value = '';
+      document.getElementById('bkIntroFile').value = '';
+    } catch(e) {
+      msg.textContent = '❌ שגיאה: ' + e.message;
+      msg.style.color = 'red'; msg.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 שמור תמונות';
     }
   }
 
