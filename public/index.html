@@ -959,25 +959,25 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <!-- ── מדיה נוספת ── -->
       <div style="border-top:1px solid #eee;padding-top:14px;margin-top:6px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <label style="margin:0;font-weight:600;font-size:14px">📎 מדיה נוספת (תוכנס בין סעיפים):</label>
+          <label style="margin:0;font-weight:600;font-size:14px;color:#1a3a54">📎 מדיה נוספת (תוכנס בין סעיפים):</label>
           <div style="display:flex;gap:6px">
             <button type="button" onclick="triggerMediaAdd('image')"
-              style="background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit">📷 תמונה</button>
+              style="background:#f5f5f5;border:1px solid #ccc;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit;color:#1a3a54">📷 תמונה</button>
             <button type="button" onclick="triggerMediaAdd('video-url')"
-              style="background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit">🔗 קישור</button>
+              style="background:#f5f5f5;border:1px solid #ccc;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit;color:#1a3a54">🔗 קישור</button>
             <button type="button" onclick="triggerMediaAdd('video-file')"
-              style="background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit">🎬 סרטון</button>
+              style="background:#f5f5f5;border:1px solid #ccc;border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;font-family:inherit;color:#1a3a54">🎬 סרטון</button>
           </div>
         </div>
         <input type="file" id="mediaImageInput" accept="image/*" style="display:none" onchange="addMediaFile(this,'image')">
         <input type="file" id="mediaVideoInput" accept="video/mp4,video/webm,video/*" style="display:none" onchange="addMediaFile(this,'video-file')">
         <div id="mediaUrlPanel" style="display:none;gap:6px;margin-bottom:10px;background:#f8f8f8;padding:10px;border-radius:8px;border:1px solid #e0e0e0">
           <input type="text" id="mediaUrlInput" placeholder="הדבק קישור YouTube / Vimeo..."
-            style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;direction:ltr">
+            style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;direction:ltr;color:#222;background:#fff">
           <button onclick="confirmMediaUrl()"
             style="background:#0073aa;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit">הוסף</button>
           <button onclick="document.getElementById('mediaUrlPanel').style.display='none'"
-            style="background:#eee;border:none;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;font-family:inherit">✕</button>
+            style="background:#eee;color:#333;border:none;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;font-family:inherit">✕</button>
         </div>
         <div id="mediaList" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
