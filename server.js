@@ -1769,7 +1769,7 @@ function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg
 
   const articlesHTML = articles.map((a, i) => `
 <div class="bk-page" data-pagenum="${i + 3}">
-  ${a.imageUrl ? `<img class="art-img" src="${a.imageUrl}" alt="" loading="eager">` : ''}
+  ${a.imageUrl ? `<div class="art-img-wrap"><img class="art-img" src="${a.imageUrl}" alt="" loading="eager"></div>` : ''}
   <h2 class="art-title">${a.title}</h2>
   <p class="art-meta">${a.author ? `<span class="art-author">✍ ${a.author}</span> &nbsp;·&nbsp; ` : ''}<span class="art-date" data-iso="${a.isoDate}"></span></p>
   ${a.excerpt ? `<p class="art-excerpt">${a.excerpt}</p>` : ''}
@@ -1851,7 +1851,8 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .bk-contact a{color:#1e8a6b!important}
 
 /* ── מאמרים ── */
-.art-img{width:100%;max-height:280px;object-fit:cover;border-radius:10px;display:block;margin-bottom:20px}
+.art-img-wrap{display:flex;justify-content:center;margin-bottom:20px}
+.art-img{width:90mm;height:90mm;object-fit:cover;border-radius:10px;display:block}
 .art-title{font-size:22px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:8px}
 .art-meta{font-size:17px;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .art-author{font-weight:700;color:#1a3a54}
@@ -1890,13 +1891,33 @@ ${articlesHTML}
 ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>` : ''}
 <script>
 (function(){
+  // המרת מספר לאותיות עבריות
+  function numToHebLet(n){
+    if(n===15)return'ט\u05F4ו';
+    if(n===16)return'ט\u05F4ז';
+    var vals=[400,300,200,100,90,80,70,60,50,40,30,20,10,9,8,7,6,5,4,3,2,1];
+    var lets=['ת','ש','ר','ק','צ','פ','ע','ס','נ','מ','ל','כ','י','ט','ח','ז','ו','ה','ד','ג','ב','א'];
+    var s='',r=n;
+    for(var i=0;i<vals.length;i++){while(r>=vals[i]){s+=lets[i];r-=vals[i];}}
+    if(s.length===1)return s+'\u05F3';
+    return s.slice(0,-1)+'\u05F4'+s.slice(-1);
+  }
+  // המרת מחרוזת תאריך עברי: מחליף את המספרים בה באותיות
+  function hebrewizeDate(str){
+    // שנה: מספר >= 5000 → מחסיר 5000 ואז ממיר
+    str=str.replace(/\b(5\d{3})\b/g,function(_,y){return numToHebLet(parseInt(y)-5000)+'\'';});
+    // ימים ומספרים קטנים
+    str=str.replace(/\b([1-9][0-9]?)\b/g,function(_,n){return numToHebLet(parseInt(n));});
+    return str;
+  }
   // תאריכים עבריים (דפדפן תמיד תומך)
   var heFmt=null;
   try{ heFmt=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long',year:'numeric'}); }catch(e){}
   document.querySelectorAll('.art-date[data-iso]').forEach(function(el){
     try{
       var d=new Date(el.dataset.iso);
-      el.textContent = heFmt ? heFmt.format(d) : d.toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'});
+      var raw=heFmt ? heFmt.format(d) : d.toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'});
+      el.textContent=hebrewizeDate(raw);
     }catch(e){}
   });
   ${!hasCoverImg ? `
@@ -2008,6 +2029,34 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
     res.json({ success: true, html });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// מספר החוברת האחרונה שהועלתה (להצגת ברירת מחדל בממשק)
+app.get('/booklet/last-number', requireAdmin, async (req, res) => {
+  try {
+    const WP_URL = process.env.WP_URL;
+    // שליפת הTAG של חוברת שבועית
+    const tagRes = await axios.get(
+      `${WP_URL}/wp-json/wp/v2/tags?search=%D7%97%D7%95%D7%91%D7%A8%D7%AA+%D7%A9%D7%91%D7%95%D7%A2%D7%99%D7%AA+%D7%9C%D7%94%D7%93%D7%A4%D7%A1%D7%94&per_page=10`,
+      { timeout: 10000 }
+    );
+    const tag = tagRes.data.find(t => t.name === 'חוברת שבועית להדפסה');
+    if (!tag) return res.json({ nextNumber: 1 });
+
+    // שליפת החוברת האחרונה
+    const postsRes = await axios.get(
+      `${WP_URL}/wp-json/wp/v2/posts?tags=${tag.id}&per_page=1&orderby=date&order=desc&status=publish`,
+      { timeout: 10000 }
+    );
+    if (!postsRes.data.length) return res.json({ nextNumber: 1 });
+
+    const title = postsRes.data[0].title.rendered.replace(/<[^>]+>/g, '');
+    const m = title.match(/(\d+)/);
+    const lastNum = m ? parseInt(m[1]) : 0;
+    res.json({ nextNumber: lastNum + 1 });
+  } catch (e) {
+    res.json({ nextNumber: null, error: e.message });
   }
 });
 

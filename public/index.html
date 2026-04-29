@@ -1428,6 +1428,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
     if (pageId === 'page-groups') loadGroupsPage();
     if (pageId === 'page-edit') loadGroupsDropdown();
+    if (pageId === 'page-booklet') { loadRecentPosts(); loadLastBookletNumber(); }
   }
 
   /* ─────────── חוברת שבועית ─────────── */
@@ -1461,6 +1462,19 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       btn.disabled = false;
       btn.textContent = '🔄 טען מאמרים';
     }
+  }
+
+  async function loadLastBookletNumber() {
+    const input = document.getElementById('bookletNumber');
+    if (!input || input.value.trim()) return; // לא לדרוס אם המשתמש כבר הקליד
+    try {
+      const res  = await fetch('/booklet/last-number');
+      const data = await res.json();
+      if (data.nextNumber && !input.value.trim()) {
+        input.value = data.nextNumber;
+        input.placeholder = 'מספר ' + data.nextNumber + ' (אוטומטי)';
+      }
+    } catch(e) { /* שקט במקרה של שגיאה */ }
   }
 
   function renderPostsList(posts) {
