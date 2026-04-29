@@ -1780,7 +1780,7 @@ function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg
   // עמוד שער
   const coverPage = hasCoverImg
     ? `<div class="bk-page bk-static-page">
-        <img src="${STATIC}cover.jpg" alt="שער" style="width:100%;height:100%;object-fit:contain;display:block">
+        <img src="${STATIC}cover.jpg" alt="שער" style="width:100%;display:block">
         <div class="cv-badge-overlay">${bookletNumber}</div>
        </div>`
     : `<div class="bk-page bk-cover">
@@ -1831,7 +1831,7 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* ── שער דינמי ── */
 .bk-cover{display:flex;flex-direction:column;align-items:center;padding:0}
 .cv-badge{position:absolute;top:0;right:0;background:#1a3a54;color:#fff;font-size:22px;font-weight:900;padding:10px 16px;border-radius:0 0 0 14px;min-width:50px;text-align:center}
-.cv-badge-overlay{position:absolute;top:12mm;left:12mm;background:#1a3a54;color:#fff;font-size:22px;font-weight:900;padding:10px 16px;border-radius:8px;min-width:50px;text-align:center}
+.cv-badge-overlay{position:absolute;top:11mm;right:11mm;background:#1a3a54;color:#fff;font-size:22px;font-weight:900;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:8px}
 .cv-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 40px;width:100%}
 .cv-logo{width:120px;height:auto;margin-bottom:14px}
 .cv-brand{font-size:48px;font-weight:900;color:#1a3a54;line-height:1}
