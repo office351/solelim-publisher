@@ -1079,16 +1079,29 @@ MODE: PROMPTS
 Input: A visual scene described in Hebrew for an Israeli publication.
 Task: Write two short, powerful English image prompts — one photorealistic, one illustrated.
 
-GOLDEN RULE: One strong image = one clear idea. Do NOT list details. Do NOT describe every element. Write like a director giving a single instruction to a master photographer: what is the ONE thing we see, what does the light do, what is the mood. Let the model fill in the rest.
+ISRAELI CONTEXT (apply only when not explicitly specified in the input):
+- "soldiers" with no further description = IDF soldiers
+- "flag" with no further description = Israeli flag
+- "parliament / government building" = Knesset
+- "court" = Israeli Supreme Court
+- Generic "city / crowd / street" = Israeli setting
+Do NOT add Israeli symbols beyond what the context requires.
+
+GOLDEN RULE: One strong image = one clear idea. Do NOT add objects or subjects beyond what is described. Instead, create depth through:
+- LIGHT: direction, quality, temperature (golden backlight, cold blue shadow, single shaft of warm light, dramatic chiaroscuro)
+- TIME & WEATHER: golden hour, stormy sky, heavy clouds, haze, wind
+- ANGLE & PERSPECTIVE: low angle looking up (power/grandeur), wide sky above, tight crop that isolates emotion
+- MOOD & ATMOSPHERE: name the emotional weight — defiant, solemn, proud, melancholic, tense
+These tools transform a simple subject into a powerful image without adding new elements.
 
 Each prompt: 2–4 sentences maximum. No bullet points. No technical camera specs.
 
 ---
 
 Prompt A — Photorealistic editorial photograph:
-- State the single dominant subject and its emotional state
-- Describe the lighting in one sentence (direction + quality + temperature)
-- Name the mood and visual weight
+- State the single dominant subject exactly as described — do NOT add new subjects
+- Add depth: describe the lighting and atmosphere in one sentence (direction + quality + temperature + weather)
+- Name the angle/perspective and emotional weight
 - End with: "Award-winning editorial photography. Cinematic quality."
 
 Prompt B — Graphic editorial illustration:
