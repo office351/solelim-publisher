@@ -1869,12 +1869,15 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* ── הדפסה ── */
 @media print{
   @page{size:A4;margin:0}
-  body{background:#fff;padding-top:0}
+  body{background:#fff;padding-top:0;orphans:3;widows:3}
   .pbar{display:none!important}
-  .bk-page{width:100%;margin:0;padding:18mm 22mm;page-break-before:always;break-before:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bk-page{width:100%;margin:0;padding:18mm 22mm;overflow:visible;page-break-before:always;break-before:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .bk-first{page-break-before:auto!important;break-before:auto!important}
-  .bk-static-page{padding:0!important;height:100vh;overflow:hidden}
+  .bk-static-page{padding:0!important;height:100vh;overflow:hidden!important}
   .bk-static-page img{width:100%;height:100%;object-fit:cover;display:block}
+  .art-img-wrap{page-break-inside:avoid;break-inside:avoid}
+  .art-body blockquote{page-break-inside:avoid;break-inside:avoid}
+  .art-num,.art-title,.art-meta{page-break-after:avoid;break-after:avoid}
   .cv-foot,.cv-badge,.cv-badge-overlay,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2,.art-body blockquote,.art-excerpt,.art-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
