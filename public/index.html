@@ -1022,46 +1022,99 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     <button class="back-btn" onclick="showPage('page-landing')">← חזרה</button>
   </div>
 
-  <div class="card">
-    <h2 style="margin-top:0">פרסום חוברת שבועית לוורדפרס</h2>
-    <p style="color:#555;font-size:14px;margin:0 0 16px">המערכת תעלה את ה-PDF, תיצור כתבה חדשה עם כל ההגדרות הקבועות, ותתזמן פרסום לתאריך שתבחר.</p>
+  <!-- טאבים -->
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <button id="bk-tab-btn-prepare" onclick="switchBookletTab('prepare')"
+      style="flex:1;padding:11px;border:2px solid #e67e22;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#e67e22;color:#fff;font-family:inherit;transition:all 0.2s">
+      📋 שלב א — הכן חוברת
+    </button>
+    <button id="bk-tab-btn-publish" onclick="switchBookletTab('publish')"
+      style="flex:1;padding:11px;border:2px solid #e67e22;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:#e67e22;font-family:inherit;transition:all 0.2s">
+      📤 שלב ב — פרסם לאתר
+    </button>
+  </div>
 
-    <div style="display:flex;flex-direction:column;gap:14px">
+  <!-- ═══ שלב א: הכנת חוברת ═══ -->
+  <div id="bk-tab-prepare">
+    <div class="card">
+      <h2 style="margin-top:0;color:#e67e22">📋 הכנת החוברת</h2>
+      <p style="color:#555;font-size:14px;margin:0 0 18px">בחר מספר חוברת ו-4 מאמרים מהפרסומים האחרונים. המערכת תיצור חוברת מוכנה להדפסה.</p>
 
-      <div>
+      <div style="margin-bottom:14px">
         <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">מספר חוברת:</label>
-        <input type="number" id="bookletNumber" placeholder="לדוגמה: 72" min="1"
-          style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:16px;font-family:inherit;box-sizing:border-box;direction:rtl">
+        <input type="number" id="bkPrepNumber" placeholder="לדוגמה: 74" min="1"
+          style="width:140px;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:18px;font-family:inherit;direction:rtl;font-weight:700">
       </div>
 
-      <div>
-        <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">תאריך ושעת פרסום:</label>
-        <input type="datetime-local" id="bookletDate"
-          style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;box-sizing:border-box">
-      </div>
-
-      <div>
-        <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">קובץ PDF של החוברת:</label>
-        <div style="border:2px dashed #ddd;border-radius:8px;padding:20px;text-align:center;cursor:pointer" onclick="document.getElementById('bookletPdfFile').click()">
-          <div id="bookletFileLabel" style="color:#888;font-size:14px">לחץ לבחירת קובץ PDF</div>
-          <input type="file" id="bookletPdfFile" accept=".pdf,application/pdf" style="display:none" onchange="onBookletFileChange(this)">
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label style="font-weight:bold;font-size:14px">בחר עד 4 מאמרים (לפי סדר פרסום):</label>
+          <button onclick="loadRecentPosts()" id="bkLoadBtn"
+            style="background:none;border:2px solid #e67e22;color:#e67e22;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+            🔄 טען מאמרים
+          </button>
         </div>
+
+        <div id="bkPostsList" style="display:flex;flex-direction:column;gap:8px">
+          <p style="color:#aaa;font-size:14px;text-align:center;padding:20px">לחץ "טען מאמרים" לטעינת 10 המאמרים האחרונים</p>
+        </div>
+        <p id="bkSelCount" style="font-size:13px;color:#888;margin-top:8px;text-align:left"></p>
       </div>
 
-      <button onclick="publishBooklet()" id="bookletPublishBtn" style="background:#27ae60;font-size:16px;padding:14px">
-        📤 העלה ופרסם חוברת
+      <button onclick="generateBookletPreview()" id="bkGenBtn"
+        style="background:#e67e22;color:#fff;width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
+        ✨ צור חוברת לתצוגה מקדימה
       </button>
-    </div>
 
-    <div id="bookletLoading" class="hidden" style="text-align:center;padding:20px;margin-top:10px">
-      <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">⏳</div>
-      <p id="bookletLoadingText" style="color:#555;margin:8px 0 0">מעלה PDF ויוצר כתבה...</p>
+      <div id="bkGenLoading" class="hidden" style="text-align:center;padding:20px">
+        <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">📚</div>
+        <p style="color:#e67e22;font-weight:bold;margin-top:8px">בונה את החוברת...</p>
+      </div>
     </div>
+  </div>
 
-    <div id="bookletResult" class="hidden" style="margin-top:16px;padding:16px;background:#f0fff4;border-radius:10px;border:1px solid #27ae60">
-      <p style="margin:0 0 8px;font-weight:bold;color:#27ae60;font-size:15px">✅ החוברת פורסמה בהצלחה!</p>
-      <p style="margin:0 0 4px;font-size:13px;color:#555">כתובת הכתבה:</p>
-      <a id="bookletPostUrl" href="#" target="_blank" style="color:#0073aa;font-size:13px;word-break:break-all"></a>
+  <!-- ═══ שלב ב: פרסום לאתר ═══ -->
+  <div id="bk-tab-publish" class="hidden">
+    <div class="card">
+      <h2 style="margin-top:0">📤 פרסום חוברת לוורדפרס</h2>
+      <p style="color:#555;font-size:14px;margin:0 0 16px">לאחר הדפסת החוברת כ-PDF, העלה אותה כאן לפרסום באתר.</p>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">מספר חוברת:</label>
+          <input type="number" id="bookletNumber" placeholder="לדוגמה: 74" min="1"
+            style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:16px;font-family:inherit;box-sizing:border-box;direction:rtl">
+        </div>
+
+        <div>
+          <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">תאריך ושעת פרסום:</label>
+          <input type="datetime-local" id="bookletDate"
+            style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;box-sizing:border-box">
+        </div>
+
+        <div>
+          <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">קובץ PDF של החוברת:</label>
+          <div style="border:2px dashed #ddd;border-radius:8px;padding:20px;text-align:center;cursor:pointer" onclick="document.getElementById('bookletPdfFile').click()">
+            <div id="bookletFileLabel" style="color:#888;font-size:14px">לחץ לבחירת קובץ PDF</div>
+            <input type="file" id="bookletPdfFile" accept=".pdf,application/pdf" style="display:none" onchange="onBookletFileChange(this)">
+          </div>
+        </div>
+
+        <button onclick="publishBooklet()" id="bookletPublishBtn" style="background:#27ae60;font-size:16px;padding:14px">
+          📤 העלה ופרסם חוברת
+        </button>
+      </div>
+
+      <div id="bookletLoading" class="hidden" style="text-align:center;padding:20px;margin-top:10px">
+        <div style="font-size:32px;animation:spin 1.5s linear infinite;display:inline-block">⏳</div>
+        <p id="bookletLoadingText" style="color:#555;margin:8px 0 0">מעלה PDF ויוצר כתבה...</p>
+      </div>
+
+      <div id="bookletResult" class="hidden" style="margin-top:16px;padding:16px;background:#f0fff4;border-radius:10px;border:1px solid #27ae60">
+        <p style="margin:0 0 8px;font-weight:bold;color:#27ae60;font-size:15px">✅ החוברת פורסמה בהצלחה!</p>
+        <p style="margin:0 0 4px;font-size:13px;color:#555">כתובת הכתבה:</p>
+        <a id="bookletPostUrl" href="#" target="_blank" style="color:#0073aa;font-size:13px;word-break:break-all"></a>
+      </div>
     </div>
   </div>
 </div>
@@ -1352,6 +1405,115 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   /* ─────────── חוברת שבועית ─────────── */
+  let bkSelectedIds = [];
+
+  function switchBookletTab(tab) {
+    ['prepare','publish'].forEach(t => {
+      document.getElementById('bk-tab-' + t).classList.toggle('hidden', t !== tab);
+      const btn = document.getElementById('bk-tab-btn-' + t);
+      if (t === tab) { btn.style.background = '#e67e22'; btn.style.color = '#fff'; }
+      else           { btn.style.background = '#fff';    btn.style.color = '#e67e22'; }
+    });
+  }
+
+  async function loadRecentPosts() {
+    const listEl = document.getElementById('bkPostsList');
+    const btn    = document.getElementById('bkLoadBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ טוען...';
+    listEl.innerHTML = '<p style="color:#aaa;font-size:14px;text-align:center;padding:16px">טוען מאמרים...</p>';
+    bkSelectedIds = [];
+    updateSelCount();
+    try {
+      const res  = await fetch('/booklet/recent-posts');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      renderPostsList(data.posts);
+    } catch(e) {
+      listEl.innerHTML = `<p style="color:red;font-size:14px">שגיאה בטעינה: ${e.message}</p>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔄 טען מאמרים';
+    }
+  }
+
+  function renderPostsList(posts) {
+    const listEl = document.getElementById('bkPostsList');
+    listEl.innerHTML = '';
+    posts.forEach(p => {
+      const card = document.createElement('div');
+      card.id = 'bk-post-' + p.id;
+      card.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid #ddd;border-radius:10px;cursor:pointer;transition:all 0.15s;background:#fff';
+      card.onclick = () => togglePost(p.id, card);
+      card.innerHTML = `
+        ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0" alt="">` : '<div style="width:52px;height:52px;background:#eee;border-radius:6px;flex-shrink:0"></div>'}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#1a3a54;line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+          <div style="font-size:12px;color:#999">${p.dateLabel}</div>
+        </div>
+        <div class="bk-check" style="width:26px;height:26px;border:2px solid #ddd;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px"></div>`;
+      listEl.appendChild(card);
+    });
+  }
+
+  function togglePost(id, card) {
+    const idx = bkSelectedIds.indexOf(id);
+    if (idx === -1) {
+      if (bkSelectedIds.length >= 4) { alert('ניתן לבחור עד 4 מאמרים בלבד'); return; }
+      bkSelectedIds.push(id);
+      card.style.borderColor = '#e67e22';
+      card.style.background  = '#fff8f0';
+      card.querySelector('.bk-check').textContent = '✓';
+      card.querySelector('.bk-check').style.cssText += 'background:#e67e22;border-color:#e67e22;color:#fff';
+    } else {
+      bkSelectedIds.splice(idx, 1);
+      card.style.borderColor = '#ddd';
+      card.style.background  = '#fff';
+      card.querySelector('.bk-check').textContent = '';
+      card.querySelector('.bk-check').style.cssText = 'width:26px;height:26px;border:2px solid #ddd;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px';
+    }
+    updateSelCount();
+  }
+
+  function updateSelCount() {
+    const el = document.getElementById('bkSelCount');
+    const n  = bkSelectedIds.length;
+    el.textContent = n === 0 ? '' : `נבחרו ${n}/4 מאמרים`;
+    el.style.color = n === 4 ? '#27ae60' : '#888';
+  }
+
+  async function generateBookletPreview() {
+    const num = document.getElementById('bkPrepNumber').value.trim();
+    if (!num)                 { alert('נא להזין מספר חוברת'); return; }
+    if (bkSelectedIds.length < 1) { alert('יש לבחור לפחות מאמר אחד'); return; }
+
+    const genBtn  = document.getElementById('bkGenBtn');
+    const loading = document.getElementById('bkGenLoading');
+    genBtn.disabled = true;
+    loading.classList.remove('hidden');
+
+    try {
+      const res  = await fetch('/booklet/generate-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookletNumber: num, postIds: bkSelectedIds })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      // פתח בחלון חדש
+      const win = window.open('about:blank', '_blank');
+      win.document.open();
+      win.document.write(data.html);
+      win.document.close();
+    } catch(e) {
+      alert('שגיאה ביצירת החוברת: ' + e.message);
+    } finally {
+      genBtn.disabled = false;
+      loading.classList.add('hidden');
+    }
+  }
+
   function onBookletFileChange(input) {
     const file = input.files[0];
     document.getElementById('bookletFileLabel').textContent = file ? `✅ ${file.name}` : 'לחץ לבחירת קובץ PDF';

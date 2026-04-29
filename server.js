@@ -1724,6 +1724,201 @@ app.post('/publish-en', requireAdminOrEnglish, express.json(), async (req, res) 
   }
 });
 
+// ─── חוברת שבועית: בניית HTML להדפסה ────────────────────────────────────────
+function buildBookletHTML(bookletNumber, posts, logoUrl) {
+  const INTRO_HTML = [
+    `<p>'סוללים דרך' הינו מיזם העוסק בתודעה והסברה שהחל לפני מספר שנים לאור הצורך להבין את המתרחש במרחב הציבורי באופן ענייני, ללא משוא פנים ומתוך שיח בוגר ומקצועי.</p>`,
+    `<p>לאט לאט הצטרפו למיזם אנשים רבים, עד שכיום הקהילה הגיעה לכ-15 אלף חברים (!) שמקבלים מאמר בכל יום.</p>`,
+    `<p>ב'סוללים דרך' אנו נוהגים לומר ש'אין לך דבר פרקטי יותר מתיאוריה טובה'.</p>`,
+    `<p>כלומר, המיזם מאפשר לתחושות האינטואיטיביות הפשוטות של רבים, לעבור מתחושות בטן להמשגה ברורה ולתודעה סדורה. רק אדם כזה הופך להיות 'אקטיביסט' מדויק הפועל בהתאם לרוח לאומית, ציונית ויהודית.</p>`,
+    `<p>אנו משתדלים לסקל את אבני הנגף מנהר החיים הישראלים על מנת לסייע בענווה לספינה הלאומית לנוע בבטחה ובגאון.</p>`,
+    `<p class="bk-contact">תגובות: <a href="mailto:office@solelim-derech.co.il">office@solelim-derech.co.il</a></p>`
+  ].join('\n');
+
+  const dec = s => (s || '')
+    .replace(/&quot;/g, '"').replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+    .replace(/&#8230;/g, '…').replace(/&amp;/g, '&')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
+
+  const articles = posts.map(p => {
+    const imageUrl  = p._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+    const author    = p._embedded?.author?.[0]?.name || '';
+    const title     = dec(p.title.rendered.replace(/<[^>]+>/g, ''));
+    const pubDate   = new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+    const content   = p.content.rendered
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<div[^>]*buzzsprout[^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<p[^>]*>\s*<\/p>/g, '')
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+      .replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    return { title, author, imageUrl, pubDate, content };
+  });
+
+  const articlesHTML = articles.map(a => `
+<div class="bk-page">
+  ${a.imageUrl ? `<img class="art-img" src="${a.imageUrl}" alt="" crossorigin="anonymous">` : ''}
+  <h2 class="art-title">${a.title}</h2>
+  <p class="art-meta">${a.author ? `✍ ${a.author} &nbsp;·&nbsp; ` : ''}${a.pubDate}</p>
+  <div class="art-body">${a.content}</div>
+</div>`).join('\n');
+
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>חוברת סוללים דרך — גיליון ${bookletNumber}</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;direction:rtl;color:#1a1a1a}
+.pbar{position:fixed;inset:0 0 auto 0;z-index:999;background:#1a3a54;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:9px 18px}
+.pbar-t{font-size:15px;font-weight:700}.pbar-b{display:flex;gap:8px}
+.pb{border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.pb-p{background:#f5a623;color:#fff}.pb-c{background:#555;color:#fff}
+@media screen{body{padding-top:52px}}
+.bk-page{background:#fff;width:210mm;margin:12px auto;padding:18mm 20mm;min-height:297mm;position:relative;overflow:hidden}
+/* ── שער ── */
+.bk-cover{display:flex;flex-direction:column;align-items:center;padding:0}
+.cv-badge{position:absolute;top:0;right:0;background:#1a3a54;color:#fff;font-size:22px;font-weight:900;padding:10px 16px;border-radius:0 0 0 14px;min-width:50px;text-align:center}
+.cv-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 40px;width:100%}
+.cv-logo{width:120px;height:auto;margin-bottom:14px}
+.cv-brand{font-size:48px;font-weight:900;color:#1a3a54;line-height:1}
+.cv-tag{font-size:16px;color:#1e8a6b;margin:5px 0 38px}
+.cv-week{font-size:22px;font-weight:700;color:#1a3a54;margin-bottom:10px}
+.cv-dates{font-size:20px;font-weight:600;color:#1a3a54}
+.cv-year{font-size:14px;color:#666;margin-top:6px}
+.cv-foot{background:#1e8a6b;width:100%;padding:22px;text-align:center;margin-top:auto}
+.cv-foot a{color:#fff;font-size:13px;display:block;margin-bottom:12px;text-decoration:none}
+.qr-box{display:inline-block;background:#fff;border-radius:6px;padding:6px}
+/* ── הקדמה ── */
+.bk-intro{padding:20mm 22mm}
+.bk-intro h2{font-size:26px;font-weight:900;color:#1a3a54;padding-bottom:12px;border-bottom:3px solid #1e8a6b;margin-bottom:22px}
+.bk-intro p{font-size:15px;line-height:2.1;color:#2a2a2a;margin-bottom:16px}
+.bk-contact{font-size:13px!important;color:#999!important;margin-top:20px!important}
+.bk-contact a{color:#1e8a6b!important}
+/* ── מאמרים ── */
+.art-img{width:100%;max-height:200px;object-fit:cover;border-radius:10px;display:block;margin-bottom:16px}
+.art-title{font-size:23px;font-weight:900;color:#1a3a54;line-height:1.35;margin-bottom:7px}
+.art-meta{font-size:13px;color:#999;margin-bottom:18px}
+.art-body{font-size:14px;line-height:2.1;color:#222}
+.art-body p{margin-bottom:12px}.art-body strong{font-weight:700;color:#111}
+.art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;font-size:15px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
+.art-body blockquote p{margin:0}
+/* ── הדפסה ── */
+@media print{
+  @page{size:A4;margin:0}
+  body{background:#fff;padding-top:0}
+  .pbar{display:none!important}
+  .bk-page{width:100%;min-height:100vh;margin:0;padding:15mm 18mm;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .cv-foot,.cv-badge,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .art-body blockquote{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="pbar">
+  <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
+  <div class="pbar-b">
+    <button class="pb pb-p" onclick="window.print()">🖨️ הדפס / שמור PDF</button>
+    <button class="pb pb-c" onclick="window.close()">✕ סגור</button>
+  </div>
+</div>
+
+<!-- שער -->
+<div class="bk-page bk-cover">
+  <div class="cv-badge">${bookletNumber}</div>
+  <div class="cv-body">
+    <img src="${logoUrl}" class="cv-logo" onerror="this.style.display='none'" alt="סוללים דרך">
+    <div class="cv-brand">סוללים דרך</div>
+    <div class="cv-tag">בונים חירות תודעתית</div>
+    <div class="cv-week">מאמרי השבוע</div>
+    <div class="cv-dates" id="cvDates">טוען...</div>
+    <div class="cv-year" id="cvYear"></div>
+  </div>
+  <div class="cv-foot">
+    <a href="https://www.solelim-derech.co.il">www.solelim-derech.co.il</a>
+    <div class="qr-box"><canvas id="qrCvs"></canvas></div>
+  </div>
+</div>
+
+<!-- הקדמה -->
+<div class="bk-page bk-intro">
+  <h2>מי אנחנו?</h2>
+  ${INTRO_HTML}
+</div>
+
+<!-- מאמרים -->
+${articlesHTML}
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+(function(){
+  try{
+    var d=new Date();
+    var fmtD=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{day:'numeric',month:'long'});
+    var fmtY=new Intl.DateTimeFormat('he-IL-u-ca-hebrew',{year:'numeric'});
+    var dow=d.getDay();
+    var sun=new Date(d); sun.setDate(d.getDate()-dow);
+    var thu=new Date(sun); thu.setDate(sun.getDate()+4);
+    document.getElementById('cvDates').textContent=fmtD.format(sun)+' — '+fmtD.format(thu);
+    document.getElementById('cvYear').textContent=fmtY.format(d);
+  }catch(e){}
+  try{
+    QRCode.toCanvas(document.getElementById('qrCvs'),'https://www.solelim-derech.co.il',
+      {width:70,color:{dark:'#1a3a54',light:'#ffffff'}},function(){});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>`;
+}
+
+// שליפת 10 מאמרים אחרונים מ-WordPress
+app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
+  try {
+    const r = await axios.get(
+      `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=10&_embed&status=publish`,
+      { timeout: 15000 }
+    );
+    const posts = r.data.map(p => ({
+      id: p.id,
+      date: p.date,
+      dateLabel: new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' }),
+      title: p.title.rendered.replace(/<[^>]+>/g, '')
+        .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)),
+      imageUrl: p._embedded?.['wp:featuredmedia']?.[0]?.source_url || ''
+    }));
+    res.json({ success: true, posts });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// יצירת HTML לחוברת (4 מאמרים נבחרים)
+app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res) => {
+  try {
+    const { bookletNumber, postIds } = req.body;
+    if (!postIds || postIds.length < 1 || postIds.length > 4)
+      return res.status(400).json({ success: false, error: 'יש לבחור 1–4 מאמרים' });
+    if (!bookletNumber)
+      return res.status(400).json({ success: false, error: 'מספר חוברת חסר' });
+
+    const postsData = await Promise.all(
+      postIds.map(id =>
+        axios.get(`${process.env.WP_URL}/wp-json/wp/v2/posts/${id}?_embed`, { timeout: 15000 })
+          .then(r => r.data)
+      )
+    );
+    postsData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const origin  = req.protocol + '://' + req.get('host');
+    const html    = buildBookletHTML(bookletNumber, postsData, origin + '/logo.png');
+    res.json({ success: true, html });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
