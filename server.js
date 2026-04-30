@@ -1932,30 +1932,40 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 
 /* ── הדפסה ── */
 @media print{
-  /* A4 עם שוליים — גובה אזור תוכן = 297-18-18 = 261mm */
-  @page{size:A4;margin:18mm 22mm}
+  /* margin:0 → אין מקום לכותרות/כותרות-תחתית של הדפדפן → נעלמות לחלוטין */
+  @page{size:A4;margin:0}
 
-  body{background:#fff;padding-top:0;orphans:3;widows:3}
+  body{background:#fff;padding-top:0;orphans:3;widows:3;counter-reset:bk-page}
   .pbar{display:none!important}
 
-  /* כל עמוד: מתחיל דף חדש, ללא ריפוד (השוליים מגיעים מ-@page) */
+  /* כל עמוד: מתחיל דף חדש, ריפוד פנימי במקום שוליים */
   .bk-page{
-    width:100%;margin:0;padding:0;
-    position:static;
+    width:100%;margin:0;padding:18mm 22mm;
+    position:relative;
     min-height:0;
     overflow:visible!important;
     page-break-before:always;break-before:page;
     page-break-inside:auto;break-inside:auto;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    counter-increment:bk-page
   }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
 
-  /* עמודי שער/הקדמה: גובה מדויק = אזור תוכן A4, חיתוך כדי שלא יגלשו */
+  /* עמוד (מספר) — מוצג בתחתית כל עמוד מאמר, לא בשער/הקדמה */
+  .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page)::after{
+    content:counter(bk-page);
+    position:absolute;
+    bottom:7mm;left:50%;transform:translateX(-50%);
+    font-size:10px;color:#aaa;font-family:'Heebo',Arial,sans-serif
+  }
+
+  /* עמודי שער/הקדמה: גובה מלא A4, ריפוד 0 לשער וסטטי */
   .bk-cover,.bk-intro,.bk-static-page{
-    height:261mm;
+    height:297mm;
     overflow:hidden!important;
     page-break-inside:avoid;break-inside:avoid
   }
+  .bk-cover{padding:0!important}
   .bk-static-page{
     position:relative!important;
     padding:0!important
@@ -2047,14 +2057,7 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
   ` : ''}
 })();
 
-function printBooklet(){
-  var msg = 'לפני שמירת ה-PDF — הגדר בחלון ההדפסה:\n\n'
-          + '1. יעד: "שמור כ-PDF"\n'
-          + '2. פתח "אפשרויות נוספות" (More settings)\n'
-          + '3. כותרות ושוליים ← בטל (ללא)\n\n'
-          + 'לחץ אישור כדי לפתוח את חלון ההדפסה.';
-  if(confirm(msg)){window.print();}
-}
+function printBooklet(){window.print();}
 </script>
 </body>
 </html>`;
