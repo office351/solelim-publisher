@@ -1938,6 +1938,19 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   .bk-intro h2,.art-body blockquote,.art-excerpt,.art-num{
     -webkit-print-color-adjust:exact;print-color-adjust:exact
   }
+
+  /* ── הקטנת רווחים — מ-20 עמודים ל-14 ── */
+  .art-body{line-height:1.55!important}
+  .art-body p{margin-bottom:5px!important}
+  .art-excerpt{font-size:15px!important;line-height:1.5!important;margin-bottom:10px!important;padding-bottom:8px!important}
+  .art-num{margin-bottom:8px!important;padding-bottom:4px!important;font-size:11px!important}
+  .art-title{font-size:20px!important;margin-bottom:4px!important}
+  .art-meta{margin-bottom:6px!important}
+  .art-img{width:55mm!important;height:55mm!important}
+  .art-img-wrap{margin-bottom:10px!important}
+  .bk-intro p{line-height:1.65!important;margin-bottom:8px!important}
+  .bk-intro h2{margin-bottom:12px!important;padding-bottom:6px!important}
+  .art-body blockquote{padding:8px 14px!important;margin:10px 0!important;font-size:16px!important}
 }
 </style>
 </head>
@@ -1945,7 +1958,7 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 <div class="pbar">
   <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
   <div class="pbar-b">
-    <button class="pb pb-p" onclick="window.print()">🖨️ שמור PDF</button>
+    <button class="pb pb-p" onclick="printBooklet()">🖨️ שמור PDF</button>
     <button class="pb pb-g" onclick="if(window.opener&&window.opener.continueToPublish){window.opener.continueToPublish();}window.close()">📤 העלה לאתר</button>
     <button class="pb pb-c" onclick="window.close()">✕ סגור</button>
   </div>
@@ -1999,6 +2012,15 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
   try{QRCode.toCanvas(document.getElementById('qrCvs'),'https://www.solelim-derech.co.il',{width:70,color:{dark:'#1a3a54',light:'#ffffff'}},function(){});}catch(e){}
   ` : ''}
 })();
+
+function printBooklet(){
+  var msg = 'לפני שמירת ה-PDF — הגדר בחלון ההדפסה:\n\n'
+          + '1. יעד: "שמור כ-PDF"\n'
+          + '2. פתח "אפשרויות נוספות" (More settings)\n'
+          + '3. כותרות ושוליים ← בטל (ללא)\n\n'
+          + 'לחץ אישור כדי לפתוח את חלון ההדפסה.';
+  if(confirm(msg)){window.print();}
+}
 </script>
 </body>
 </html>`;
