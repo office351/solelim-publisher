@@ -2071,7 +2071,7 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
 // קאש מאמרים אחרונים — נשמר בקובץ כדי לשרוד רסטרטים ולמנוע עומס על WordPress
 const POSTS_CACHE_FILE    = path.join(__dirname, 'data', 'recent-posts-cache.json');
 const POSTS_CACHE_TTL     = 24 * 60 * 60 * 1000; // 24 שעות — תקינות רגילה
-const POSTS_CACHE_MIN_AGE =      30 * 60 * 1000; // 30 דקות — מינימום בין כל רענון
+const POSTS_CACHE_MIN_AGE = 24 * 60 * 60 * 1000; // 24 שעות — מינימום בין כל רענון
 
 let recentPostsCache = { posts: [], fetchedAt: 0 };
 // טעינת קאש מקובץ בעת הפעלת השרת
