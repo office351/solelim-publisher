@@ -2032,43 +2032,77 @@ async function fetchRecentPostsFromWP() {
   const BOOKLET_TAG = 'חוברת שבועית להדפסה';
   const heRe = /[א-ת]/;
 
-  const getTag = (block, tag) => {
-    const cdataRe = new RegExp('<' + tag + '[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/' + tag + '>');
-    const plainRe = new RegExp('<' + tag + '[^>]*>([^<]*)<\\/' + tag + '>');
-    const m = block.match(cdataRe) || block.match(plainRe);
-    return m ? m[1].trim() : '';
-  };
+  // חילוץ ערך תג XML — ללא regex, עם indexOf בלבד
+  function extractTag(block, tag) {
+    const open  = '<' + tag;
+    const close = '</' + tag + '>';
+    const s = block.indexOf(open);
+    if (s === -1) return '';
+    const a = block.indexOf('>', s) + 1;
+    if (a <= 0) return '';
+    const e = block.indexOf(close, a);
+    if (e === -1) return '';
+    let v = block.slice(a, e).trim();
+    if (v.startsWith('<![CDATA[') && v.endsWith(']]>')) v = v.slice(9, -3).trim();
+    return v;
+  }
+
+  function extractAllTags(block, tag) {
+    const out = [], close = '</' + tag + '>';
+    let pos = 0;
+    while (true) {
+      const s = block.indexOf('<' + tag, pos);
+      if (s === -1) break;
+      const a = block.indexOf('>', s) + 1;
+      if (a <= 0) break;
+      const e = block.indexOf(close, a);
+      if (e === -1) break;
+      let v = block.slice(a, e).trim();
+      if (v.startsWith('<![CDATA[') && v.endsWith(']]>')) v = v.slice(9, -3).trim();
+      out.push(v);
+      pos = e + close.length;
+    }
+    return out;
+  }
+
+  const pNum   = /[?&]p=(\d+)/;
+  const pSlash = /\/(\d+)\//;
+  const imgRe  = /url="([^"]+\.(?:jpg|jpeg|png|webp|gif))"/;
 
   const items = [];
-  const itemRe = /<item>([\s\S]*?)<\/item>/g;
-  let match;
-  while ((match = itemRe.exec(xml)) !== null) {
-    const block = match[1];
-    const title = getTag(block, 'title');
-    const date  = getTag(block, 'pubDate');
-    const linkM = block.match(/<link>([^<]+)<\/link>/);
-    const link  = linkM ? linkM[1] : '';
-    const catsRe = new RegExp('<category[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/category>', 'g');
-    const cats = [];
-    let cm;
-    while ((cm = catsRe.exec(block)) !== null) cats.push(cm[1]);
+  let pos = 0;
+  while (items.length < 10) {
+    const s = xml.indexOf('<item>', pos);
+    if (s === -1) break;
+    const e = xml.indexOf('</item>', s);
+    if (e === -1) break;
+    const block = xml.slice(s + 6, e);
+    pos = e + 7;
+
+    const title = extractTag(block, 'title');
+    const date  = extractTag(block, 'pubDate');
+    const cats  = extractAllTags(block, 'category');
 
     if (cats.includes(BOOKLET_TAG)) continue;
     if (!heRe.test(title)) continue;
 
-    const imgM = block.match(/<media:content[^>]*url="([^"]+)"/) || block.match(/<enclosure[^>]*url="([^"]+)"/);
-    const imageUrl = imgM ? imgM[1] : '';
-    const idM = link.match(/[?&]p=(\d+)/) || link.match(/\/(\d+)\//);
+    const ls = block.indexOf('<link>'), le = block.indexOf('</link>');
+    const link = (ls !== -1 && le !== -1) ? block.slice(ls + 6, le).trim() : '';
+    const idM = link.match(pNum) || link.match(pSlash);
     const id  = idM ? parseInt(idM[1]) : items.length + 1;
+
+    const imgM = block.match(imgRe);
+    const imageUrl = imgM ? imgM[1] : '';
 
     let dateLabel = date;
     try {
-      dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(date));
+      dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew',
+        { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date));
     } catch(_) {}
 
     items.push({ id, date, dateLabel, title, imageUrl });
-    if (items.length >= 10) break;
   }
+
   return items;
 }
 
