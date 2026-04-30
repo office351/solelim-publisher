@@ -1646,8 +1646,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     const bkDoc  = parser.parseFromString(bkLastHtml, 'text/html');
 
     // חלץ CSS מראש החוברת (כולל @page, @media print, גופנים)
-    const headHtml = Array.from(bkDoc.head.querySelectorAll('style,link'))
-      .map(el => el.outerHTML).join('\n');
+    // חשוב: להזריק כ-<style> תקני ולא כ-<div> — רק <style> מעובד בתוך <head>
+    const cssText = Array.from(bkDoc.head.querySelectorAll('style'))
+      .map(s => s.textContent).join('\n');
 
     // גוף ללא שורת כלים (pbar — מוסתרת גם ב-@media print של החוברת)
     const bkBody = bkDoc.body.cloneNode(true);
@@ -1659,10 +1660,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     wrap.innerHTML = bkBody.innerHTML;
     document.body.appendChild(wrap);
 
-    const styleWrap = document.createElement('div');
-    styleWrap.id = '__bk_head';
-    styleWrap.innerHTML = headHtml;
-    document.head.appendChild(styleWrap);
+    const styleEl = document.createElement('style');
+    styleEl.id = '__bk_head';
+    styleEl.textContent = cssText;
+    document.head.appendChild(styleEl);
 
     // הסתר הכל בזמן הדפסה; הצג רק החוברת
     const hideStyle = document.createElement('style');
@@ -1673,16 +1674,31 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       '@media screen{#__bk_print{display:none}}';
     document.head.appendChild(hideStyle);
 
-    // הדפס — קריאה סינכרונית מ-onclick = user gesture = תמיד עובד
-    window.print();
+    // ממתין לטעינת כל התמונות לפני הדפסה
+    function doPrint() {
+      window.print();
+      window.addEventListener('afterprint', function cleanup() {
+        document.getElementById('__bk_print')?.remove();
+        document.getElementById('__bk_head')?.remove();
+        document.getElementById('__bk_hide')?.remove();
+        window.removeEventListener('afterprint', cleanup);
+      });
+    }
 
-    // נקה אחרי שדיאלוג ההדפסה נסגר
-    window.addEventListener('afterprint', function cleanup() {
-      document.getElementById('__bk_print')?.remove();
-      document.getElementById('__bk_head')?.remove();
-      document.getElementById('__bk_hide')?.remove();
-      window.removeEventListener('afterprint', cleanup);
-    });
+    const imgs = Array.from(wrap.querySelectorAll('img'));
+    const pending = imgs.filter(img => !img.complete || img.naturalWidth === 0);
+    if (pending.length === 0) {
+      doPrint();
+    } else {
+      let done = 0;
+      pending.forEach(img => {
+        const finish = () => { if (++done === pending.length) doPrint(); };
+        img.addEventListener('load',  finish, { once: true });
+        img.addEventListener('error', finish, { once: true });
+      });
+      // timeout fallback — מדפיס גם אם תמונה נתקעת
+      setTimeout(() => { if (done < pending.length) doPrint(); }, 5000);
+    }
   }
 
   function continueToPublish() {

@@ -1901,15 +1901,14 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* תמונות מוטמעות בגוף המאמר (לא תמונה ראשית) — מרוכזות, עד חצי עמוד */
 .art-body img{display:block;max-width:50%;height:auto;margin:14px auto;border-radius:6px}
 
+/* ── @page חייב להיות ברמה עליונה (לא בתוך @media) — Chrome מתעלם אחרת ── */
+@page{size:A4;margin:10mm 20mm;
+  @bottom-center{content:counter(page);font-size:8pt;color:#aaa;font-family:'Heebo',Arial,sans-serif}
+}
+@page frontmatter{size:A4;margin:10mm 20mm;@bottom-center{content:none}}
+
 /* ── הדפסה ── */
 @media print{
-  /* 10mm — מספיק לשוליים הדפסה, אך קטן מדי ל-Chrome להציג כותרות/כותרות-תחתית */
-  /* עמוד שער/הקדמה — סוג עמוד ייעודי ללא מספור */
-  @page{size:A4;margin:10mm 20mm;
-    @bottom-center{content:counter(page);font-size:8pt;color:#aaa;font-family:'Heebo',Arial,sans-serif}
-  }
-  @page frontmatter{size:A4;margin:10mm 20mm;@bottom-center{content:none}}
-
   body{background:#fff;padding-top:0;orphans:3;widows:3}
   .pbar{display:none!important}
 
