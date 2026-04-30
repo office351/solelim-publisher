@@ -1498,7 +1498,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     bkSelectedIds = [];
     updateSelCount();
     try {
-      const res  = await fetch('/booklet/recent-posts');
+      const res  = await fetch('/booklet/recent-posts?refresh=1');
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       renderPostsList(data.posts);

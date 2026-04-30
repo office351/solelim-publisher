@@ -2010,9 +2010,10 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
   res.json({ wpUrl: process.env.WP_URL });
 });
 
-// קאש מאמרים אחרונים — נשלוף מ-WordPress לכל היותר פעם ב-4 שעות כדי לא להקריס את השרת
+// קאש מאמרים אחרונים — נשלוף מ-WordPress לכל היותר פעם ב-5 דקות כדי לא להקריס את השרת
 let recentPostsCache = { posts: [], fetchedAt: 0 };
-const POSTS_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 שעות
+const POSTS_CACHE_TTL     = 4 * 60 * 60 * 1000; // 4 שעות — תקינות רגילה
+const POSTS_CACHE_MIN_AGE =      5 * 60 * 1000; // 5 דקות — מינימום בין כל רענון
 
 async function fetchRecentPostsFromWP() {
   const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=30';
@@ -2064,14 +2065,18 @@ async function fetchRecentPostsFromWP() {
   return items;
 }
 
-// שליפת 10 מאמרים אחרונים — עם קאש 4 שעות למניעת עומס על WordPress
+// שליפת 10 מאמרים אחרונים — עם קאש למניעת עומס על WordPress
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
-  const forceRefresh = req.query.refresh === '1';
   const cacheAge = Date.now() - recentPostsCache.fetchedAt;
-  const cacheValid = recentPostsCache.posts.length > 0 && cacheAge < POSTS_CACHE_TTL;
+  const hasCache = recentPostsCache.posts.length > 0;
+  const tooSoon  = cacheAge < POSTS_CACHE_MIN_AGE; // פחות מ-5 דקות — לא לגשת ל-WP
 
-  // החזר מקאש אם תקף ולא ביקשו רענון מפורש
-  if (cacheValid && !forceRefresh) {
+  // אם עברו פחות מ-5 דקות, תמיד החזר קאש (הגנה על WordPress)
+  if (hasCache && tooSoon) {
+    return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true });
+  }
+  // אם לא ביקשו רענון מפורש וקאש תקין — החזר קאש
+  if (hasCache && cacheAge < POSTS_CACHE_TTL && !req.query.refresh) {
     return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true });
   }
 
