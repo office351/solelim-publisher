@@ -2010,10 +2010,18 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
   res.json({ wpUrl: process.env.WP_URL });
 });
 
-// קאש מאמרים אחרונים — נשלוף מ-WordPress לכל היותר פעם ב-5 דקות כדי לא להקריס את השרת
+// קאש מאמרים אחרונים — נשמר בקובץ כדי לשרוד רסטרטים ולמנוע עומס על WordPress
+const POSTS_CACHE_FILE    = path.join(__dirname, 'data', 'recent-posts-cache.json');
+const POSTS_CACHE_TTL     = 24 * 60 * 60 * 1000; // 24 שעות — תקינות רגילה
+const POSTS_CACHE_MIN_AGE =      30 * 60 * 1000; // 30 דקות — מינימום בין כל רענון
+
 let recentPostsCache = { posts: [], fetchedAt: 0 };
-const POSTS_CACHE_TTL     = 4 * 60 * 60 * 1000; // 4 שעות — תקינות רגילה
-const POSTS_CACHE_MIN_AGE =      5 * 60 * 1000; // 5 דקות — מינימום בין כל רענון
+// טעינת קאש מקובץ בעת הפעלת השרת
+try {
+  if (fs.existsSync(POSTS_CACHE_FILE)) {
+    recentPostsCache = JSON.parse(fs.readFileSync(POSTS_CACHE_FILE, 'utf8'));
+  }
+} catch(_) {}
 
 async function fetchRecentPostsFromWP() {
   const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=30';
@@ -2083,6 +2091,11 @@ app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
   try {
     const posts = await fetchRecentPostsFromWP();
     recentPostsCache = { posts, fetchedAt: Date.now() };
+    // שמור לקובץ — ישרוד רסטרט שרת
+    try {
+      if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+      fs.writeFileSync(POSTS_CACHE_FILE, JSON.stringify(recentPostsCache), 'utf8');
+    } catch(_) {}
     res.json({ success: true, posts, fromCache: false });
   } catch (e) {
     // אם יש קאש ישן — החזר אותו במקום שגיאה
