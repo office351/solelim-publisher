@@ -2162,42 +2162,10 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
   }
 });
 
-// יצירת PDF של חוברת ישירות על השרת (ללא דיאלוג הדפסה)
-app.post('/generate-booklet-pdf', requireAdmin, async (req, res) => {
-  const { html, filename } = req.body;
-  if (!html) return res.status(400).json({ success: false, error: 'חסר HTML' });
-
-  let puppeteer;
-  try { puppeteer = require('puppeteer'); }
-  catch (e) { return res.status(500).json({ success: false, error: 'Puppeteer לא זמין בשרת: ' + e.message }); }
-
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: false
-    });
-    await browser.close();
-    browser = null;
-
-    const safeName = (filename || 'חוברת.pdf');
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}`,
-      'Content-Length': pdf.length
-    });
-    res.end(pdf);
-  } catch (err) {
-    if (browser) { try { await browser.close(); } catch (_) {} }
-    res.status(500).json({ success: false, error: err.message });
-  }
+// יצירת PDF של חוברת — מושבת בשרת (Puppeteer כבד מדי ל-shared hosting)
+// הלקוח ישתמש בחלון דפדפן + window.print() כחלופה
+app.post('/generate-booklet-pdf', requireAdmin, (req, res) => {
+  res.status(503).json({ success: false, error: 'PDF generation disabled on this server' });
 });
 
 // מספר החוברת האחרונה שהועלתה (להצגת ברירת מחדל בממשק)
