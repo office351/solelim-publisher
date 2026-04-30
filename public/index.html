@@ -1604,6 +1604,16 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     if (!num)                 { alert('נא להזין מספר חוברת'); return; }
     if (bkSelectedIds.length < 1) { alert('יש לבחור לפחות מאמר אחד'); return; }
 
+    // ── פתח את החלון כאן, לפני ה-await ──
+    // Chrome מאפשר window.print() רק בחלון שנפתח בתוך user-gesture.
+    // אם נפתח אחרי await — Chrome חוסם print.
+    if (bkWin && !bkWin.closed) bkWin.close();
+    bkWin = window.open('about:blank', '_blank');
+    if (bkWin) {
+      bkWin.document.write('<html dir="rtl"><body style="font-family:Arial;text-align:center;padding-top:40vh;color:#555;font-size:18px">⏳ יוצר חוברת, אנא המתן...</body></html>');
+      bkWin.document.close();
+    }
+
     const genBtn  = document.getElementById('bkGenBtn');
     const loading = document.getElementById('bkGenLoading');
     const result  = document.getElementById('bkGenResult');
@@ -1623,16 +1633,18 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       bkLastHtml = data.html;
       bkLastNum  = num;
 
-      // פתח בחלון חדש
-      bkWin = window.open('about:blank', '_blank');
-      bkWin.document.open();
-      bkWin.document.write(data.html);
-      bkWin.document.close();
+      // כתוב את ה-HTML לחלון הפתוח (כבר עם הרשאות מלאות)
+      if (bkWin && !bkWin.closed) {
+        bkWin.document.open();
+        bkWin.document.write(data.html);
+        bkWin.document.close();
+      }
 
       // הצג כפתורי המשך
       genBtn.style.display = 'none';
       result.classList.remove('hidden');
     } catch(e) {
+      if (bkWin && !bkWin.closed) bkWin.close();
       alert('שגיאה ביצירת החוברת: ' + e.message);
       genBtn.disabled = false;
     } finally {

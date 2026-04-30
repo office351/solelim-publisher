@@ -2027,13 +2027,7 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
   ` : ''}
 })();
 
-function printBooklet(){
-  // שולחים הודעה לחלון הפותח — הוא יקרא bkWin.print() מהקשר מהימן
-  if(window.opener && !window.opener.closed){
-    try{ window.opener.postMessage('bk-print','*'); return; }catch(e){}
-  }
-  window.focus(); window.print();
-}
+function printBooklet(){ window.print(); }
 </script>
 </body>
 </html>`;
