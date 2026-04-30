@@ -2028,11 +2028,7 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
 })();
 
 function printBooklet(){
-  // נסה לקרוא לפונקציה בחלון הראשי — הוא מחזיק ref לחלון שלנו ויכול להפעיל print() עליו
-  if(window.opener && !window.opener.closed && typeof window.opener._bookletPrint === 'function'){
-    try{ window.opener._bookletPrint(); return; }catch(e){}
-  }
-  // גיבוי: הדפס ישירות
+  // קריאה ישירה מ-onclick — user gesture → window.print() עובד תמיד
   window.print();
 }
 </script>

@@ -974,13 +974,15 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         <input type="file" id="mediaImageInput" accept="image/*" style="display:none" onchange="addMediaFile(this,'image')">
         <input type="file" id="mediaVideoInput" accept="video/mp4,video/webm,video/*" style="display:none" onchange="addMediaFile(this,'video-file')">
         <input type="file" id="mediaPdfInput" accept=".pdf,application/pdf" style="display:none" onchange="onPdfFileSelected(this)">
-        <div id="mediaUrlPanel" style="display:none;gap:6px;margin-bottom:10px;background:#f8f8f8;padding:10px;border-radius:8px;border:1px solid #e0e0e0">
+        <div id="mediaUrlPanel" style="display:none;flex-direction:column;gap:8px;margin-bottom:10px;background:#f8f8f8;padding:10px;border-radius:8px;border:1px solid #e0e0e0">
           <input type="text" id="mediaUrlInput" placeholder="הדבק קישור YouTube / Vimeo..."
-            style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;direction:ltr;color:#222;background:#fff">
-          <button onclick="confirmMediaUrl()"
-            style="background:#0073aa;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit">הוסף</button>
-          <button onclick="document.getElementById('mediaUrlPanel').style.display='none'"
-            style="background:#eee;color:#333;border:none;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;font-family:inherit">✕</button>
+            style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:14px;direction:ltr;color:#222;background:#fff;box-sizing:border-box">
+          <div style="display:flex;gap:6px">
+            <button onclick="confirmMediaUrl()"
+              style="background:#0073aa;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit">הוסף</button>
+            <button onclick="document.getElementById('mediaUrlPanel').style.display='none'"
+              style="background:#eee;color:#333;border:none;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-family:inherit">✕ ביטול</button>
+          </div>
         </div>
         <!-- ── panel העלאת PDF ── -->
         <div id="mediaPdfPanel" style="display:none;flex-direction:column;gap:8px;margin-bottom:10px;background:#f8f8f8;padding:10px;border-radius:8px;border:1px solid #e0e0e0">
@@ -1600,10 +1602,6 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   let bkLastToken = null;
   let bkWin       = null;
 
-  // פונקציה גלובלית שנקראת מחלון החוברת — מדפיסה אותו מהחלון הראשי (הקשר מהימן)
-  window._bookletPrint = function(){
-    if(bkWin && !bkWin.closed){ bkWin.focus(); bkWin.print(); }
-  };
 
   async function generateBookletPreview() {
     const num = document.getElementById('bkPrepNumber').value.trim();
@@ -1657,59 +1655,26 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   }
 
-  async function openBookletPrint() {
-    if (!bkLastHtml) return;
-    const btn = document.querySelector('[onclick="openBookletPrint()"]');
-    const origText = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ יוצר PDF...'; }
-    try {
-      // נסה Puppeteer בשרת קודם
-      const res = await fetch('/generate-booklet-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          html: bkLastHtml,
-          filename: `חוברת סוללים דרך — גיליון ${bkLastNum || ''}.pdf`
-        })
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `חוברת סוללים דרך — גיליון ${bkLastNum || ''}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        return;
-      }
-      // fallback: פתח חלון תצוגה והפעל הדפסה
-      _openPreviewAndPrint();
-    } catch (err) {
-      // fallback במקרה של שגיאת רשת
-      _openPreviewAndPrint();
-    } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = origText; }
-    }
-  }
-
-  function _openPreviewAndPrint() {
+  // קריאה ישירה מ-onclick (סינכרוני) — user activation נשמר ו-bkWin.print() עובד
+  function openBookletPrint() {
+    if (!bkLastHtml && !bkLastToken) return;
     if (bkWin && !bkWin.closed) {
-      // החלון פתוח — פשוט מדפיסים ממנו
+      // החלון פתוח — פוקוס + הדפסה ישירה (user activation קיים כי זו קריאה סינכרונית)
       bkWin.focus();
       bkWin.print();
     } else {
-      // החלון סגור — פתח מחדש עם URL אמיתי אם יש token, אחרת document.write
+      // החלון סגור — פתח מחדש (לא יחסם כי זה מ-user click ישיר)
       if (bkLastToken) {
         bkWin = window.open('/booklet/preview/' + bkLastToken, '_blank');
-      } else if (bkLastHtml) {
+      } else {
         bkWin = window.open('about:blank', '_blank');
         bkWin.document.open();
         bkWin.document.write(bkLastHtml);
         bkWin.document.close();
-        bkWin.onload = function() { bkWin.print(); };
       }
+      // הדפס אחרי טעינה
+      const _w = bkWin;
+      _w.onload = function(){ setTimeout(function(){ _w.print(); }, 250); };
     }
   }
 
@@ -3242,11 +3207,18 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     renderMediaList();
   }
 
+  // מחזיר בלוק Gutenberg תקין עם URL גולמי — וורדפרס ממיר לנגן אוטומטית
   function videoUrlToEmbed(url) {
     const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (yt) return `<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube"><div class="wp-block-embed__wrapper"><iframe width="560" height="315" src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div></figure>`;
+    if (yt) {
+      const canonical = `https://www.youtube.com/watch?v=${yt[1]}`;
+      return `<!-- wp:embed {"url":"${canonical}","type":"video","providerNameSlug":"youtube","responsive":true,"className":"wp-embed-aspect-16-9 wp-has-aspect-ratio"} -->\n<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube wp-embed-aspect-16-9 wp-has-aspect-ratio"><div class="wp-block-embed__wrapper">\n${canonical}\n</div></figure>\n<!-- /wp:embed -->`;
+    }
     const vi = url.match(/vimeo\.com\/(\d+)/);
-    if (vi) return `<figure class="wp-block-embed is-type-video is-provider-vimeo wp-block-embed-vimeo"><div class="wp-block-embed__wrapper"><iframe src="https://player.vimeo.com/video/${vi[1]}" width="640" height="360" frameborder="0" allowfullscreen loading="lazy"></iframe></div></figure>`;
+    if (vi) {
+      const canonical = `https://vimeo.com/${vi[1]}`;
+      return `<!-- wp:embed {"url":"${canonical}","type":"video","providerNameSlug":"vimeo","responsive":true,"className":"wp-embed-aspect-16-9 wp-has-aspect-ratio"} -->\n<figure class="wp-block-embed is-type-video is-provider-vimeo wp-block-embed-vimeo wp-embed-aspect-16-9 wp-has-aspect-ratio"><div class="wp-block-embed__wrapper">\n${canonical}\n</div></figure>\n<!-- /wp:embed -->`;
+    }
     return null;
   }
 
