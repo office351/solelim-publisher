@@ -2246,6 +2246,35 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
   }
 });
 
+// הורדת PDF של חוברת — Puppeteer מייצר PDF מה-HTML (ללא כותרות דפדפן)
+app.post('/generate-booklet-pdf', requireAdmin, async (req, res) => {
+  const { html } = req.body;
+  if (!html) return res.status(400).json({ success: false, error: 'HTML חסר' });
+  let browser;
+  try {
+    const puppeteer = require('puppeteer');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+             '--disable-gpu', '--disable-extensions', '--single-process']
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
+    const pdfBuffer = await page.pdf({
+      printBackground: true,
+      displayHeaderFooter: false,
+      preferCSSPageSize: true   // מכבד @page{size:A4;margin:...} מה-CSS
+    });
+    await browser.close(); browser = null;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="booklet.pdf"');
+    res.send(pdfBuffer);
+  } catch (e) {
+    if (browser) try { await browser.close(); } catch {}
+    res.status(503).json({ success: false, error: e.message });
+  }
+});
+
 // פרסום חוברת ישירות מ-HTML — מייצר PDF בעזרת Puppeteer ומעלה לוורדפרס
 app.post('/publish-booklet-from-html', requireAdmin, async (req, res) => {
   const { html, bookletNumber, publishDate } = req.body;

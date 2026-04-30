@@ -1148,13 +1148,13 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         <div style="background:#eef8f4;border:2px solid #1e8a6b;border-radius:12px;padding:16px;text-align:center">
           <p style="color:#1e8a6b;font-weight:700;margin-bottom:14px;font-size:15px">✅ החוברת נוצרה בהצלחה!</p>
           <div style="display:flex;gap:10px;margin-bottom:8px">
-            <button onclick="openBookletPrint()"
+            <button id="bkDownloadPdfBtn" onclick="downloadBookletPdf()"
               style="flex:1;background:#1a3a54;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
-              🖨️ שמור PDF
+              💾 שמור PDF
             </button>
             <button onclick="continueToPublish()"
               style="flex:1;background:#27ae60;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
-              📤 העלה לאתר
+              📤 פרסם לאתר
             </button>
           </div>
           <button onclick="resetBookletGen()"
@@ -1600,33 +1600,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   let bkLastHtml = null;
-
-  // מאזין להודעת "bk-print" מחלון החוברת — מדפיס אותו מהחלון הראשי (הקשר מהימן)
-  window.addEventListener('message', function(e){
-    if(e.data === 'bk-print' && bkWin && !bkWin.closed){
-      bkWin.focus(); bkWin.print();
-    }
-  });
-
-  let bkLastNum   = null;
-  let bkLastToken = null;
-  let bkWin       = null;
-
+  let bkLastNum  = null;
 
   async function generateBookletPreview() {
     const num = document.getElementById('bkPrepNumber').value.trim();
     if (!num)                 { alert('נא להזין מספר חוברת'); return; }
     if (bkSelectedIds.length < 1) { alert('יש לבחור לפחות מאמר אחד'); return; }
-
-    // ── פתח את החלון כאן, לפני ה-await ──
-    // Chrome מאפשר window.print() רק בחלון שנפתח בתוך user-gesture.
-    // אם נפתח אחרי await — Chrome חוסם print.
-    if (bkWin && !bkWin.closed) bkWin.close();
-    bkWin = window.open('about:blank', '_blank');
-    if (bkWin) {
-      bkWin.document.write('<html dir="rtl"><body style="font-family:Arial;text-align:center;padding-top:40vh;color:#555;font-size:18px">⏳ יוצר חוברת, אנא המתן...</body></html>');
-      bkWin.document.close();
-    }
 
     const genBtn  = document.getElementById('bkGenBtn');
     const loading = document.getElementById('bkGenLoading');
@@ -1647,18 +1626,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       bkLastHtml = data.html;
       bkLastNum  = num;
 
-      // כתוב HTML ישירות לחלון — לא תלוי בשרת ולא בטוקן (שנמחק כשהשרת מאותחל)
-      if (bkWin && !bkWin.closed) {
-        bkWin.document.open();
-        bkWin.document.write(bkLastHtml);
-        bkWin.document.close();
-      }
-
-      // הצג כפתורי המשך
       genBtn.style.display = 'none';
       result.classList.remove('hidden');
     } catch(e) {
-      if (bkWin && !bkWin.closed) bkWin.close();
       alert('שגיאה ביצירת החוברת: ' + e.message);
       genBtn.disabled = false;
     } finally {
@@ -1666,22 +1636,33 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   }
 
-  // קריאה ישירה מ-onclick (סינכרוני) — user activation נשמר ו-bkWin.print() עובד
-  function openBookletPrint() {
+  // הורדת PDF דרך Puppeteer בשרת — ללא חלון נפרד, ללא כותרות דפדפן
+  async function downloadBookletPdf() {
     if (!bkLastHtml) return;
-    if (bkWin && !bkWin.closed) {
-      // החלון פתוח — פוקוס + הדפסה ישירה (user activation = works)
-      bkWin.focus();
-      bkWin.print();
-    } else {
-      // החלון סגור — פתח מחדש וכתוב HTML ישירות (מ-user click = לא יחסם)
-      bkWin = window.open('about:blank', '_blank');
-      bkWin.document.open();
-      bkWin.document.write(bkLastHtml);
-      bkWin.document.close();
-      const _w = bkWin;
-      _w.onload = function(){ setTimeout(function(){ _w.print(); }, 250); };
+    const btn = document.getElementById('bkDownloadPdfBtn');
+    const origText = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ מייצר PDF...'; }
+    try {
+      const res = await fetch('/generate-booklet-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: bkLastHtml })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'שגיאה ביצירת PDF');
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `חוברת-סוללים-דרך-גיליון-${bkLastNum || ''}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
     }
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
   }
 
   function continueToPublish() {
