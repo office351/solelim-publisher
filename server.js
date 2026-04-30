@@ -2002,27 +2002,30 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
 
 // שליפת 10 מאמרים אחרונים מ-WordPress (ללא חוברות וללא אנגלית)
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
+  const wpBase = process.env.WP_URL + '/wp-json/wp/v2';
+  const wpAuth = { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD };
+  const wpHeaders = { 'User-Agent': 'Mozilla/5.0 (compatible; SolelimDerech/1.0)' };
   try {
-    const r = await axios.get(
-      `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=20&status=publish&_embed=wp:featuredmedia,wp:term&_fields=id,date,title,_embedded,_links`,
-      {
-        auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD },
-        timeout: 20000,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SolelimDerech/1.0)' }
-      }
-    );
-    const BOOKLET_TAG = 'חוברת שבועית להדפסה';
-    const heRe = /[\u05D0-\u05EA]/;
+    // Find booklet tag ID to exclude it server-side
+    let bookletTagId = null;
+    try {
+      const tagRes = await axios.get(
+        wpBase + '/tags?search=' + encodeURIComponent('חוברת שבועית להדפסה') + '&per_page=5',
+        { auth: wpAuth, headers: wpHeaders, timeout: 10000 }
+      );
+      const found = tagRes.data.find(t => t.name === 'חוברת שבועית להדפסה');
+      if (found) bookletTagId = found.id;
+    } catch(_) {}
 
+    const excludeParam = bookletTagId ? '&tags_exclude=' + bookletTagId : '';
+    const r = await axios.get(
+      wpBase + '/posts?per_page=20' + excludeParam,
+      { auth: wpAuth, headers: wpHeaders, timeout: 20000 }
+    );
+
+    const heRe = /[א-ת]/;
     const posts = r.data
-      .filter(p => {
-        // סנן חוברות
-        const terms = (p._embedded?.['wp:term'] || []).flat();
-        if (terms.some(t => t.taxonomy === 'post_tag' && t.name === BOOKLET_TAG)) return false;
-        // סנן מאמרים באנגלית (כותרת ללא עברית)
-        const rawTitle = p.title.rendered.replace(/<[^>]+>/g, '');
-        return heRe.test(rawTitle);
-      })
+      .filter(p => heRe.test(p.title.rendered.replace(/<[^>]+>/g, '')))
       .slice(0, 10)
       .map(p => {
         let dateLabel;
@@ -2031,19 +2034,20 @@ app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
         } catch(e) {
           dateLabel = new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
         }
+        const imageUrl = p.jetpack_featured_media_url || p.yoast_head_json?.og_image?.[0]?.url || '';
         return {
-          id: p.id,
-          date: p.date,
-          dateLabel,
+          id: p.id, date: p.date, dateLabel,
           title: p.title.rendered.replace(/<[^>]+>/g, '')
-            .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)),
-          imageUrl: p._embedded?.['wp:featuredmedia']?.[0]?.source_url || ''
+            .replace(/&quot;/g, '"').replace(/&#(d+);/g, (_, n) => String.fromCharCode(+n)),
+          imageUrl
         };
       });
 
     res.json({ success: true, posts });
   } catch (e) {
-    const detail = e.response ? ` (HTTP ${e.response.status}: ${JSON.stringify(e.response.data).slice(0,200)})` : '';
+    const detail = e.response
+      ? ' (HTTP ' + e.response.status + ': ' + JSON.stringify(e.response.data).slice(0,300) + ')'
+      : ' (' + (e.code || 'network error') + ')';
     res.status(500).json({ success: false, error: e.message + detail });
   }
 });
