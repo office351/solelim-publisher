@@ -1129,7 +1129,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           <div style="display:flex;gap:10px;margin-bottom:8px">
             <button onclick="openBookletPrint()"
               style="flex:1;background:#1a3a54;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
-              🖨️ פתח ושמור PDF
+              🖨️ שמור PDF
             </button>
             <button onclick="continueToPublish()"
               style="flex:1;background:#27ae60;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
@@ -1613,15 +1613,37 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   }
 
-  function openBookletPrint() {
+  async function openBookletPrint() {
     if (!bkLastHtml) return;
-    if (!bkWin || bkWin.closed) {
-      bkWin = window.open('about:blank', '_blank');
-      bkWin.document.open();
-      bkWin.document.write(bkLastHtml);
-      bkWin.document.close();
-    } else {
-      bkWin.focus();
+    const btn = document.querySelector('[onclick="openBookletPrint()"]');
+    const origText = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ יוצר PDF...'; }
+    try {
+      const res = await fetch('/generate-booklet-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          html: bkLastHtml,
+          filename: `חוברת סוללים דרך — גיליון ${bkLastNum || ''}.pdf`
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || res.statusText);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `חוברת סוללים דרך — גיליון ${bkLastNum || ''}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('שגיאה ביצירת PDF: ' + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = origText; }
     }
   }
 

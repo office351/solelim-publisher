@@ -10,6 +10,7 @@ const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const fs = require('fs');
 const sharp = require('sharp');
+const puppeteer = require('puppeteer');
 
 const app = express();
 
@@ -42,7 +43,7 @@ function requireAdminOrEnglish(req, res, next) {
 
 const upload = multer({ dest: 'uploads/' });
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 // מי אני — מחזיר את שם המשתמש הנוכחי
@@ -1891,26 +1892,31 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:14px 20px;margin:20px 0;border-radius:0 8px 8px 0;font-size:18px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
 .art-body blockquote p{margin:0}
 
-/* ── הדפסה ── */
+/* ── הדפסה (Puppeteer) ── */
 @media print{
-  @page{size:A4;margin:0}
+  /* שוליים רגילים — Puppeteer לא מוסיף כותרות, אז הלייאאוט מושלם */
+  @page{size:A4;margin:18mm 22mm}
+  /* דפי שער/הקדמה: ללא שוליים, תמונה מלאת-עמוד */
+  @page bk-cover{size:A4;margin:0}
+
   body{background:#fff;padding-top:0;orphans:3;widows:3}
   .pbar{display:none!important}
 
-  /* כל עמוד: מתחיל דף חדש, מרווחים פנימיים, ללא גזירה */
+  /* כל עמוד: מתחיל דף חדש, ללא ריפוד (השוליים מגיעים מ-@page) */
   .bk-page{
-    width:100%;margin:0;padding:18mm 22mm;
-    position:static;         /* מסיר שכבת ציור שחותכת תוכן בגבול הדף */
-    min-height:0;            /* לא כופה גובה מינימלי בהדפסה */
-    overflow:visible!important;   /* מאפשר זרימת תוכן לעמוד הבא */
+    width:100%;margin:0;padding:0;
+    position:static;
+    min-height:0;
+    overflow:visible!important;
     page-break-before:always;break-before:page;
-    page-break-inside:auto;break-inside:auto;  /* מאפשר מעבר עמוד בתוך מאמר */
+    page-break-inside:auto;break-inside:auto;
     -webkit-print-color-adjust:exact;print-color-adjust:exact
   }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
 
-  /* עמודים סטטיים (שער/הקדמה): שומר position לאגדת המספר */
+  /* עמודים סטטיים (שער/הקדמה): עמוד-שם ללא שוליים, תמונה מלאה */
   .bk-static-page{
+    page:bk-cover;
     position:relative!important;
     padding:0!important;height:100vh;overflow:hidden!important
   }
@@ -1933,7 +1939,6 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 <div class="pbar">
   <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
   <div class="pbar-b">
-    <button class="pb pb-p" onclick="window.print()">🖨️ שמור PDF</button>
     <button class="pb pb-g" onclick="if(window.opener&&window.opener.continueToPublish){window.opener.continueToPublish();}window.close()">📤 העלה לאתר</button>
     <button class="pb pb-c" onclick="window.close()">✕ סגור</button>
   </div>
@@ -2084,6 +2089,40 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
     res.json({ success: true, html });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// יצירת PDF של חוברת ישירות על השרת (ללא דיאלוג הדפסה)
+app.post('/generate-booklet-pdf', requireAdmin, async (req, res) => {
+  const { html, filename } = req.body;
+  if (!html) return res.status(400).json({ success: false, error: 'חסר HTML' });
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: false
+    });
+    await browser.close();
+    browser = null;
+
+    const safeName = (filename || 'חוברת.pdf');
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}`,
+      'Content-Length': pdf.length
+    });
+    res.end(pdf);
+  } catch (err) {
+    if (browser) { try { await browser.close(); } catch (_) {} }
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
