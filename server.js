@@ -1896,14 +1896,36 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   @page{size:A4;margin:0}
   body{background:#fff;padding-top:0;orphans:3;widows:3}
   .pbar{display:none!important}
-  .bk-page{width:100%;margin:0;padding:18mm 22mm;overflow:visible;page-break-before:always;break-before:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* כל עמוד: מתחיל דף חדש, מרווחים פנימיים, ללא גזירה */
+  .bk-page{
+    width:100%;margin:0;padding:18mm 22mm;
+    position:static;         /* מסיר שכבת ציור שחותכת תוכן בגבול הדף */
+    min-height:0;            /* לא כופה גובה מינימלי בהדפסה */
+    overflow:visible!important;   /* מאפשר זרימת תוכן לעמוד הבא */
+    page-break-before:always;break-before:page;
+    page-break-inside:auto;break-inside:auto;  /* מאפשר מעבר עמוד בתוך מאמר */
+    -webkit-print-color-adjust:exact;print-color-adjust:exact
+  }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
-  .bk-static-page{padding:0!important;height:100vh;overflow:hidden!important}
+
+  /* עמודים סטטיים (שער/הקדמה): שומר position לאגדת המספר */
+  .bk-static-page{
+    position:relative!important;
+    padding:0!important;height:100vh;overflow:hidden!important
+  }
   .bk-static-page img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* מניעת חיתוך באמצע תמונות / ציטוטים */
   .art-img-wrap{page-break-inside:avoid;break-inside:avoid}
   .art-body blockquote{page-break-inside:avoid;break-inside:avoid}
+  /* כותרת + שם כותב: לא יופרדו מהטקסט שמתחתם */
   .art-num,.art-title,.art-meta{page-break-after:avoid;break-after:avoid}
-  .cv-foot,.cv-badge,.cv-badge-overlay,.cv-brand,.cv-tag,.cv-week,.cv-dates,.bk-intro h2,.art-body blockquote,.art-excerpt,.art-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .cv-foot,.cv-badge,.cv-badge-overlay,.cv-brand,.cv-tag,.cv-week,.cv-dates,
+  .bk-intro h2,.art-body blockquote,.art-excerpt,.art-num{
+    -webkit-print-color-adjust:exact;print-color-adjust:exact
+  }
 }
 </style>
 </head>
