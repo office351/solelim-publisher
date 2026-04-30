@@ -1932,15 +1932,16 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 
 /* ── הדפסה ── */
 @media print{
-  /* margin:0 → אין מקום לכותרות/כותרות-תחתית של הדפדפן → נעלמות לחלוטין */
-  @page{size:A4;margin:0}
+  /* 10mm — מספיק לשוליים הדפסה, אך קטן מדי ל-Chrome להציג כותרות/כותרות-תחתית */
+  @page{size:A4;margin:10mm 20mm}
 
-  body{background:#fff;padding-top:0;orphans:3;widows:3;counter-reset:bk-page}
+  /* Counter מתחיל ב-(-2): שער=−1, הקדמה=0, מאמר1=1, מאמר2=2 ... */
+  body{background:#fff;padding-top:0;orphans:3;widows:3;counter-reset:bk-page -2}
   .pbar{display:none!important}
 
-  /* כל עמוד: מתחיל דף חדש, ריפוד פנימי במקום שוליים */
+  /* כל עמוד: מתחיל דף חדש, ללא ריפוד (השוליים מגיעים מ-@page) */
   .bk-page{
-    width:100%;margin:0;padding:18mm 22mm;
+    width:100%;margin:0;padding:0;
     position:relative;
     min-height:0;
     overflow:visible!important;
@@ -1951,17 +1952,17 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
 
-  /* עמוד (מספר) — מוצג בתחתית כל עמוד מאמר, לא בשער/הקדמה */
+  /* עימוד — מוצג בתחתית עמודי המאמרים בלבד (לא שער/הקדמה), מתחיל מ-1 */
   .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page)::after{
     content:counter(bk-page);
-    position:absolute;
-    bottom:7mm;left:50%;transform:translateX(-50%);
-    font-size:10px;color:#aaa;font-family:'Heebo',Arial,sans-serif
+    position:fixed;
+    bottom:4mm;left:50%;transform:translateX(-50%);
+    font-size:9px;color:#aaa;font-family:'Heebo',Arial,sans-serif
   }
 
-  /* עמודי שער/הקדמה: גובה מלא A4, ריפוד 0 לשער וסטטי */
+  /* עמודי שער/הקדמה: גובה A4 פחות שוליים (297-10-10=277mm), חיתוך */
   .bk-cover,.bk-intro,.bk-static-page{
-    height:297mm;
+    height:277mm;
     overflow:hidden!important;
     page-break-inside:avoid;break-inside:avoid
   }
@@ -2057,7 +2058,18 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
   ` : ''}
 })();
 
-function printBooklet(){window.print();}
+function printBooklet(){
+  // Chrome עלול לחסום window.print() בחלון שנפתח אחרי await (ללא gesture).
+  // הפתרון: מפעילים את _openPreviewAndPrint מהחלון הפותח — זה אותה דרך שעובדת מהעמוד הראשי.
+  try{
+    if(window.opener && !window.opener.closed && window.opener._openPreviewAndPrint){
+      window.opener._openPreviewAndPrint();
+      return;
+    }
+  }catch(e){}
+  window.focus();
+  window.print();
+}
 </script>
 </body>
 </html>`;
