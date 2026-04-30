@@ -1826,6 +1826,9 @@ function buildBookletHTML(bookletNumber, posts, origin, hasCoverImg, hasIntroImg
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
       .replace(/<div[^>]*buzzsprout[^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<div[^>]*wp-block-file[^>]*>[\s\S]*?<\/div>/gi, '') // הסרת בלוקי PDF
+      .replace(/<embed[^>]*\/?>/gi, '')                              // הסרת embed
+      .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')              // הסרת object
       .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1')
       .replace(/<p[^>]*>\s*<\/p>/g, '')
       .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
@@ -1929,6 +1932,8 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .art-body p{margin-bottom:13px}.art-body strong{font-weight:700;color:#111}
 .art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:14px 20px;margin:20px 0;border-radius:0 8px 8px 0;font-size:18px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
 .art-body blockquote p{margin:0}
+/* תמונות מוטמעות בגוף המאמר (לא תמונה ראשית) — מרוכזות, עד חצי עמוד */
+.art-body img{display:block;max-width:50%;height:auto;margin:14px auto;border-radius:6px}
 
 /* ── הדפסה ── */
 @media print{
@@ -1996,6 +2001,7 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   .bk-intro p{line-height:1.65!important;margin-bottom:8px!important}
   .bk-intro h2{margin-bottom:12px!important;padding-bottom:6px!important}
   .art-body blockquote{padding:8px 14px!important;margin:10px 0!important;font-size:16px!important}
+  .art-body img{max-width:85mm!important;display:block!important;margin:8px auto!important;height:auto!important;page-break-inside:avoid;break-inside:avoid}
 }
 </style>
 </head>
