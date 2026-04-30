@@ -3044,13 +3044,13 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       }
 
       let result = audioHtml;
-      if (intro) result += intro + '\n\n';
+      if (intro) result += intro + SEP;
 
       // פיזור כל ה-inserts בין הסעיפים לפי סדר
       for (let i = 0; i < sections.length; i++) {
         result += sections[i];
         if (i < sections.length - 1) {
-          result += allInserts[i] !== undefined ? allInserts[i] : '\n\n';
+          result += allInserts[i] !== undefined ? allInserts[i] : SEP;
         }
       }
       // שאר ה-inserts שלא נכנסו (אם יש יותר inserts מ-gaps) — מצורפים בסוף
@@ -3090,7 +3090,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     function groupLines(arr) {
       const chunks = [];
       for (let i = 0; i < arr.length; i += 4) chunks.push(arr.slice(i, i + 4).join('\n'));
-      return chunks.join('\n\n');
+      return chunks.join(SEP);
     }
 
     // חלוקה לחתיכות לפי מספר ה-inserts
