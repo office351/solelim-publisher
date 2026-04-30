@@ -1148,12 +1148,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         <div style="background:#eef8f4;border:2px solid #1e8a6b;border-radius:12px;padding:16px;text-align:center">
           <p style="color:#1e8a6b;font-weight:700;margin-bottom:14px;font-size:15px">✅ החוברת נוצרה בהצלחה!</p>
           <div style="display:flex;gap:10px;margin-bottom:8px">
-            <button id="bkDownloadPdfBtn" onclick="downloadBookletPdf()"
+            <button onclick="downloadBookletPdf()"
               style="flex:1;background:#1a3a54;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
               💾 שמור PDF
-            </button>
-            <button id="bkOpenTabBtn" onclick="openBookletTab()" style="display:none;flex:1;background:#e67e22;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
-              🖨️ פתח לשמירה ידנית
             </button>
             <button onclick="continueToPublish()"
               style="flex:1;background:#27ae60;color:#fff;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
@@ -1639,50 +1636,53 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   }
 
-  // פתיחת החוברת בלשונית חדשה לשמירה ידנית (fallback כשהשרת לא מצליח לייצר PDF)
-  // קריאה ישירה מ-onclick = user gesture = Chrome לא חוסם
-  function openBookletTab() {
+  // שמירת PDF — מזריק את ה-HTML של החוברת לתוך העמוד הנוכחי,
+  // מסתיר הכל בCSS, ומפעיל window.print() מ-onclick ישיר.
+  // לא תלוי בפופאפ, לא בPuppeteer, לא בשרת — תמיד עובד.
+  function downloadBookletPdf() {
     if (!bkLastHtml) return;
-    const blob = new Blob([bkLastHtml], { type: 'text/html; charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const tab  = window.open(url, '_blank');
-    // הפנייה מ-blob URL: Chrome מטפל ב-@page CSS כמו URL רגיל
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    if (!tab) alert('אפשר את החלונות הקופצים בדפדפן ונסה שוב');
-  }
 
-  // הורדת PDF דרך Puppeteer בשרת — ללא חלון נפרד, ללא כותרות דפדפן
-  async function downloadBookletPdf() {
-    if (!bkLastHtml) return;
-    const btn = document.getElementById('bkDownloadPdfBtn');
-    const origText = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ מייצר PDF...'; }
-    try {
-      const res = await fetch('/generate-booklet-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html: bkLastHtml })
-      });
-      if (!res.ok) {
-        // Puppeteer לא זמין — הצג כפתור פתיחה בלשונית
-        const fbBtn = document.getElementById('bkOpenTabBtn');
-        if (fbBtn) fbBtn.style.display = '';
-        if (btn) { btn.style.display = 'none'; }
-        return;
-      }
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = `חוברת-סוללים-דרך-גיליון-${bkLastNum || ''}.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch(e) {
-      const fbBtn = document.getElementById('bkOpenTabBtn');
-      if (fbBtn) fbBtn.style.display = '';
-      if (btn) btn.style.display = 'none';
-    }
-    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+    const parser = new DOMParser();
+    const bkDoc  = parser.parseFromString(bkLastHtml, 'text/html');
+
+    // חלץ CSS מראש החוברת (כולל @page, @media print, גופנים)
+    const headHtml = Array.from(bkDoc.head.querySelectorAll('style,link'))
+      .map(el => el.outerHTML).join('\n');
+
+    // גוף ללא שורת כלים (pbar — מוסתרת גם ב-@media print של החוברת)
+    const bkBody = bkDoc.body.cloneNode(true);
+    bkBody.querySelector('.pbar')?.remove();
+
+    // הזרק לעמוד
+    const wrap = document.createElement('div');
+    wrap.id = '__bk_print';
+    wrap.innerHTML = bkBody.innerHTML;
+    document.body.appendChild(wrap);
+
+    const styleWrap = document.createElement('div');
+    styleWrap.id = '__bk_head';
+    styleWrap.innerHTML = headHtml;
+    document.head.appendChild(styleWrap);
+
+    // הסתר הכל בזמן הדפסה; הצג רק החוברת
+    const hideStyle = document.createElement('style');
+    hideStyle.id = '__bk_hide';
+    hideStyle.textContent =
+      '@media print{body>*:not(#__bk_print){display:none!important}' +
+      '#__bk_print{display:block!important}}' +
+      '@media screen{#__bk_print{display:none}}';
+    document.head.appendChild(hideStyle);
+
+    // הדפס — קריאה סינכרונית מ-onclick = user gesture = תמיד עובד
+    window.print();
+
+    // נקה אחרי שדיאלוג ההדפסה נסגר
+    window.addEventListener('afterprint', function cleanup() {
+      document.getElementById('__bk_print')?.remove();
+      document.getElementById('__bk_head')?.remove();
+      document.getElementById('__bk_hide')?.remove();
+      window.removeEventListener('afterprint', cleanup);
+    });
   }
 
   function continueToPublish() {
