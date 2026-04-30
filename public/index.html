@@ -1600,6 +1600,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   let bkLastToken = null;
   let bkWin       = null;
 
+  // פונקציה גלובלית שנקראת מחלון החוברת — מדפיסה אותו מהחלון הראשי (הקשר מהימן)
+  window._bookletPrint = function(){
+    if(bkWin && !bkWin.closed){ bkWin.focus(); bkWin.print(); }
+  };
+
   async function generateBookletPreview() {
     const num = document.getElementById('bkPrepNumber').value.trim();
     if (!num)                 { alert('נא להזין מספר חוברת'); return; }
