@@ -14,6 +14,40 @@ const sharp = require('sharp');
 
 const app = express();
 
+// ── GitHub Webhook — חייב להיות לפני basicAuth ולפני express.json() ──────────
+// GitHub שולח חתימת HMAC במקום סיסמה, לכן route זה פתוח לכולם
+// (האבטחה היא דרך GITHUB_WEBHOOK_SECRET בלבד)
+app.post('/github-webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const crypto = require('crypto');
+  const secret   = process.env.GITHUB_WEBHOOK_SECRET || 'solelim_deploy_2026';
+  const sig      = req.headers['x-hub-signature-256'] || '';
+  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(req.body).digest('hex');
+
+  // השוואה מאובטחת נגד timing attacks
+  let valid = false;
+  try { valid = crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)); } catch(_) {}
+  if (!valid) return res.status(403).send('Unauthorized');
+
+  let data = {};
+  try { data = JSON.parse(req.body.toString()); } catch(_) {}
+  if ((data.ref || '') !== 'refs/heads/main') return res.send('Not main branch — skipped');
+
+  const { execSync } = require('child_process');
+  const repoPath = __dirname;
+  try {
+    execSync(`cd "${repoPath}" && git fetch origin main 2>&1`);
+    execSync(`cd "${repoPath}" && git reset --hard origin/main 2>&1`);
+    require('fs').mkdirSync(require('path').join(repoPath, 'tmp'), { recursive: true });
+    require('fs').writeFileSync(require('path').join(repoPath, 'tmp', 'restart.txt'), Date.now().toString());
+    console.log('[webhook] פריסה הושלמה:', new Date().toISOString());
+    res.send('OK — deployed');
+  } catch(e) {
+    console.error('[webhook] שגיאה בפריסה:', e.message);
+    res.status(500).send(e.message);
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 // אוסף המשתמשים: admin + solelim (עריכה בלבד)
 const USERS = {
   [process.env.APP_USER || 'admin']: process.env.APP_PASSWORD || 'changeme',
