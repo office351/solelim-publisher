@@ -2246,10 +2246,82 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
   }
 });
 
-// יצירת PDF של חוברת — מושבת בשרת (Puppeteer כבד מדי ל-shared hosting)
-// הלקוח ישתמש בחלון דפדפן + window.print() כחלופה
-app.post('/generate-booklet-pdf', requireAdmin, (req, res) => {
-  res.status(503).json({ success: false, error: 'PDF generation disabled on this server' });
+// פרסום חוברת ישירות מ-HTML — מייצר PDF בעזרת Puppeteer ומעלה לוורדפרס
+app.post('/publish-booklet-from-html', requireAdmin, async (req, res) => {
+  const { html, bookletNumber, publishDate } = req.body;
+  if (!html)           return res.status(400).json({ success: false, error: 'HTML חסר' });
+  if (!bookletNumber)  return res.status(400).json({ success: false, error: 'מספר חוברת חסר' });
+  if (!publishDate)    return res.status(400).json({ success: false, error: 'תאריך פרסום חסר' });
+
+  const wpAuth = { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD };
+  const wpBase = `${process.env.WP_URL}/wp-json/wp/v2`;
+  let browser;
+  try {
+    addLog(`מייצר PDF לחוברת מספר ${bookletNumber}...`);
+    const puppeteer = require('puppeteer');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+             '--disable-gpu', '--disable-extensions', '--single-process']
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10mm', right: '20mm', bottom: '10mm', left: '20mm' }
+    });
+    await browser.close(); browser = null;
+    addLog('PDF נוצר בהצלחה, מעלה לוורדפרס...');
+
+    // 1. העלאת PDF למדיה
+    const mediaRes = await axios.post(`${wpBase}/media`, pdfBuffer, {
+      headers: {
+        'Content-Disposition': `attachment; filename="booklet-${bookletNumber}.pdf"`,
+        'Content-Type': 'application/pdf'
+      },
+      auth: wpAuth, maxBodyLength: Infinity
+    });
+    const pdfUrl = mediaRes.data.source_url;
+    addLog(`PDF הועלה: ${pdfUrl}`);
+
+    // 2. תמונה ראשית
+    const imgSearch = await axios.get(
+      `${wpBase}/media?search=WhatsApp-Image-2025-01-10-at-12.24.11&per_page=5`, { auth: wpAuth });
+    const featuredImg = imgSearch.data.find(m =>
+      m.slug?.includes('12-24-11') || m.source_url?.includes('12.24.11')) || imgSearch.data[0];
+    const featuredMediaId = featuredImg?.id || null;
+
+    // 3. קטגוריה ותגית
+    const categoryIds = await getOrCreateTermIds(['אקטואליה'], 'categories');
+    const tagIds      = await getOrCreateTermIds(['חוברת שבועית להדפסה'], 'tags');
+
+    // 4. בניית תוכן ויצירת פוסט
+    const content = `<blockquote>
+<h2>המאמרים של השבוע האחרון בקובץ דיגיטלי, מותאם להדפסה!</h2>
+<h3>לקבלת החוברת במייל מידי שבוע - <a href="https://pe4ch.com/ref/xR1a1UxC2che?lang=he">הירשמו כאן</a></h3>
+</blockquote>
+<h2></h2>
+<h2 style="text-align: center;"><a href="${pdfUrl}"><strong>לפתיחת החוברת לחצו כאן</strong></a></h2>
+<a href="${pdfUrl}"><img class="aligncenter wp-image-1342 size-thumbnail" src="https://www.solelim-derech.co.il/wp-content/uploads/2025/01/download-pdf-150x150.png" alt="" width="150" height="150" /></a>`;
+
+    const postData = {
+      title: `חוברת מאמרי השבוע (${bookletNumber}) להדפסה!`,
+      content, status: 'future',
+      date: new Date(publishDate).toISOString(),
+      categories: categoryIds, tags: tagIds
+    };
+    if (featuredMediaId) postData.featured_media = featuredMediaId;
+
+    const postRes = await axios.post(`${wpBase}/posts`, postData, { auth: wpAuth });
+    addLog(`חוברת פורסמה! קישור: ${postRes.data.link}`);
+    res.json({ success: true, postUrl: postRes.data.link, postId: postRes.data.id, pdfUrl });
+  } catch (error) {
+    if (browser) try { await browser.close(); } catch {}
+    const msg = error.response?.data?.message || error.message;
+    addLog(`שגיאה בפרסום חוברת: ${msg}`);
+    res.status(500).json({ success: false, error: msg });
+  }
 });
 
 // מספר החוברת האחרונה שהועלתה (להצגת ברירת מחדל בממשק)

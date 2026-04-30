@@ -1170,7 +1170,16 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   <div id="bk-tab-publish" class="hidden">
     <div class="card">
       <h2 style="margin-top:0">📤 פרסום חוברת לוורדפרס</h2>
-      <p style="color:#555;font-size:14px;margin:0 0 16px">לאחר הדפסת החוברת כ-PDF, העלה אותה כאן לפרסום באתר.</p>
+
+      <!-- ── פרסום אוטומטי (מוצג רק כשהגיעו משלב א) ── -->
+      <div id="bkAutoPublishSection" style="display:none;background:#eef8f4;border:2px solid #1e8a6b;border-radius:12px;padding:16px;margin-bottom:18px">
+        <p style="margin:0 0 10px;font-weight:700;color:#1e8a6b;font-size:15px">✅ החוברת מוכנה לפרסום אוטומטי</p>
+        <p style="margin:0 0 12px;font-size:13px;color:#555">בחר תאריך פרסום ולחץ — המערכת תייצר PDF ותפרסם ישירות לאתר.</p>
+        <button id="bookletAutoPublishBtn" onclick="autoPublishBooklet()"
+          style="width:100%;background:#1e8a6b;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
+          🚀 פרסם אוטומטית
+        </button>
+      </div>
 
       <div style="display:flex;flex-direction:column;gap:14px">
         <div>
@@ -1185,8 +1194,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
             style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;box-sizing:border-box">
         </div>
 
-        <div>
-          <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">קובץ PDF של החוברת:</label>
+        <!-- ── העלאה ידנית ── -->
+        <div id="bkManualUploadSection">
+          <label style="font-weight:bold;font-size:14px;display:block;margin-bottom:6px">קובץ PDF של החוברת (העלאה ידנית):</label>
           <div style="border:2px dashed #ddd;border-radius:8px;padding:20px;text-align:center;cursor:pointer" onclick="document.getElementById('bookletPdfFile').click()">
             <div id="bookletFileLabel" style="color:#888;font-size:14px">לחץ לבחירת קובץ PDF</div>
             <input type="file" id="bookletPdfFile" accept=".pdf,application/pdf" style="display:none" onchange="onBookletFileChange(this)">
@@ -1634,13 +1644,14 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
-      bkLastHtml  = data.html;
-      bkLastNum   = num;
-      bkLastToken = data.token || null;
+      bkLastHtml = data.html;
+      bkLastNum  = num;
 
-      // נווט לURL אמיתי — ניווט רגיל שומר על הרשאות print (בניגוד ל-document.write)
+      // כתוב HTML ישירות לחלון — לא תלוי בשרת ולא בטוקן (שנמחק כשהשרת מאותחל)
       if (bkWin && !bkWin.closed) {
-        bkWin.location.href = '/booklet/preview/' + data.token;
+        bkWin.document.open();
+        bkWin.document.write(bkLastHtml);
+        bkWin.document.close();
       }
 
       // הצג כפתורי המשך
@@ -1657,22 +1668,17 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   // קריאה ישירה מ-onclick (סינכרוני) — user activation נשמר ו-bkWin.print() עובד
   function openBookletPrint() {
-    if (!bkLastHtml && !bkLastToken) return;
+    if (!bkLastHtml) return;
     if (bkWin && !bkWin.closed) {
-      // החלון פתוח — פוקוס + הדפסה ישירה (user activation קיים כי זו קריאה סינכרונית)
+      // החלון פתוח — פוקוס + הדפסה ישירה (user activation = works)
       bkWin.focus();
       bkWin.print();
     } else {
-      // החלון סגור — פתח מחדש (לא יחסם כי זה מ-user click ישיר)
-      if (bkLastToken) {
-        bkWin = window.open('/booklet/preview/' + bkLastToken, '_blank');
-      } else {
-        bkWin = window.open('about:blank', '_blank');
-        bkWin.document.open();
-        bkWin.document.write(bkLastHtml);
-        bkWin.document.close();
-      }
-      // הדפס אחרי טעינה
+      // החלון סגור — פתח מחדש וכתוב HTML ישירות (מ-user click = לא יחסם)
+      bkWin = window.open('about:blank', '_blank');
+      bkWin.document.open();
+      bkWin.document.write(bkLastHtml);
+      bkWin.document.close();
       const _w = bkWin;
       _w.onload = function(){ setTimeout(function(){ _w.print(); }, 250); };
     }
@@ -1680,7 +1686,50 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   function continueToPublish() {
     if (bkLastNum) document.getElementById('bookletNumber').value = bkLastNum;
+    // ברירת מחדל: מחר ב-09:00
+    if (!document.getElementById('bookletDate').value) {
+      const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
+      document.getElementById('bookletDate').value = d.toISOString().slice(0, 16);
+    }
     switchBookletTab('publish');
+    // הצג את כפתור הפרסום האוטומטי רק כשיש HTML מוכן
+    const autoSec = document.getElementById('bkAutoPublishSection');
+    if (autoSec) autoSec.style.display = bkLastHtml ? 'block' : 'none';
+  }
+
+  async function autoPublishBooklet() {
+    const number = document.getElementById('bookletNumber').value.trim();
+    const date   = document.getElementById('bookletDate').value;
+    if (!number) { alert('נא להזין מספר חוברת'); return; }
+    if (!date)   { alert('נא לבחור תאריך פרסום'); return; }
+    if (!bkLastHtml) { alert('אין חוברת מוכנה'); return; }
+
+    const btn = document.getElementById('bookletAutoPublishBtn');
+    btn.disabled = true;
+    const loadingDiv  = document.getElementById('bookletLoading');
+    const loadingText = document.getElementById('bookletLoadingText');
+    const resultDiv   = document.getElementById('bookletResult');
+    loadingText.textContent = '⏳ מייצר PDF ומפרסם לאתר... (עשוי לקחת כדקה)';
+    loadingDiv.classList.remove('hidden');
+    resultDiv.classList.add('hidden');
+
+    try {
+      const res  = await fetch('/publish-booklet-from-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: bkLastHtml, bookletNumber: number, publishDate: date })
+      });
+      const data = await res.json();
+      loadingDiv.classList.add('hidden');
+      if (!data.success) { alert('שגיאה: ' + data.error); btn.disabled = false; return; }
+      const urlEl = document.getElementById('bookletPostUrl');
+      urlEl.href = data.postUrl; urlEl.textContent = data.postUrl;
+      resultDiv.classList.remove('hidden');
+    } catch(e) {
+      loadingDiv.classList.add('hidden');
+      alert('שגיאה: ' + e.message);
+    }
+    btn.disabled = false;
   }
 
   function resetBookletGen() {
