@@ -1588,6 +1588,14 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   let bkLastHtml = null;
+
+  // מאזין להודעת "bk-print" מחלון החוברת — מדפיס אותו מהחלון הראשי (הקשר מהימן)
+  window.addEventListener('message', function(e){
+    if(e.data === 'bk-print' && bkWin && !bkWin.closed){
+      bkWin.focus(); bkWin.print();
+    }
+  });
+
   let bkLastNum  = null;
   let bkWin      = null;
 

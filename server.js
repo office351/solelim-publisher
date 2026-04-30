@@ -1904,11 +1904,17 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* ── הדפסה ── */
 @media print{
   /* 10mm — מספיק לשוליים הדפסה, אך קטן מדי ל-Chrome להציג כותרות/כותרות-תחתית */
-  @page{size:A4;margin:10mm 20mm}
+  /* עמוד שער/הקדמה — סוג עמוד ייעודי ללא מספור */
+  @page{size:A4;margin:10mm 20mm;
+    @bottom-center{content:counter(page);font-size:8pt;color:#aaa;font-family:'Heebo',Arial,sans-serif}
+  }
+  @page frontmatter{size:A4;margin:10mm 20mm;@bottom-center{content:none}}
 
-  /* Counter מתחיל ב-(-2): שער=−1, הקדמה=0, מאמר1=1, מאמר2=2 ... */
-  body{background:#fff;padding-top:0;orphans:3;widows:3;counter-reset:bk-page -2}
+  body{background:#fff;padding-top:0;orphans:3;widows:3}
   .pbar{display:none!important}
+
+  /* שער/הקדמה — עמוד ייעודי ללא מספר */
+  .bk-cover,.bk-intro,.bk-static-page{page:frontmatter}
 
   /* כל עמוד: מתחיל דף חדש, ללא ריפוד (השוליים מגיעים מ-@page) */
   .bk-page{
@@ -1918,18 +1924,9 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
     overflow:visible!important;
     page-break-before:always;break-before:page;
     page-break-inside:auto;break-inside:auto;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact;
-    counter-increment:bk-page
+    -webkit-print-color-adjust:exact;print-color-adjust:exact
   }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
-
-  /* עימוד — מוצג בתחתית עמודי המאמרים בלבד (לא שער/הקדמה), מתחיל מ-1 */
-  .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page)::after{
-    content:counter(bk-page);
-    position:fixed;
-    bottom:4mm;left:50%;transform:translateX(-50%);
-    font-size:9px;color:#aaa;font-family:'Heebo',Arial,sans-serif
-  }
 
   /* עמודי שער/הקדמה: גובה A4 פחות שוליים (297-10-10=277mm), חיתוך */
   .bk-cover,.bk-intro,.bk-static-page{
@@ -2031,16 +2028,11 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
 })();
 
 function printBooklet(){
-  // Chrome עלול לחסום window.print() בחלון שנפתח אחרי await (ללא gesture).
-  // הפתרון: מפעילים את _openPreviewAndPrint מהחלון הפותח — זה אותה דרך שעובדת מהעמוד הראשי.
-  try{
-    if(window.opener && !window.opener.closed && window.opener._openPreviewAndPrint){
-      window.opener._openPreviewAndPrint();
-      return;
-    }
-  }catch(e){}
-  window.focus();
-  window.print();
+  // שולחים הודעה לחלון הפותח — הוא יקרא bkWin.print() מהקשר מהימן
+  if(window.opener && !window.opener.closed){
+    try{ window.opener.postMessage('bk-print','*'); return; }catch(e){}
+  }
+  window.focus(); window.print();
 }
 </script>
 </body>
