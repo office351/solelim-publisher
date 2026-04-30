@@ -1596,8 +1596,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   });
 
-  let bkLastNum  = null;
-  let bkWin      = null;
+  let bkLastNum   = null;
+  let bkLastToken = null;
+  let bkWin       = null;
 
   async function generateBookletPreview() {
     const num = document.getElementById('bkPrepNumber').value.trim();
@@ -1630,14 +1631,13 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
-      bkLastHtml = data.html;
-      bkLastNum  = num;
+      bkLastHtml  = data.html;
+      bkLastNum   = num;
+      bkLastToken = data.token || null;
 
-      // כתוב את ה-HTML לחלון הפתוח (כבר עם הרשאות מלאות)
+      // נווט לURL אמיתי — ניווט רגיל שומר על הרשאות print (בניגוד ל-document.write)
       if (bkWin && !bkWin.closed) {
-        bkWin.document.open();
-        bkWin.document.write(data.html);
-        bkWin.document.close();
+        bkWin.location.href = '/booklet/preview/' + data.token;
       }
 
       // הצג כפתורי המשך
@@ -1690,16 +1690,21 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   function _openPreviewAndPrint() {
-    if (!bkWin || bkWin.closed) {
-      bkWin = window.open('about:blank', '_blank');
-      bkWin.document.open();
-      bkWin.document.write(bkLastHtml);
-      bkWin.document.close();
-      // המתן לטעינת הדף לפני ההדפסה
-      bkWin.onload = function() { bkWin.print(); };
-    } else {
+    if (bkWin && !bkWin.closed) {
+      // החלון פתוח — פשוט מדפיסים ממנו
       bkWin.focus();
       bkWin.print();
+    } else {
+      // החלון סגור — פתח מחדש עם URL אמיתי אם יש token, אחרת document.write
+      if (bkLastToken) {
+        bkWin = window.open('/booklet/preview/' + bkLastToken, '_blank');
+      } else if (bkLastHtml) {
+        bkWin = window.open('about:blank', '_blank');
+        bkWin.document.open();
+        bkWin.document.write(bkLastHtml);
+        bkWin.document.close();
+        bkWin.onload = function() { bkWin.print(); };
+      }
     }
   }
 

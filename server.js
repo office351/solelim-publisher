@@ -2194,6 +2194,17 @@ app.post('/booklet/upload-static', requireAdmin, upload.fields([
 });
 
 // יצירת HTML לחוברת (4 מאמרים נבחרים)
+// מאגר זמני לתצוגות מקדימות — token → html, פג תוקף אחרי שעה
+const bookletPreviews = new Map();
+
+// הגשת תצוגה מקדימה לפי token — URL אמיתי שמאפשר window.print()
+app.get('/booklet/preview/:token', requireAdmin, (req, res) => {
+  const html = bookletPreviews.get(req.params.token);
+  if (!html) return res.status(404).send('<p>תצוגה מקדימה לא נמצאה או פגה תוקף</p>');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
+
 app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res) => {
   try {
     const { bookletNumber, postIds } = req.body;
@@ -2219,7 +2230,14 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
 
     const origin = req.protocol + '://' + req.get('host');
     const html   = buildBookletHTML(bookletNumber, postsData, origin, hasCoverImg, hasIntroImg);
-    res.json({ success: true, html });
+
+    // שמור עם token זמני לצורך URL אמיתי (window.print() עובד רק מניווט רגיל)
+    const crypto = require('crypto');
+    const token  = crypto.randomBytes(12).toString('hex');
+    bookletPreviews.set(token, html);
+    setTimeout(() => bookletPreviews.delete(token), 60 * 60 * 1000); // שעה
+
+    res.json({ success: true, html, token });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
