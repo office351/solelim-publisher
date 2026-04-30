@@ -17,11 +17,17 @@ if (($data['ref'] ?? '') !== 'refs/heads/main') {
 $repoPath = '/home/solelimderechco/solelim-repo';
 $output   = [];
 
-// 1. משוך שינויים מגיטהאב (כפה עדכון גם אם יש שינויים מקומיים)
+// 1. משוך שינויים מגיטהאב
 exec("cd {$repoPath} && git fetch origin main 2>&1", $output);
 exec("cd {$repoPath} && git reset --hard origin/main 2>&1", $output);
 
-// 2. הפעל מחדש את האפליקציה
+// 2. התקן חבילות npm חדשות (כולל puppeteer)
+$npmPaths = ['/usr/local/bin/npm', '/usr/bin/npm', trim(shell_exec('which npm 2>/dev/null'))];
+$npm = 'npm';
+foreach ($npmPaths as $p) { if ($p && file_exists($p)) { $npm = $p; break; } }
+exec("cd {$repoPath} && {$npm} install --production 2>&1", $output);
+
+// 3. הפעל מחדש את האפליקציה
 exec("mkdir -p {$repoPath}/tmp 2>&1", $output);
 exec("touch {$repoPath}/tmp/restart.txt 2>&1", $output);
 
