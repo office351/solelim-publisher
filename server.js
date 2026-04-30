@@ -64,6 +64,7 @@ const PROOFREADING_SYSTEM = `אתה מגיה לשון עברית מקצועי. �
 
 2. כתיב תקני (מלא/חסר) — הוסף/השמט י/ו לפי הכתיב התקני:
    מיסגרות→מסגרות | אומנות→אמנות | דוגמא→דוגמה | וודאי→ודאי
+   ⚠ חריק מלא/חסר: אין להוסיף יו"ד כאשר אין חיריק מלא — יישובים→ישובים | אין להסיר יו"ד כשיש חיריק מלא.
 
 3. כינויי קניין — העדף צורות מקוצרות תקניות:
    זהותינו→זהותנו | לזהותנו ואחדותנו→לזהותנו ולאחדותנו
@@ -81,7 +82,8 @@ const PROOFREADING_SYSTEM = `אתה מגיה לשון עברית מקצועי. �
 7. פיסוק
    א. פסיקים — הוסף אחרי ביטויי פתיחה/הסגר והפסקות תחביריות:
       "בכך מבלי שאמרו דבר הם"→"בכך, מבלי שאמרו דבר, הם"
-   ב. מקף — בצירופים כבולים: כל יכול→כל-יכול
+   ב. מקף מחבר (־) — הוסף בצירופים כבולים שאינם מילה אחת: כל יכול→כל-יכול.
+      לעומת זאת, אל תוסיף מקף בצירופים שהם תקניים כמילה אחת ללא מקף: בלתי־פוסק→בלתי פוסק.
    ג. רווחים — פסיק/נקודה צמוד למילה לפניו, רווח אחריו בלבד.
 
 8. החלפת "ש" כתחלית ב-"ה" כשאפשרי דקדוקית:
@@ -105,17 +107,20 @@ const PROOFREADING_SYSTEM = `אתה מגיה לשון עברית מקצועי. �
 
 ══ כללי גרש ══
 
-גרש יחיד (׳) = מושגים ומונחים. גרשיים (״) = ציטוט ישיר של דברי אנשים בלבד.
-סימון מושג מוגדר: המושג מגדר→המושג 'מגדר'
+גרש יחיד (׳) = מושגים, ביטויים ומונחים. גרשיים (״) = ציטוט ישיר של דברי אנשים בלבד.
+⚠ אחידות: הקפד על שיטה אחת לאורך כל המאמר — אין לערבב גרש יחיד עם גרשיים באותה פונקציה.
+סימון מושג מוגדר: המושג מגדר→המושג ׳מגדר׳
 
 ▸ כלל א — מילית יחס לפני גרש:
 NEVER write: לה׳...׳ / בה׳...׳ / מה׳...׳ / כה׳...׳
 ה"א נבלעת במילית היחס ונמחקת לחלוטין.
    לה'ברית היהודית'→ל'ברית היהודית' | בה'שמאל'→ב'שמאל' | מה'ימין'→מ'ימין'
 
-▸ כלל ב — ה"א בתוך גרש:
+▸ כלל ב — ה"א הידיעה עם גרש (חל גם על גרשיים):
 NEVER write ׳ה...׳ (ה"א כאות ראשונה בתוך גרש). הוצא ה"א לפני הגרש, מחק מבפנים.
+הכלל: ה"א הידיעה נמצאת מחוץ לגרשיים, לפניהם — כחלק מהמילה, לא מהמושג.
    'הרעיון'→ה'רעיון' | 'הברית היהודית'→ה'ברית היהודית' | 'הדמוקרטיה'→ה'דמוקרטיה'
+   'המושג'→ה'מושג' | "הביטוי"→ה"ביטוי"
 
 ▸ כלל ג — כפילות ה"א:
 NEVER write ה׳ה...׳ (שתי ה"א). השאר אחת מחוץ, מחק מבפנים.
@@ -2005,58 +2010,80 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
   res.json({ wpUrl: process.env.WP_URL });
 });
 
-// שליפת 10 מאמרים אחרונים מ-WordPress דרך RSS (עוקף חסימות REST API)
+// קאש מאמרים אחרונים — נשלוף מ-WordPress לכל היותר פעם ב-4 שעות כדי לא להקריס את השרת
+let recentPostsCache = { posts: [], fetchedAt: 0 };
+const POSTS_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 שעות
+
+async function fetchRecentPostsFromWP() {
+  const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=30';
+  const r = await axios.get(feedUrl, {
+    timeout: 15000,
+    headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' }
+  });
+  const xml = r.data;
+  const BOOKLET_TAG = 'חוברת שבועית להדפסה';
+  const heRe = /[א-ת]/;
+
+  const getTag = (block, tag) => {
+    const cdataRe = new RegExp('<' + tag + '[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/' + tag + '>');
+    const plainRe = new RegExp('<' + tag + '[^>]*>([^<]*)<\\/' + tag + '>');
+    const m = block.match(cdataRe) || block.match(plainRe);
+    return m ? m[1].trim() : '';
+  };
+
+  const items = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRe.exec(xml)) !== null) {
+    const block = match[1];
+    const title = getTag(block, 'title');
+    const date  = getTag(block, 'pubDate');
+    const linkM = block.match(/<link>([^<]+)<\/link>/);
+    const link  = linkM ? linkM[1] : '';
+    const catsRe = new RegExp('<category[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/category>', 'g');
+    const cats = [];
+    let cm;
+    while ((cm = catsRe.exec(block)) !== null) cats.push(cm[1]);
+
+    if (cats.includes(BOOKLET_TAG)) continue;
+    if (!heRe.test(title)) continue;
+
+    const imgM = block.match(/<media:content[^>]*url="([^"]+)"/) || block.match(/<enclosure[^>]*url="([^"]+)"/);
+    const imageUrl = imgM ? imgM[1] : '';
+    const idM = link.match(/[?&]p=(\d+)/) || link.match(/\/(\d+)\//);
+    const id  = idM ? parseInt(idM[1]) : items.length + 1;
+
+    let dateLabel = date;
+    try {
+      dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(date));
+    } catch(_) {}
+
+    items.push({ id, date, dateLabel, title, imageUrl });
+    if (items.length >= 10) break;
+  }
+  return items;
+}
+
+// שליפת 10 מאמרים אחרונים — עם קאש 4 שעות למניעת עומס על WordPress
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
+  const forceRefresh = req.query.refresh === '1';
+  const cacheAge = Date.now() - recentPostsCache.fetchedAt;
+  const cacheValid = recentPostsCache.posts.length > 0 && cacheAge < POSTS_CACHE_TTL;
+
+  // החזר מקאש אם תקף ולא ביקשו רענון מפורש
+  if (cacheValid && !forceRefresh) {
+    return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true });
+  }
+
   try {
-    const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=30';
-    const r = await axios.get(feedUrl, {
-      timeout: 15000,
-      headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' }
-    });
-    const xml = r.data;
-    const BOOKLET_TAG = 'חוברת שבועית להדפסה';
-    const heRe = /[א-ת]/;
-
-    const getTag = (block, tag) => {
-      const cdataRe = new RegExp('<' + tag + '[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/' + tag + '>');
-      const plainRe = new RegExp('<' + tag + '[^>]*>([^<]*)<\/' + tag + '>');
-      const m = block.match(cdataRe) || block.match(plainRe);
-      return m ? m[1].trim() : '';
-    };
-
-    const items = [];
-    const itemRe = /<item>([\s\S]*?)<\/item>/g;
-    let match;
-    while ((match = itemRe.exec(xml)) !== null) {
-      const block = match[1];
-      const title = getTag(block, 'title');
-      const date  = getTag(block, 'pubDate');
-      const linkM = block.match(/<link>([^<]+)<\/link>/);
-      const link  = linkM ? linkM[1] : '';
-      const catsRe = /<category[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/category>/g;
-      const cats = [];
-      let cm;
-      while ((cm = catsRe.exec(block)) !== null) cats.push(cm[1]);
-
-      if (cats.includes(BOOKLET_TAG)) continue;
-      if (!heRe.test(title)) continue;
-
-      const imgM  = block.match(/<media:content[^>]*url="([^"]+)"/) || block.match(/<enclosure[^>]*url="([^"]+)"/);
-      const imageUrl = imgM ? imgM[1] : '';
-      const idM   = link.match(/[?&]p=(\d+)/) || link.match(/\/(\d+)\//);
-      const id    = idM ? parseInt(idM[1]) : items.length + 1;
-
-      let dateLabel = date;
-      try {
-        dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(date));
-      } catch(_) {}
-
-      items.push({ id, date, dateLabel, title, imageUrl });
-      if (items.length >= 10) break;
-    }
-
-    res.json({ success: true, posts: items });
+    const posts = await fetchRecentPostsFromWP();
+    recentPostsCache = { posts, fetchedAt: Date.now() };
+    res.json({ success: true, posts, fromCache: false });
   } catch (e) {
+    // אם יש קאש ישן — החזר אותו במקום שגיאה
+    if (recentPostsCache.posts.length > 0) {
+      return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true, stale: true });
+    }
     const status = e.response ? e.response.status : null;
     const detail = status ? ' (HTTP ' + status + ')' : ' (' + (e.code || 'network error') + ')';
     res.status(500).json({ success: false, error: e.message + detail });
