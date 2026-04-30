@@ -2196,6 +2196,22 @@ app.get('/booklet/last-number', requireAdmin, async (req, res) => {
   }
 });
 
+// ─── עדכון קוד ידני (במקום manual-deploy.php) ────────────────────────────────
+app.get('/deploy', requireAdmin, (req, res) => {
+  const { execSync } = require('child_process');
+  const repoPath = __dirname;
+  const out = [];
+  try {
+    out.push(execSync(`cd "${repoPath}" && git fetch origin main 2>&1`).toString());
+    out.push(execSync(`cd "${repoPath}" && git reset --hard origin/main 2>&1`).toString());
+    require('fs').mkdirSync(require('path').join(repoPath, 'tmp'), { recursive: true });
+    require('fs').writeFileSync(require('path').join(repoPath, 'tmp', 'restart.txt'), Date.now().toString());
+    res.send('<pre>✅ עדכון הושלם:\n\n' + out.join('\n') + '</pre>');
+  } catch (e) {
+    res.status(500).send('<pre>❌ שגיאה:\n' + e.message + '</pre>');
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
