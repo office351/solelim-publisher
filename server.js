@@ -2005,47 +2005,60 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
   res.json({ wpUrl: process.env.WP_URL });
 });
 
-// שליפת 10 מאמרים אחרונים מ-WordPress (ללא חוברות וללא אנגלית)
+// שליפת 10 מאמרים אחרונים מ-WordPress דרך RSS (עוקף חסימות REST API)
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
-  const wpBase = process.env.WP_URL + '/wp-json/wp/v2';
-  // פוסטים פומביים - אין צורך ב-auth (auth גורם ל-503 על שרתים עם Wordfence)
-  const opts = { timeout: 15000 };
   try {
-    let bookletTagId = null;
-    try {
-      const tagRes = await axios.get(wpBase + '/tags?search=' + encodeURIComponent('חוברת שבועית להדפסה') + '&per_page=5', opts);
-      const found = tagRes.data.find(t => t.name === 'חוברת שבועית להדפסה');
-      if (found) bookletTagId = found.id;
-    } catch(_) {}
-
-    const excludeParam = bookletTagId ? '&tags_exclude=' + bookletTagId : '';
-    const r = await axios.get(wpBase + '/posts?per_page=20' + excludeParam, opts);
-
+    const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=30';
+    const r = await axios.get(feedUrl, {
+      timeout: 15000,
+      headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' }
+    });
+    const xml = r.data;
+    const BOOKLET_TAG = 'חוברת שבועית להדפסה';
     const heRe = /[א-ת]/;
-    const posts = r.data
-      .filter(p => heRe.test(p.title.rendered.replace(/<[^>]+>/g, '')))
-      .slice(0, 10)
-      .map(p => {
-        let dateLabel;
-        try {
-          dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(p.date));
-        } catch(e) {
-          dateLabel = new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
-        }
-        const imageUrl = p.jetpack_featured_media_url || p.yoast_head_json?.og_image?.[0]?.url || '';
-        return {
-          id: p.id, date: p.date, dateLabel,
-          title: p.title.rendered.replace(/<[^>]+>/g, '')
-            .replace(/&quot;/g, '"').replace(/&#(d+);/g, (_, n) => String.fromCharCode(+n)),
-          imageUrl
-        };
-      });
 
-    res.json({ success: true, posts });
+    const getTag = (block, tag) => {
+      const cdataRe = new RegExp('<' + tag + '[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/' + tag + '>');
+      const plainRe = new RegExp('<' + tag + '[^>]*>([^<]*)<\/' + tag + '>');
+      const m = block.match(cdataRe) || block.match(plainRe);
+      return m ? m[1].trim() : '';
+    };
+
+    const items = [];
+    const itemRe = /<item>([\s\S]*?)<\/item>/g;
+    let match;
+    while ((match = itemRe.exec(xml)) !== null) {
+      const block = match[1];
+      const title = getTag(block, 'title');
+      const date  = getTag(block, 'pubDate');
+      const linkM = block.match(/<link>([^<]+)<\/link>/);
+      const link  = linkM ? linkM[1] : '';
+      const catsRe = /<category[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/category>/g;
+      const cats = [];
+      let cm;
+      while ((cm = catsRe.exec(block)) !== null) cats.push(cm[1]);
+
+      if (cats.includes(BOOKLET_TAG)) continue;
+      if (!heRe.test(title)) continue;
+
+      const imgM  = block.match(/<media:content[^>]*url="([^"]+)"/) || block.match(/<enclosure[^>]*url="([^"]+)"/);
+      const imageUrl = imgM ? imgM[1] : '';
+      const idM   = link.match(/[?&]p=(\d+)/) || link.match(/\/(\d+)\//);
+      const id    = idM ? parseInt(idM[1]) : items.length + 1;
+
+      let dateLabel = date;
+      try {
+        dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(date));
+      } catch(_) {}
+
+      items.push({ id, date, dateLabel, title, imageUrl });
+      if (items.length >= 10) break;
+    }
+
+    res.json({ success: true, posts: items });
   } catch (e) {
     const status = e.response ? e.response.status : null;
-    const body = e.response ? JSON.stringify(e.response.data).slice(0,300) : null;
-    const detail = status ? ' (HTTP ' + status + ': ' + body + ')' : ' (' + (e.code || 'network error') + ')';
+    const detail = status ? ' (HTTP ' + status + ')' : ' (' + (e.code || 'network error') + ')';
     res.status(500).json({ success: false, error: e.message + detail });
   }
 });
