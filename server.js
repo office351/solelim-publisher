@@ -1892,12 +1892,10 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 .art-body blockquote{background:#eef8f4;border-right:4px solid #1e8a6b;padding:14px 20px;margin:20px 0;border-radius:0 8px 8px 0;font-size:18px;font-weight:700;color:#1a3a54;line-height:1.7;font-style:normal}
 .art-body blockquote p{margin:0}
 
-/* ── הדפסה (Puppeteer) ── */
+/* ── הדפסה ── */
 @media print{
-  /* שוליים רגילים — Puppeteer לא מוסיף כותרות, אז הלייאאוט מושלם */
+  /* A4 עם שוליים — גובה אזור תוכן = 297-18-18 = 261mm */
   @page{size:A4;margin:18mm 22mm}
-  /* דפי שער/הקדמה: ללא שוליים, תמונה מלאת-עמוד */
-  @page bk-cover{size:A4;margin:0}
 
   body{background:#fff;padding-top:0;orphans:3;widows:3}
   .pbar{display:none!important}
@@ -1914,11 +1912,15 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
 
-  /* עמודים סטטיים (שער/הקדמה): עמוד-שם ללא שוליים, תמונה מלאה */
+  /* עמודי שער/הקדמה: גובה מדויק = אזור תוכן A4, חיתוך כדי שלא יגלשו */
+  .bk-cover,.bk-intro,.bk-static-page{
+    height:261mm;
+    overflow:hidden!important;
+    page-break-inside:avoid;break-inside:avoid
+  }
   .bk-static-page{
-    page:bk-cover;
     position:relative!important;
-    padding:0!important;height:100vh;overflow:hidden!important
+    padding:0!important
   }
   .bk-static-page img{width:100%;height:100%;object-fit:cover;display:block}
 
