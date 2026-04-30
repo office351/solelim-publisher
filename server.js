@@ -2000,6 +2000,11 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
 </html>`;
 }
 
+// מחזיר את כתובת WordPress ללקוח (לשימוש בבקשות ישירות)
+app.get('/booklet/wp-config', requireAdmin, (req, res) => {
+  res.json({ wpUrl: process.env.WP_URL });
+});
+
 // שליפת 10 מאמרים אחרונים מ-WordPress (ללא חוברות וללא אנגלית)
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
   const wpBase = process.env.WP_URL + '/wp-json/wp/v2';

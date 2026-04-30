@@ -1498,10 +1498,46 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     bkSelectedIds = [];
     updateSelCount();
     try {
-      const res  = await fetch('/booklet/recent-posts');
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      renderPostsList(data.posts);
+      // קבל כתובת WP מהשרת ופנה ישירות מהדפדפן (עוקף חסימות שרת-לשרת)
+      const cfgRes = await fetch('/booklet/wp-config');
+      const { wpUrl } = await cfgRes.json();
+      const wpApi = wpUrl + '/wp-json/wp/v2';
+
+      // מצא ID של תג חוברת
+      let excludeParam = '';
+      try {
+        const tagRes = await fetch(wpApi + '/tags?search=' + encodeURIComponent('חוברת שבועית להדפסה') + '&per_page=5');
+        const tags = await tagRes.json();
+        const found = Array.isArray(tags) && tags.find(t => t.name === 'חוברת שבועית להדפסה');
+        if (found) excludeParam = '&tags_exclude=' + found.id;
+      } catch(_) {}
+
+      // שלוף פוסטים
+      const postsRes = await fetch(wpApi + '/posts?per_page=20' + excludeParam);
+      if (!postsRes.ok) throw new Error('HTTP ' + postsRes.status);
+      const rawPosts = await postsRes.json();
+
+      const heRe = /[א-ת]/;
+      const posts = rawPosts
+        .filter(p => heRe.test(p.title.rendered.replace(/<[^>]+>/g, '')))
+        .slice(0, 10)
+        .map(p => {
+          let dateLabel;
+          try {
+            dateLabel = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day:'numeric', month:'long', year:'numeric' }).format(new Date(p.date));
+          } catch(e) {
+            dateLabel = new Date(p.date).toLocaleDateString('he-IL', { day:'numeric', month:'long', year:'numeric' });
+          }
+          const imageUrl = p.jetpack_featured_media_url || p.yoast_head_json?.og_image?.[0]?.url || '';
+          return {
+            id: p.id, date: p.date, dateLabel,
+            title: p.title.rendered.replace(/<[^>]+>/g, '')
+              .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)),
+            imageUrl
+          };
+        });
+
+      renderPostsList(posts);
     } catch(e) {
       listEl.innerHTML = `<p style="color:red;font-size:14px">שגיאה בטעינה: ${e.message}</p>`;
     } finally {
