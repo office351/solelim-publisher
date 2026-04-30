@@ -2140,12 +2140,15 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
     if (!bookletNumber)
       return res.status(400).json({ success: false, error: 'מספר חוברת חסר' });
 
-    const postsData = await Promise.all(
-      postIds.map(id =>
-        axios.get(`${process.env.WP_URL}/wp-json/wp/v2/posts/${id}?_embed`, { timeout: 15000 })
-          .then(r => r.data)
-      )
-    );
+    // שליפה סדרתית (לא מקבילה) כדי לא להעמיס על WordPress בו-זמנית
+    const postsData = [];
+    for (const id of postIds) {
+      const r = await axios.get(
+        `${process.env.WP_URL}/wp-json/wp/v2/posts/${id}?_embed`,
+        { auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD }, timeout: 20000 }
+      );
+      postsData.push(r.data);
+    }
     postsData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (!fs.existsSync(BOOKLET_STATIC_DIR)) fs.mkdirSync(BOOKLET_STATIC_DIR, { recursive: true });
