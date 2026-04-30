@@ -22,6 +22,7 @@ exec("cd {$repoPath} && git fetch origin main 2>&1", $output);
 exec("cd {$repoPath} && git reset --hard origin/main 2>&1", $output);
 
 // 2. הפעל מחדש את האפליקציה
+exec("mkdir -p {$repoPath}/tmp 2>&1", $output);
 exec("touch {$repoPath}/tmp/restart.txt 2>&1", $output);
 
 http_response_code(200);
