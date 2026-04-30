@@ -1939,6 +1939,7 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 <div class="pbar">
   <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
   <div class="pbar-b">
+    <button class="pb pb-p" onclick="window.print()">🖨️ שמור PDF</button>
     <button class="pb pb-g" onclick="if(window.opener&&window.opener.continueToPublish){window.opener.continueToPublish();}window.close()">📤 העלה לאתר</button>
     <button class="pb pb-c" onclick="window.close()">✕ סגור</button>
   </div>
