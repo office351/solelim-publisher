@@ -2005,7 +2005,10 @@ app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
   try {
     const r = await axios.get(
       `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=20&_embed&status=publish`,
-      { timeout: 15000 }
+      {
+        auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD },
+        timeout: 15000
+      }
     );
     const BOOKLET_TAG = 'חוברת שבועית להדפסה';
     const heRe = /[\u05D0-\u05EA]/;
@@ -2039,7 +2042,8 @@ app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
 
     res.json({ success: true, posts });
   } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+    const detail = e.response ? ` (HTTP ${e.response.status}: ${JSON.stringify(e.response.data).slice(0,200)})` : '';
+    res.status(500).json({ success: false, error: e.message + detail });
   }
 });
 
