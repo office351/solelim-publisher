@@ -2008,25 +2008,18 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
 // שליפת 10 מאמרים אחרונים מ-WordPress (ללא חוברות וללא אנגלית)
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
   const wpBase = process.env.WP_URL + '/wp-json/wp/v2';
-  const wpAuth = { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD };
-  const wpHeaders = { 'User-Agent': 'Mozilla/5.0 (compatible; SolelimDerech/1.0)' };
+  // פוסטים פומביים - אין צורך ב-auth (auth גורם ל-503 על שרתים עם Wordfence)
+  const opts = { timeout: 15000 };
   try {
-    // Find booklet tag ID to exclude it server-side
     let bookletTagId = null;
     try {
-      const tagRes = await axios.get(
-        wpBase + '/tags?search=' + encodeURIComponent('חוברת שבועית להדפסה') + '&per_page=5',
-        { auth: wpAuth, headers: wpHeaders, timeout: 10000 }
-      );
+      const tagRes = await axios.get(wpBase + '/tags?search=' + encodeURIComponent('חוברת שבועית להדפסה') + '&per_page=5', opts);
       const found = tagRes.data.find(t => t.name === 'חוברת שבועית להדפסה');
       if (found) bookletTagId = found.id;
     } catch(_) {}
 
     const excludeParam = bookletTagId ? '&tags_exclude=' + bookletTagId : '';
-    const r = await axios.get(
-      wpBase + '/posts?per_page=20' + excludeParam,
-      { auth: wpAuth, headers: wpHeaders, timeout: 20000 }
-    );
+    const r = await axios.get(wpBase + '/posts?per_page=20' + excludeParam, opts);
 
     const heRe = /[א-ת]/;
     const posts = r.data
@@ -2050,9 +2043,9 @@ app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
 
     res.json({ success: true, posts });
   } catch (e) {
-    const detail = e.response
-      ? ' (HTTP ' + e.response.status + ': ' + JSON.stringify(e.response.data).slice(0,300) + ')'
-      : ' (' + (e.code || 'network error') + ')';
+    const status = e.response ? e.response.status : null;
+    const body = e.response ? JSON.stringify(e.response.data).slice(0,300) : null;
+    const detail = status ? ' (HTTP ' + status + ': ' + body + ')' : ' (' + (e.code || 'network error') + ')';
     res.status(500).json({ success: false, error: e.message + detail });
   }
 });
