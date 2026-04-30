@@ -2991,10 +2991,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     const SEP = '\n<p>&nbsp;</p>\n';
 
     // כל ה"הוספות": ציטוטים קודם, אחר כך מדיה
+    const MEDIA_SEP = `${SEP}${SEP}`; // שתי שורות ריקות לפני ואחרי מדיה
     const allInserts = [];
     if (quote1) allInserts.push(`${SEP}<blockquote>${quote1}</blockquote>${SEP}`);
     if (quote2) allInserts.push(`${SEP}<blockquote>${quote2}</blockquote>${SEP}`);
-    mediaItems.filter(m => m.status === 'ready' && m.html).forEach(m => allInserts.push(`${SEP}${m.html}${SEP}`));
+    mediaItems.filter(m => m.status === 'ready' && m.html).forEach(m => allInserts.push(`${MEDIA_SEP}${m.html}${MEDIA_SEP}`));
 
     // קיצורים לשימוש בקוד ישן (בטוח)
     const q1 = allInserts[0] || `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
