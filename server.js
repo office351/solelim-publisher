@@ -2004,10 +2004,11 @@ ${!hasCoverImg ? `<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/q
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
   try {
     const r = await axios.get(
-      `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=20&_embed&status=publish`,
+      `${process.env.WP_URL}/wp-json/wp/v2/posts?per_page=20&status=publish&_embed=wp:featuredmedia,wp:term&_fields=id,date,title,_embedded,_links`,
       {
         auth: { username: process.env.WP_USERNAME, password: process.env.WP_APP_PASSWORD },
-        timeout: 15000
+        timeout: 20000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SolelimDerech/1.0)' }
       }
     );
     const BOOKLET_TAG = 'חוברת שבועית להדפסה';
