@@ -10,7 +10,7 @@ const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const fs = require('fs');
 const sharp = require('sharp');
-const puppeteer = require('puppeteer');
+// puppeteer נטען בצורה lazy בתוך הנתיב כדי שהשרת יעלה גם אם לא מותקן
 
 const app = express();
 
@@ -2096,6 +2096,10 @@ app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res
 app.post('/generate-booklet-pdf', requireAdmin, async (req, res) => {
   const { html, filename } = req.body;
   if (!html) return res.status(400).json({ success: false, error: 'חסר HTML' });
+
+  let puppeteer;
+  try { puppeteer = require('puppeteer'); }
+  catch (e) { return res.status(500).json({ success: false, error: 'Puppeteer לא זמין בשרת: ' + e.message }); }
 
   let browser;
   try {
