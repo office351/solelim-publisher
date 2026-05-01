@@ -1901,11 +1901,10 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* תמונות מוטמעות בגוף המאמר (לא תמונה ראשית) — מרוכזות, עד חצי עמוד */
 .art-body img{display:block;max-width:50%;height:auto;margin:14px auto;border-radius:6px}
 
-/* ── @page חייב להיות ברמה עליונה (לא בתוך @media) — Chrome מתעלם אחרת ── */
-@page{size:A4;margin:10mm 20mm;
-  @bottom-center{content:counter(page);font-size:8pt;color:#aaa;font-family:'Heebo',Arial,sans-serif}
-}
-@page frontmatter{size:A4;margin:10mm 20mm;@bottom-center{content:none}}
+/* ── @page ברמה עליונה. margin:0 לגובה — Chrome מציג כותרות רק אם יש מקום בmargin ──
+   שוליים ויזואליים (10mm למעלה/למטה) מגיעים מה-padding של .bk-page ישירות ── */
+@page{size:A4;margin:0 20mm}
+@page frontmatter{size:A4;margin:0 20mm}
 
 /* ── הדפסה ── */
 @media print{
@@ -1915,9 +1914,9 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   /* שער/הקדמה — עמוד ייעודי ללא מספר */
   .bk-cover,.bk-intro,.bk-static-page{page:frontmatter}
 
-  /* כל עמוד: מתחיל דף חדש, ללא ריפוד (השוליים מגיעים מ-@page) */
+  /* כל עמוד: מתחיל דף חדש; padding מחליף את שוליי @page למעלה/למטה */
   .bk-page{
-    width:100%;margin:0;padding:0;
+    width:100%;margin:0;padding:10mm 0;
     position:relative;
     min-height:0;
     overflow:visible!important;
@@ -1927,12 +1926,14 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   }
   .bk-first{page-break-before:auto!important;break-before:auto!important}
 
-  /* עמודי שער/הקדמה: גובה A4 פחות שוליים (297-10-10=277mm), חיתוך */
+  /* עמודי שער/הקדמה: מלאים A4 (297mm — אין margin גובה) */
   .bk-cover,.bk-intro,.bk-static-page{
-    height:277mm;
+    height:297mm;
     overflow:hidden!important;
     page-break-inside:avoid;break-inside:avoid
   }
+  /* הקדמה — padding ויזואלי לתוכן */
+  .bk-intro{padding:10mm 0!important}
   .bk-cover{padding:0!important}
   .bk-static-page{
     position:relative!important;
@@ -1964,6 +1965,20 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   .bk-intro h2{margin-bottom:12px!important;padding-bottom:6px!important}
   .art-body blockquote{padding:8px 14px!important;margin:10px 0!important;font-size:16px!important}
   .art-body img{max-width:85mm!important;display:block!important;margin:8px auto!important;height:auto!important;page-break-inside:avoid;break-inside:avoid}
+
+  /* ── מספרי עמודים (מחליף @bottom-center שדורש margin) ──
+     counter מתחיל מ-2 כדי שעמוד המאמר הראשון = 3 (שער+הקדמה הם 1-2) */
+  body{counter-reset:bk-pg 2}
+  .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page){counter-increment:bk-pg}
+  .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page)::after{
+    content:counter(bk-pg);
+    display:block;
+    text-align:center;
+    font-size:8pt;
+    color:#aaa;
+    font-family:'Heebo',Arial,sans-serif;
+    margin-top:4mm
+  }
 }
 </style>
 </head>
