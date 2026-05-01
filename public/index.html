@@ -1028,7 +1028,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0">בחר 2 ציטוטים:</h2>
+      <h2 style="margin-top:0">בחר 1 או 2 ציטוטים:</h2>
       <p style="color:#666;font-size:14px;margin-top:0">הציטוט הראשון יוכנס בין המקטע הראשון לשני, השני לפני המקטע האחרון.</p>
       <div id="quoteOptions"></div>
       <p id="quoteCount" style="color:#e74c3c;margin:0"></p>
@@ -1899,16 +1899,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           idea.message  ? 'מסר: '    + idea.message        : ''
         ].filter(Boolean).join('. ');
         card.innerHTML = `
-          <div class="idea-card-header">
+          <div style="display:flex;align-items:center;gap:10px">
             <span class="idea-num">${i + 1}</span>
-            <span class="idea-card-title">${escHtml(idea.title || '')}</span>
+            <span style="font-size:14px;line-height:1.5">${escHtml(idea.title || sceneText)}</span>
             ${idea.cynical ? '<span class="idea-cynical-badge">ציני</span>' : ''}
-          </div>
-          <div class="idea-card-scene">${escHtml(sceneText)}</div>
-          ${idea.metaphor || idea.message ? `<div class="idea-card-meta">
-            ${idea.metaphor ? `<span><b>מטפורה:</b> ${escHtml(idea.metaphor)}</span>` : ''}
-            ${idea.message  ? `<span><b>מסר:</b> ${escHtml(idea.message)}</span>`   : ''}
-          </div>` : ''}`;
+          </div>`;
         card.onclick = () => {
           document.querySelectorAll('#ideaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
@@ -2624,16 +2619,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           idea.message  ? 'מסר: '    + idea.message        : ''
         ].filter(Boolean).join('. ');
         card.innerHTML = `
-          <div class="idea-card-header">
+          <div style="display:flex;align-items:center;gap:10px">
             <span class="idea-num">${i + 1}</span>
-            <span class="idea-card-title">${escHtml(idea.title || '')}</span>
+            <span style="font-size:14px;line-height:1.5">${escHtml(idea.title || sceneText)}</span>
             ${idea.cynical ? '<span class="idea-cynical-badge">ציני</span>' : ''}
-          </div>
-          <div class="idea-card-scene">${escHtml(sceneText)}</div>
-          ${idea.metaphor || idea.message ? `<div class="idea-card-meta">
-            ${idea.metaphor ? `<span><b>מטפורה:</b> ${escHtml(idea.metaphor)}</span>` : ''}
-            ${idea.message  ? `<span><b>מסר:</b> ${escHtml(idea.message)}</span>`   : ''}
-          </div>` : ''}`;
+          </div>`;
         card.onclick = () => {
           document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
           card.classList.add('chosen');
@@ -3459,9 +3449,22 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           document.querySelectorAll('.opening-option').forEach(d => d.classList.remove('selected'));
           div.classList.add('selected');
           selectedOpening = stripPeriod(op);
+          const ci = document.getElementById('customOpeningInput');
+          if (ci) ci.value = '';
         };
         openingDiv.appendChild(div);
       });
+      // כתוב פתיחה בעצמך
+      const customOpenInp = document.createElement('input');
+      customOpenInp.type = 'text';
+      customOpenInp.id = 'customOpeningInput';
+      customOpenInp.placeholder = '✏️ כתוב משפט פתיחה בעצמך...';
+      customOpenInp.style.cssText = 'width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:inherit;box-sizing:border-box;margin-bottom:10px;direction:rtl;background:#fafbfc';
+      customOpenInp.addEventListener('input', function() {
+        document.querySelectorAll('.opening-option').forEach(d => d.classList.remove('selected'));
+        selectedOpening = this.value.trim() ? stripPeriod(this.value.trim()) : null;
+      });
+      openingDiv.appendChild(customOpenInp);
 
       // ציטוטים
       const quotesDiv = document.getElementById('quoteOptions');
@@ -3480,11 +3483,19 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
             div.classList.add('selected');
             selectedQuotes.push(clean);
           }
-          document.getElementById('quoteCount').textContent =
-            selectedQuotes.length < 2 ? `נבחרו ${selectedQuotes.length}/2 ציטוטים` : '';
+          const cnt = document.getElementById('quoteCount');
+          cnt.textContent = selectedQuotes.length === 0 ? 'לא נבחרו ציטוטים' :
+                            selectedQuotes.length === 1 ? 'נבחר ציטוט אחד — ניתן לבחור עוד אחד' : '';
         };
         quotesDiv.appendChild(div);
       });
+      // כתוב ציטוט בעצמך
+      const customQInp = document.createElement('input');
+      customQInp.type = 'text';
+      customQInp.id = 'customQuoteInput';
+      customQInp.placeholder = '✏️ כתוב ציטוט בעצמך...';
+      customQInp.style.cssText = 'width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:inherit;box-sizing:border-box;margin-top:4px;direction:rtl;background:#fafbfc';
+      quotesDiv.appendChild(customQInp);
 
       document.getElementById('step1').classList.add('hidden');
       document.getElementById('step2').classList.remove('hidden');
@@ -3497,15 +3508,23 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   async function publishArticle() {
-    if (!selectedOpening) { alert('נא לבחור משפט פתיחה'); return; }
-    if (selectedQuotes.length < 2) { alert('נא לבחור 2 ציטוטים'); return; }
+    // בדוק/קח פתיחה מותאמת אישית
+    const customOpVal = (document.getElementById('customOpeningInput')?.value || '').trim();
+    if (customOpVal) selectedOpening = stripPeriod(customOpVal);
+    if (!selectedOpening) { alert('נא לבחור או לכתוב משפט פתיחה'); return; }
+
+    // בנה רשימת ציטוטים (כרטיסיות + אישי)
+    const customQVal = (document.getElementById('customQuoteInput')?.value || '').trim();
+    const allQuotes = [...selectedQuotes];
+    if (customQVal && allQuotes.length < 2) allQuotes.push(stripPeriod(customQVal));
+    if (allQuotes.length < 1) { alert('נא לבחור לפחות ציטוט אחד'); return; }
 
     const btn = document.getElementById('publishBtn');
     btn.disabled = true;
     btn.textContent = 'מפרסם...';
 
     const audioUrl = document.getElementById('audioUrl').value;
-    let content    = buildContent(cleanedText, selectedQuotes[0], selectedQuotes[1], audioUrl, pendingMediaItems);
+    let content    = buildContent(cleanedText, allQuotes[0], allQuotes[1], audioUrl, pendingMediaItems);
 
     // PDF — מצורף בסוף המאמר, לאחר שורת רווח מלאה
     const pdfItems = pendingMediaItems.filter(m => m.type === 'pdf' && m.status === 'ready' && m.html);
@@ -3709,7 +3728,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     </div>
 
     <div class="card">
-      <label>Quotes — choose 2:</label>
+      <label>Quotes — choose 1 or 2:</label>
       <div id="enQuoteOptions"></div>
     </div>
 
@@ -3994,11 +4013,24 @@ async function startProcessEn(textOverride) {
         document.querySelectorAll('#enOpeningOptions .idea-card').forEach(c => c.classList.remove('chosen'));
         card.classList.add('chosen');
         enSelectedOpening = txt;
+        const ci = document.getElementById('enCustomOpeningInput');
+        if (ci) ci.value = '';
       };
       openCont.appendChild(card);
     });
+    // Write your own opening
+    const enCustomOpenInp = document.createElement('input');
+    enCustomOpenInp.type = 'text';
+    enCustomOpenInp.id = 'enCustomOpeningInput';
+    enCustomOpenInp.placeholder = '✏️ Write your own opening sentence...';
+    enCustomOpenInp.style.cssText = 'width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:Georgia,serif;box-sizing:border-box;margin-bottom:10px;direction:ltr;background:#fafbfc';
+    enCustomOpenInp.addEventListener('input', function() {
+      document.querySelectorAll('#enOpeningOptions .idea-card').forEach(c => c.classList.remove('chosen'));
+      enSelectedOpening = this.value.trim() || null;
+    });
+    openCont.appendChild(enCustomOpenInp);
 
-    // Quote options (pick 2)
+    // Quote options (pick 1 or 2)
     const quoteCont = document.getElementById('enQuoteOptions');
     quoteCont.innerHTML = '';
     enSelectedQuotes = [];
@@ -4019,6 +4051,13 @@ async function startProcessEn(textOverride) {
       };
       quoteCont.appendChild(card);
     });
+    // Write your own quote
+    const enCustomQInp = document.createElement('input');
+    enCustomQInp.type = 'text';
+    enCustomQInp.id = 'enCustomQuoteInput';
+    enCustomQInp.placeholder = '✏️ Write your own quote...';
+    enCustomQInp.style.cssText = 'width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:Georgia,serif;box-sizing:border-box;margin-top:4px;direction:ltr;background:#fafbfc';
+    quoteCont.appendChild(enCustomQInp);
 
     document.getElementById('en-step0').classList.add('hidden');
     document.getElementById('en-step2').classList.remove('hidden');
@@ -4073,8 +4112,14 @@ async function generateEnglishTts() {
 }
 
 async function publishEnglishArticle() {
-  if (!enSelectedOpening) { alert('Please choose an opening sentence'); return; }
-  if (enSelectedQuotes.length < 2) { alert('Please choose 2 quotes'); return; }
+  const enCustomOpVal = (document.getElementById('enCustomOpeningInput')?.value || '').trim();
+  if (enCustomOpVal) enSelectedOpening = enCustomOpVal;
+  if (!enSelectedOpening) { alert('Please choose or write an opening sentence'); return; }
+
+  const enCustomQVal = (document.getElementById('enCustomQuoteInput')?.value || '').trim();
+  const enAllQuotes = [...enSelectedQuotes];
+  if (enCustomQVal && enAllQuotes.length < 2) enAllQuotes.push(enCustomQVal);
+  if (enAllQuotes.length < 1) { alert('Please choose at least one quote'); return; }
 
   const btn = document.getElementById('enPublishBtn');
   btn.disabled = true; btn.textContent = 'Publishing...';
@@ -4093,7 +4138,7 @@ async function publishEnglishArticle() {
       `<p dir="ltr">&nbsp;</p>\n`;
   }
   // Build LTR English HTML: each paragraph gets dir="ltr", blockquotes at 1/3 and 2/3
-  const content = audioEmbed + buildEnglishContent(enCleanedText, enSelectedQuotes[0], enSelectedQuotes[1]);
+  const content = audioEmbed + buildEnglishContent(enCleanedText, enAllQuotes[0], enAllQuotes[1]);
 
   try {
     const res  = await fetch('/publish-en', {
