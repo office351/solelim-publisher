@@ -132,8 +132,9 @@ NEVER write ה׳ה...׳ (שתי ה"א). השאר אחת מחוץ, מחק מבפ�
 אם מכילה רק "סוללים דרך" (עם/בלי סמלים) — מחק שורה זו לחלוטין.
 
 ══ חובה לשמור ══
-- מספר השורות הריקות בין פסקאות חייב להיות זהה בדיוק למקור — אין להוסיף שורות ריקות
-- סדר שורות, מבנה פסקאות, כוכביות (*) — אין לשנות מיקום
+- מספר השורות הריקות בין פסקאות חייב להיות זהה בדיוק למקור — אין להוסיף ואין למחוק שורות ריקות
+- כוכביות (*) — אסור בהחלט לגעת בהן: אין למחוק, אין להוסיף, אין להזיז אף כוכבית. שמור כל * בדיוק במקומה כפי שהיא בטקסט המקורי
+- סדר שורות, מבנה פסקאות — אין לשנות
 - קישורים (URLs) — בדיוק כפי שהם, ללא שינוי או מחיקה
 - פעלים בבנייני פועל/הופעל/נפעל: יצוין, הוזכר, נאמר — תקינים, אין לשנות
 - לשון מקרא — אין לתקן
@@ -186,8 +187,7 @@ function normalizeStructuredSpacing(lines) {
     const isMarker = markerRe.test(trimmed);
 
     if (isBlank) {
-      if (prevMarker) continue;   // אין שורה ריקה בין כותרת פסקה לתוכנה
-      if (prevBlank)  continue;   // אין שורות ריקות כפולות
+      if (prevBlank)  continue;   // אין שורות ריקות כפולות רצופות — מעבר לשורה ריקה אחת
       result.push('');
       prevBlank  = true;
       prevMarker = false;
@@ -223,6 +223,13 @@ app.post('/edit-stage1', async (req, res) => {
       // פיצול לחלקים לפי פסקאות — כל חלק עד 5000 תווים
       const CHUNK_SIZE = 5000;
       const lines = text.split('\n');
+
+      // חיתוך שם הכותב מהשורה הראשונה לפני שליחה לClaude
+      // (/ או \ מפרידים בין כותרת לשם הכותב — שם הכותב נמחק)
+      if (lines.length > 0) {
+        const slashIdx = lines[0].search(/[/\\]/);
+        if (slashIdx !== -1) lines[0] = lines[0].slice(0, slashIdx).trim();
+      }
       const chunks = [];
       let current = [];
       let currentLen = 0;
@@ -392,6 +399,10 @@ ${bodyPreview}`
 app.post('/edit-stage3', async (req, res) => {
   try {
     const { body } = req.body;
+    // אם כבר יש הדגשות בטקסט — לא מוסיפים ולא מסירים
+    if (body && body.includes('*')) {
+      return res.json({ success: true, formattedBody: body });
+    }
     const phrasesRes = await axios.post(
       'https://api.anthropic.com/v1/messages',
       {

@@ -1264,6 +1264,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       </select>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;padding:10px 14px;background:#f8f4fb;border-radius:8px;border:1px solid #e0d0e8">
+      <input type="checkbox" id="editAddBold" style="width:18px;height:18px;cursor:pointer;accent-color:#7b2d8b;flex-shrink:0">
+      <label for="editAddBold" style="cursor:pointer;font-size:15px;color:#333;margin:0">הוסף הדגשות אוטומטיות למשפטי מפתח</label>
+    </div>
+
     <button onclick="submitEdit()" id="editBtn" style="background:#7b2d8b">
       הגה מאמר עם AI ➜
     </button>
@@ -2344,15 +2349,18 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       advanceEditLoading();
 
       // ── שלבים 2+3 במקביל (כל אחד עד 20 שניות) ──
+      const addBold = document.getElementById('editAddBold').checked;
       const [data2, data3] = await Promise.all([
         fetch('/edit-stage2', {
           method: 'POST', headers: hdrs,
           body: JSON.stringify({ originalTitle: data1.originalTitle, bodyPreview: data1.body.slice(0, 600) })
         }).then(r => r.json()),
-        fetch('/edit-stage3', {
-          method: 'POST', headers: hdrs,
-          body: JSON.stringify({ body: data1.body })
-        }).then(r => r.json())
+        addBold
+          ? fetch('/edit-stage3', {
+              method: 'POST', headers: hdrs,
+              body: JSON.stringify({ body: data1.body })
+            }).then(r => r.json())
+          : Promise.resolve({ success: true, formattedBody: data1.body })
       ]);
 
       editFormattedBody = data3.formattedBody || data1.body;
