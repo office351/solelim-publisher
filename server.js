@@ -1046,9 +1046,11 @@ async function generateGrokImage(prompt) {
   if (!process.env.XAI_API_KEY) throw new Error('XAI_API_KEY לא מוגדר');
   try {
     addLog('🤖 שולח ל-Grok (xAI)...');
+    // תוספת פרפיקס לגרוק: הדגשת פורמט ריבועי + סגנון עיתונאי לפני הפרומפט הראשי
+    const grokPrompt = `Editorial press photograph, square 1:1 format. ${prompt}`;
     const xaiRes = await axios.post(
       'https://api.x.ai/v1/images/generations',
-      { model: 'grok-imagine-image', prompt, n: 1 },
+      { model: 'grok-imagine-image', prompt: grokPrompt, n: 1, size: '1024x1024', response_format: 'b64_json' },
       { headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
     );
     const imgData = xaiRes.data.data[0];
@@ -1265,16 +1267,16 @@ ${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas mu
   }
 });
 
-// יצירת תמונה — OpenAI gpt-image-1 + Grok במקביל (שניהם ריאליסטי)
+// יצירת תמונה — OpenAI gpt-image-1 + Grok במקביל (2 תמונות עיתונאיות)
 app.post('/generate-image', async (req, res) => {
   try {
     const { ideaEn, ideaHe } = req.body;
     if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
-    addLog('יוצר פרומפט ריאליסטי מקצועי לפי הרעיון הנבחר...');
+    addLog('יוצר פרומפט עיתונאי מקצועי לפי הרעיון הנבחר...');
     const prompt = await expandToRealisticPrompt(ideaEn);
 
-    addLog('יוצר 📷 OpenAI + 🤖 Grok במקביל...');
+    addLog('יוצר 2 תמונות — 📷 OpenAI + 🤖 Grok — במקביל...');
     const ts = Date.now();
 
     // שני מודלים על אותו פרומפט במקביל
