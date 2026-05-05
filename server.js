@@ -1050,7 +1050,7 @@ async function generateGrokImage(prompt) {
     const grokPrompt = `Editorial press photograph, square 1:1 format. ${prompt}`;
     const xaiRes = await axios.post(
       'https://api.x.ai/v1/images/generations',
-      { model: 'grok-imagine-image', prompt: grokPrompt, n: 1, size: '1024x1024', response_format: 'b64_json' },
+      { model: 'grok-imagine-image', prompt: grokPrompt, n: 1 },
       { headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
     );
     const imgData = xaiRes.data.data[0];
