@@ -1360,12 +1360,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         <p style="font-weight:bold;margin:0 0 12px;text-align:center;font-size:15px">בחר את התמונה המועדפת:</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div id="editCompareDalle" style="text-align:center">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#7b2d8b">📷 ריאלי</p>
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#7b2d8b">📷 OpenAI (gpt-image-1)</p>
             <img id="editDalleImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('dalle')">
             <button onclick="selectEditImage('dalle')" style="margin-top:8px;background:#7b2d8b;width:100%;padding:9px">✓ בחר תמונה זו</button>
           </div>
           <div id="editCompareArtistic" style="text-align:center">
-            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#e67e22">🎨 אמנותי</p>
+            <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#e67e22">🤖 Grok (xAI)</p>
             <img id="editArtisticImg" style="width:100%;border-radius:8px;border:3px solid transparent;cursor:pointer" onclick="selectEditImage('artistic')">
             <button onclick="selectEditImage('artistic')" style="margin-top:8px;background:#e67e22;width:100%;padding:9px">✓ בחר תמונה זו</button>
           </div>
@@ -1904,10 +1904,13 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           idea.message  ? 'מסר: '    + idea.message        : ''
         ].filter(Boolean).join('. ');
         card.innerHTML = `
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="idea-num">${i + 1}</span>
-            <span style="font-size:14px;line-height:1.5">${escHtml(idea.title || sceneText)}</span>
-            ${idea.cynical ? '<span class="idea-cynical-badge">ציני</span>' : ''}
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span class="idea-num" style="margin-top:2px;flex-shrink:0">${i + 1}</span>
+            <div>
+              <div style="font-size:14px;font-weight:bold;line-height:1.4">${escHtml(idea.title || sceneText)}</div>
+              ${idea.message ? `<div style="font-size:13px;color:#555;margin-top:4px;line-height:1.4">${escHtml(idea.message)}</div>` : ''}
+              ${idea.cynical ? '<span class="idea-cynical-badge" style="margin-top:4px;display:inline-block">ציני</span>' : ''}
+            </div>
           </div>`;
         card.onclick = () => {
           document.querySelectorAll('#ideaOptions .idea-card').forEach(c => c.classList.remove('chosen'));
@@ -1932,7 +1935,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     document.getElementById('extraLogoResult').classList.add('hidden');
 
     const loading = document.getElementById('imageGenLoading');
-    document.getElementById('imageGenLoadingText').textContent = 'יוצר תמונה עם Grok... (עד 60 שניות)';
+    document.getElementById('imageGenLoadingText').textContent = 'יוצר תמונות עם OpenAI ו-Grok במקביל... (עד 120 שניות)';
     loading.classList.remove('hidden');
 
     updateLogs([{ time: new Date().toISOString(), message: 'שולח בקשה לגרוק...' }]);
@@ -2627,10 +2630,13 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
           idea.message  ? 'מסר: '    + idea.message        : ''
         ].filter(Boolean).join('. ');
         card.innerHTML = `
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="idea-num">${i + 1}</span>
-            <span style="font-size:14px;line-height:1.5">${escHtml(idea.title || sceneText)}</span>
-            ${idea.cynical ? '<span class="idea-cynical-badge">ציני</span>' : ''}
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span class="idea-num" style="margin-top:2px;flex-shrink:0">${i + 1}</span>
+            <div>
+              <div style="font-size:14px;font-weight:bold;line-height:1.4">${escHtml(idea.title || sceneText)}</div>
+              ${idea.message ? `<div style="font-size:13px;color:#555;margin-top:4px;line-height:1.4">${escHtml(idea.message)}</div>` : ''}
+              ${idea.cynical ? '<span class="idea-cynical-badge" style="margin-top:4px;display:inline-block">ציני</span>' : ''}
+            </div>
           </div>`;
         card.onclick = () => {
           document.querySelectorAll('#editIdeaOptions .idea-card').forEach(c => c.classList.remove('chosen'));

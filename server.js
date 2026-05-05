@@ -1041,27 +1041,50 @@ async function applyLogoToImage(imageBuffer, position = 'bottom-left') {
 }
 
 
-// ─── יצירת תמונה — Grok (xAI Aurora) עם fallback ל-gpt-image-1 ──────────────
-async function generateDalleVariant(prompt, _style) {
-  // נסה Grok קודם אם יש מפתח
-  if (process.env.XAI_API_KEY) {
-    try {
-      addLog('🤖 שולח ל-Grok (xAI)...');
-      const xaiRes = await axios.post(
-        'https://api.x.ai/v1/images/generations',
-        { model: 'grok-imagine-image', prompt, n: 1 },
-        { headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
-      );
-      const imgData = xaiRes.data.data[0];
-      if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
-      const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
-      return Buffer.from(imgRes.data);
-    } catch (xaiErr) {
-      const msg = xaiErr.response?.data?.error?.message || xaiErr.message;
-      throw new Error(`Grok נכשל: ${msg}`);
-    }
+// ─── יצירת תמונה — Grok (xAI Aurora) ──────────────
+async function generateGrokImage(prompt) {
+  if (!process.env.XAI_API_KEY) throw new Error('XAI_API_KEY לא מוגדר');
+  try {
+    addLog('🤖 שולח ל-Grok (xAI)...');
+    const xaiRes = await axios.post(
+      'https://api.x.ai/v1/images/generations',
+      { model: 'grok-imagine-image', prompt, n: 1 },
+      { headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 }
+    );
+    const imgData = xaiRes.data.data[0];
+    if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
+    const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
+    return Buffer.from(imgRes.data);
+  } catch (xaiErr) {
+    const msg = xaiErr.response?.data?.error?.message || xaiErr.message;
+    throw new Error(`Grok נכשל: ${msg}`);
   }
-  throw new Error('XAI_API_KEY לא מוגדר');
+}
+
+// ─── יצירת תמונה — OpenAI gpt-image-1 ──────────────
+async function generateOpenAIImage(prompt) {
+  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY לא מוגדר');
+  try {
+    addLog('🎨 שולח ל-OpenAI (gpt-image-1)...');
+    const oaiRes = await axios.post(
+      'https://api.openai.com/v1/images/generations',
+      {
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'medium'   // medium = איכות מקצועית, ~$0.07/תמונה
+      },
+      { headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 180000 }
+    );
+    const imgData = oaiRes.data.data[0];
+    if (imgData.b64_json) return Buffer.from(imgData.b64_json, 'base64');
+    const imgRes = await axios.get(imgData.url, { responseType: 'arraybuffer', timeout: 30000 });
+    return Buffer.from(imgRes.data);
+  } catch (oaiErr) {
+    const msg = oaiErr.response?.data?.error?.message || oaiErr.message;
+    throw new Error(`OpenAI נכשל: ${msg}`);
+  }
 }
 
 // ─── מדריך רעיונות ויזואליים + הנדסת פרומפטים (שני מצבים) ─────────────────
@@ -1128,47 +1151,38 @@ MODE: PROMPTS
 =============
 
 Input: A visual scene described in Hebrew for an Israeli publication.
-Task: Write two short, powerful English image prompts — one photorealistic, one illustrated.
+Task: Write ONE short, powerful English photorealistic editorial photograph prompt.
 
-ISRAELI CONTEXT (apply only when not explicitly specified in the input):
-- "soldiers" with no further description = IDF soldiers
-- "flag" with no further description = Israeli flag
-- "parliament / government building" = Knesset
-- "court" = Israeli Supreme Court
-- Generic "city / crowd / street" = Israeli setting
-Do NOT add Israeli symbols beyond what the context requires.
+ISRAELI CONTEXT — anchor the image culturally when relevant:
+- "soldiers" → IDF soldiers in current IDF uniform
+- "parliament / government building" → the Knesset in Jerusalem
+- "court" → the Israeli Supreme Court building
+- Generic "city / street / crowd" → Israeli setting (Jerusalem stone, Tel Aviv modernism, Mediterranean coast — pick what fits the mood)
+- Light → Mediterranean light when outdoors (warm, golden, sharp shadows) unless the mood demands otherwise
+- People → diverse Israeli faces and dress when scene includes civilians
+- Signage → Hebrew script (no specific readable words)
+
+When the scene is about people, places, or settings — DO embed Israeli visual markers. They give the image cultural weight and make it recognizably ours, not generic Western stock imagery.
+For abstract metaphors (cracked stone, broken glass, isolated chair) — no need to force Israeli symbols.
 
 GOLDEN RULE: One strong image = one clear idea. Do NOT add objects or subjects beyond what is described. Instead, create depth through:
 - LIGHT: direction, quality, temperature (golden backlight, cold blue shadow, single shaft of warm light, dramatic chiaroscuro)
 - TIME & WEATHER: golden hour, stormy sky, heavy clouds, haze, wind
 - ANGLE & PERSPECTIVE: low angle looking up (power/grandeur), wide sky above, tight crop that isolates emotion
 - MOOD & ATMOSPHERE: name the emotional weight — defiant, solemn, proud, melancholic, tense
-These tools transform a simple subject into a powerful image without adding new elements.
 
-Each prompt: 2–4 sentences maximum. No bullet points. No technical camera specs.
+The prompt must be 2–4 sentences. No bullet points. No technical camera specs.
 
----
+Structure:
+- Sentence 1: State the single dominant subject exactly as described (with Israeli context if relevant) — do NOT add new subjects
+- Sentence 2: Lighting and atmosphere (direction + quality + temperature + weather)
+- Sentence 3: Angle, perspective, and emotional weight
+- End with: "Award-winning editorial photography. Cinematic quality. Sharp focus, refined details."
 
-Prompt A — Photorealistic editorial photograph:
-- State the single dominant subject exactly as described — do NOT add new subjects
-- Add depth: describe the lighting and atmosphere in one sentence (direction + quality + temperature + weather)
-- Name the angle/perspective and emotional weight
-- End with: "Award-winning editorial photography. Cinematic quality."
+No text in image. Square 1:1 composition.
 
-Prompt B — Graphic editorial illustration:
-- State the same concept rendered as a bold, flat illustration
-- Specify exactly 2 dominant colors (name them)
-- Name one style reference: e.g. "TIME Magazine cover", "Soviet propaganda poster reappropriated", "stark Polish poster art", "New Yorker editorial illustration"
-- End with: "Bold graphic shapes. No gradients. Zero clutter."
-
-No text in either image. Square 1:1 composition.
-
-OUTPUT — write only the two prompts, no preamble:
-Prompt A:
-[2-4 sentences]
-
-Prompt B:
-[2-4 sentences]`;
+OUTPUT — write only the prompt, no preamble, no headings:
+[2-4 sentences in English]`;
 
 // ─── קידומת איכות המצורפת לכל פרומפט שנשלח לגרוק ────────────────────────────
 const IMAGE_QUALITY_PREFIX = `High quality editorial image. Professional lighting, sharp focus on the main subject, masterful composition, rich tonal range, refined textures, atmospheric depth. Premium render, highly detailed. `;
@@ -1193,29 +1207,24 @@ app.post('/translate-idea', async (req, res) => {
   }
 });
 
-// ─── יצירת שני פרומפטים מרעיון נבחר (MODE: PROMPTS) ────────────────────────
-async function expandToTwoPrompts(idea) {
+// ─── יצירת פרומפט ריאליסטי אחד מרעיון נבחר (MODE: PROMPTS) ─────────────────
+async function expandToRealisticPrompt(idea) {
   try {
     const result = await axios.post(
       'https://api.anthropic.com/v1/messages',
       { model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
+        max_tokens: 600,
         system: VISUAL_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: `MODE: PROMPTS\n\nINPUT:\n${idea}` }] },
       { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 30000 }
     );
-    const text = result.data.content[0].text;
-    const promptAMatch = text.match(/Prompt A:\s*([\s\S]+?)(?=\n\s*Prompt B:|$)/i);
-    const promptBMatch = text.match(/Prompt B:\s*([\s\S]+?)$/i);
-    if (!promptAMatch) addLog('⚠️ לא נמצא Prompt A — משתמש בפולבק');
-    if (!promptBMatch) addLog('⚠️ לא נמצא Prompt B — משתמש בפולבק');
-    const promptA = IMAGE_QUALITY_PREFIX + (promptAMatch ? promptAMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
-    const promptB = IMAGE_QUALITY_PREFIX + (promptBMatch ? promptBMatch[1].trim() : idea) + DALL_E_STYLE_SUFFIX;
-    addLog(`📷 A: ${promptA.length} תווים | 🎨 B: ${promptB.length} תווים`);
-    return { promptA, promptB };
+    const text = result.data.content[0].text.trim();
+    const prompt = text || idea;
+    addLog(`📷 פרומפט ריאליסטי: ${prompt.length} תווים`);
+    return prompt;
   } catch (e) {
-    addLog(`⚠️ expandToTwoPrompts נכשל: ${e.message} — משתמש בפולבק`);
-    return { promptA: IMAGE_QUALITY_PREFIX + idea + DALL_E_STYLE_SUFFIX, promptB: IMAGE_QUALITY_PREFIX + idea + DALL_E_STYLE_SUFFIX };
+    addLog(`⚠️ expandToRealisticPrompt נכשל: ${e.message} — משתמש בפולבק`);
+    return IMAGE_QUALITY_PREFIX + idea + DALL_E_STYLE_SUFFIX;
   }
 }
 
@@ -1256,22 +1265,22 @@ ${direction ? `\nVISUAL DIRECTION FROM AUTHOR: "${direction}" — all 4 ideas mu
   }
 });
 
-// יצירת תמונה — Grok x2 (📷 ריאלי + 🎨 אמנותי)
+// יצירת תמונה — OpenAI gpt-image-1 + Grok במקביל (שניהם ריאליסטי)
 app.post('/generate-image', async (req, res) => {
   try {
     const { ideaEn, ideaHe } = req.body;
     if (!ideaEn) return res.status(400).json({ success: false, error: 'רעיון חסר' });
 
-    addLog('יוצר פרומפטים מקצועיים לפי הרעיון הנבחר...');
-    const { promptA, promptB } = await expandToTwoPrompts(ideaEn);
+    addLog('יוצר פרומפט ריאליסטי מקצועי לפי הרעיון הנבחר...');
+    const prompt = await expandToRealisticPrompt(ideaEn);
 
-    addLog('יוצר 📷 ריאלי ו-✏️ ציור במקביל...');
+    addLog('יוצר 📷 OpenAI + 🤖 Grok במקביל...');
     const ts = Date.now();
 
-    // שני פרומפטים לגרוק במקביל
+    // שני מודלים על אותו פרומפט במקביל
     const [dalleSettled, artisticSettled] = await Promise.allSettled([
-      generateDalleVariant(promptA, 'natural'),
-      generateDalleVariant(promptB, 'natural')
+      generateOpenAIImage(prompt),
+      generateGrokImage(prompt)
     ]);
 
     // שמור תמונות שהצליחו
@@ -1289,18 +1298,18 @@ app.post('/generate-image', async (req, res) => {
 
     if (dalleSettled.status === 'fulfilled') {
       result.dalle = await saveImagePair(dalleSettled.value, 'dalle');
-      addLog('📷 ריאלי — נשמר בהצלחה');
+      addLog('📷 OpenAI — נשמר בהצלחה');
     } else {
       const dalleErr = dalleSettled.reason?.response?.data?.error?.message || dalleSettled.reason?.message || 'שגיאה לא ידועה';
-      addLog(`📷 ריאלי נכשל: ${dalleErr}`);
+      addLog(`📷 OpenAI נכשל: ${dalleErr}`);
     }
 
     if (artisticSettled.status === 'fulfilled') {
       result.artistic = await saveImagePair(artisticSettled.value, 'artistic');
-      addLog('🎨 אמנותי — נשמר בהצלחה');
+      addLog('🤖 Grok — נשמר בהצלחה');
     } else {
       const artisticErr = artisticSettled.reason?.message || 'שגיאה לא ידועה';
-      addLog(`🎨 אמנותי נכשל: ${artisticErr}`);
+      addLog(`🤖 Grok נכשל: ${artisticErr}`);
     }
 
     if (!result.dalle && !result.artistic) {
