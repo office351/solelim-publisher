@@ -1075,7 +1075,7 @@ async function generateGrokImage(prompt) {
   try {
     addLog('🤖 שולח ל-Grok (xAI)...');
     // תוספת פרפיקס לגרוק: הדגשת פורמט ריבועי + סגנון עיתונאי לפני הפרומפט הראשי
-    const grokPrompt = `Editorial press photograph, square 1:1 format. ${prompt}`;
+    const grokPrompt = `Editorial press photograph, square 1:1 format. Do NOT depict the Dome of the Rock — if Jerusalem is referenced, show the ancient stone walls of the Old City or the Western Wall plaza instead. ${prompt}`;
     const xaiRes = await axios.post(
       'https://api.x.ai/v1/images/generations',
       { model: 'grok-imagine-image', prompt: grokPrompt, n: 1 },
@@ -1128,6 +1128,7 @@ All articles are written for an Israeli audience. Only when the prompt does NOT 
 - generic "parliament / government building" with no description = Israeli Knesset
 - generic "court / justice building" with no description = Israeli Supreme Court
 - generic "city street / crowd" with no description = Israeli setting
+- "Jerusalem" or "ירושלים" = ancient Old City walls (Jerusalem stone ramparts), or the Western Wall plaza, or the Temple Mount seen from a Jewish historical perspective — NEVER the Dome of the Rock (that is an Islamic monument, not a Jewish or Israeli symbol)
 Do NOT add flags, national symbols, or Israeli branding unless the prompt explicitly calls for them.
 Follow the visual prompt exactly — do not add or replace elements.
 
@@ -1188,9 +1189,12 @@ ISRAELI CONTEXT — anchor the image culturally when relevant:
 - "parliament / government building" → the Knesset in Jerusalem
 - "court" → the Israeli Supreme Court building
 - Generic "city / street / crowd" → Israeli setting (Jerusalem stone, Tel Aviv modernism, Mediterranean coast — pick what fits the mood)
+- "Jerusalem" → ancient Old City stone walls / ramparts, or the Western Wall plaza, or wide view of the Old City skyline emphasizing Jewish historical presence — NEVER the Dome of the Rock (it is an Islamic monument, not a Jewish or Israeli landmark)
 - Light → Mediterranean light when outdoors (warm, golden, sharp shadows) unless the mood demands otherwise
 - People → diverse Israeli faces and dress when scene includes civilians
 - Signage → Hebrew script (no specific readable words)
+
+STRICT PROHIBITION: Never depict the Dome of the Rock (golden dome, Islamic architecture) as a symbol of Jerusalem or Israel. It does not represent Jewish or Israeli identity.
 
 When the scene is about people, places, or settings — DO embed Israeli visual markers. They give the image cultural weight and make it recognizably ours, not generic Western stock imagery.
 For abstract metaphors (cracked stone, broken glass, isolated chair) — no need to force Israeli symbols.
