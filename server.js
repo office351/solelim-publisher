@@ -881,10 +881,30 @@ app.post('/publish', requireAdmin, async (req, res) => {
     const result = await publishToWordPress(req.body);
     res.json({ success: true, result, logs });
   } catch (error) {
-    addLog(`שגיאה בפרסום: ${error.message}`);
-    res.status(500).json({ success: false, error: error.message, logs });
+    const httpStatus = error.response?.status;
+    const wpMsg     = error.response?.data?.message || '';
+    const friendly  = httpStatus ? wpHttpError(httpStatus, wpMsg) : error.message;
+    addLog(`שגיאה בפרסום (${httpStatus || 'network'}): ${friendly}`);
+    res.status(500).json({ success: false, error: friendly, logs });
   }
 });
+
+function wpHttpError(status, detail) {
+  const map = {
+    400: 'נתוני הפרסום שגויים' + (detail ? ` — ${detail}` : ''),
+    401: 'שגיאת אימות — בדוק פרטי גישה לוורדפרס',
+    403: 'אין הרשאה לפרסם — בדוק פרטי גישה לוורדפרס',
+    404: 'נתיב ה-API של וורדפרס לא נמצא — בדוק את כתובת האתר',
+    422: 'שגיאת אימות נתונים בוורדפרס' + (detail ? ` — ${detail}` : ''),
+    429: 'יותר מדי בקשות — המתן כמה דקות ונסה שוב',
+    500: 'שגיאת שרת פנימית בוורדפרס — נסה שוב בעוד מספר דקות',
+    502: 'שרת הוורדפרס לא מגיב (502) — נסה שוב בעוד רגע',
+    503: 'שרת הוורדפרס אינו זמין כרגע (503) — נסה שוב בעוד מספר דקות',
+    504: 'פסק זמן בחיבור לוורדפרס (504) — נסה שוב',
+    529: 'האתר עמוס כרגע (529) — נסה שוב בעוד מספר דקות',
+  };
+  return map[status] || `שגיאת HTTP ${status} מוורדפרס` + (detail ? ` — ${detail}` : '');
+}
 
 // ─── העלאת חוברת שבועית ───────────────────────────────────────────────────────
 app.post('/publish-booklet', requireAdmin, upload.single('pdf'), async (req, res) => {
