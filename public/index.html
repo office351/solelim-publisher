@@ -1354,6 +1354,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
             <button onclick="generateEditCustomIdea()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px;width:auto;margin:0">צור תמונה</button>
           </div>
         </div>
+
+        <div style="margin-top:14px;padding:12px 14px;background:#f0f7ff;border-radius:8px;border:1px solid #c0d8f0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:18px">🤖</span>
+          <span style="font-size:13px;color:#2c5f8a;flex:1;min-width:200px">ליצירת תמונה מהבוט החיצוני — העתק את המאמר, לחץ על הקישור והדבק את הטקסט בבוט:</span>
+          <button onclick="copyArticleAndOpen()" style="background:#2c5f8a;color:white;border:none;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;white-space:nowrap;width:auto;margin:0">📋 העתק מאמר ופתח בוט</button>
+        </div>
       </div>
 
       <div id="editImageGenLoading" class="hidden" style="text-align:center;padding:20px">
@@ -2659,6 +2665,21 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       alert('שגיאה: ' + e.message);
       btn.disabled = false;
       btn.textContent = '💡 קבל 4 רעיונות לתמונה';
+    }
+  }
+
+  function copyArticleAndOpen() {
+    const BOT_URL = 'https://chatgpt.com/g/g-683b72df39b4819184f986a06d54b53d-yvtsr-tmvnvt';
+    const text = document.getElementById('editResult')?.value?.trim() || editFormattedBody || '';
+    if (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        window.open(BOT_URL, '_blank');
+      }).catch(() => {
+        window.open(BOT_URL, '_blank');
+        alert('לא הצלחנו להעתיק אוטומטית — אנא העתק את המאמר ידנית ולאחר מכן הדבק בבוט.');
+      });
+    } else {
+      window.open(BOT_URL, '_blank');
     }
   }
 
