@@ -514,7 +514,7 @@ function saveGroups(data) {
   fs.writeFileSync(GROUPS_FILE, JSON.stringify(data, null, 2));
 }
 
-app.get('/groups', requireAdmin, (req, res) => res.json(loadGroups()));
+app.get('/groups', (req, res) => res.json(loadGroups())); // כל משתמש מאומת — נדרש לבניית קישור קבוצה
 
 app.post('/groups', requireAdmin, (req, res) => {
   saveGroups(req.body);

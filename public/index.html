@@ -1258,10 +1258,12 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       </div>
       <!-- שדות נסתרים לשימוש בקוד -->
       <input type="hidden" id="editAuthor">
-      <label>קבוצת וואטסאפ לשליחה:</label>
-      <select id="editGroup">
-        <option value="">טוען קבוצות...</option>
-      </select>
+      <div id="editGroupRow">
+        <label>קבוצת וואטסאפ לשליחה:</label>
+        <select id="editGroup">
+          <option value="">טוען קבוצות...</option>
+        </select>
+      </div>
     </div>
 
     <div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;padding:10px 14px;background:#f8f4fb;border-radius:8px;border:1px solid #e0d0e8">
@@ -1507,6 +1509,9 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       document.querySelectorAll('.english-only').forEach(el => el.classList.add('hidden'));
       const grid = document.querySelector('.landing-grid');
       if (grid) grid.style.gridTemplateColumns = '1fr';
+      // מסתיר בחירת קבוצה (הנתונים נטענים ברקע לצורך הקישור האוטומטי)
+      const groupRow = document.getElementById('editGroupRow');
+      if (groupRow) groupRow.style.display = 'none';
     }
   }
 
