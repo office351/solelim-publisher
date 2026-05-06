@@ -1269,6 +1269,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <label for="editAddBold" style="cursor:pointer;font-size:15px;color:#333;margin:0">הוסף הדגשות אוטומטיות למשפטי מפתח</label>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;margin:4px 0 4px;padding:10px 14px;background:#fff8f0;border-radius:8px;border:1px solid #f0d8b8">
+      <input type="checkbox" id="editNoTitle" style="width:18px;height:18px;cursor:pointer;accent-color:#c0772a;flex-shrink:0">
+      <label for="editNoTitle" style="cursor:pointer;font-size:15px;color:#333;margin:0">המאמר ללא כותרת — הצע לי כותרות</label>
+    </div>
+
     <button onclick="submitEdit()" id="editBtn" style="background:#7b2d8b">
       הגה מאמר עם AI ➜
     </button>
@@ -2326,11 +2331,13 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         if (stageEl) stageEl.textContent = `מגיה טקסט… (${s} שניות)`;
       }, 1000);
 
+      const noTitle = document.getElementById('editNoTitle').checked;
+
       let data1;
       try {
         const res1 = await fetch('/edit-stage1', {
           method: 'POST', headers: hdrs, credentials: 'include',
-          body: JSON.stringify({ text })
+          body: JSON.stringify({ text, noTitle })
         });
         data1 = await res1.json();
       } finally {
@@ -2356,7 +2363,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       const [data2, data3] = await Promise.all([
         fetch('/edit-stage2', {
           method: 'POST', headers: hdrs,
-          body: JSON.stringify({ originalTitle: data1.originalTitle, bodyPreview: data1.body.slice(0, 600) })
+          body: JSON.stringify({ originalTitle: data1.originalTitle, bodyPreview: data1.body.slice(0, 600), noTitle })
         }).then(r => r.json()),
         addBold
           ? fetch('/edit-stage3', {

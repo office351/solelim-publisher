@@ -216,7 +216,7 @@ setInterval(() => {
 
 // שלב 1: הגהה לשונית – סינכרוני (ממתין לתשובה, אין polling)
 app.post('/edit-stage1', async (req, res) => {
-  const { text } = req.body;
+  const { text, noTitle } = req.body;
   if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
   try {
@@ -284,12 +284,23 @@ app.post('/edit-stage1', async (req, res) => {
 
       const correctedText = proofedChunks.join('\n');
       let allLines = correctedText.split('\n');
-      const firstLine = allLines[0];
-      const slashIdx = firstLine.search(/[/|\\]/);
-      const originalTitle = (slashIdx !== -1 ? firstLine.slice(0, slashIdx) : firstLine).replace(/\*/g, '').trim();
-      let bodyStart = 1;
-      while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
-      let bodyLines = allLines.slice(bodyStart);
+      let originalTitle, bodyLines;
+
+      if (noTitle) {
+        // אין כותרת — כל הטקסט הולך לגוף, כותרת ריקה (יוצעו כותרות בשלב 2)
+        originalTitle = '';
+        let bodyStart = 0;
+        while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
+        bodyLines = allLines.slice(bodyStart);
+      } else {
+        // ברירת מחדל: שורה ראשונה = כותרת
+        const firstLine = allLines[0];
+        const slashIdx = firstLine.search(/[/|\\]/);
+        originalTitle = (slashIdx !== -1 ? firstLine.slice(0, slashIdx) : firstLine).replace(/\*/g, '').trim();
+        let bodyStart = 1;
+        while (bodyStart < allLines.length && !allLines[bodyStart].trim()) bodyStart++;
+        bodyLines = allLines.slice(bodyStart);
+      }
 
       // מחיקת שורות קישור קיימות מתחילת הגוף (אתר / קבוצת ווטסאפ)
       const isLinkLine = l => {
@@ -333,7 +344,12 @@ app.get('/edit-poll/:jobId', (req, res) => {
 // שלב 2: הצעות כותרת (Haiku – מהיר, עד 20 שניות)
 app.post('/edit-stage2', async (req, res) => {
   try {
-    const { originalTitle, bodyPreview } = req.body;
+    const { originalTitle, bodyPreview, noTitle } = req.body;
+
+    const userContent = (noTitle || !originalTitle)
+      ? `המאמר אינו כולל כותרת. כתוב 3 כותרות שונות לחלוטין זו מזו על בסיס תוכן המאמר.\nהראשונה — חדה ופרובוקטיבית. השנייה — דרמטית ורגשית. השלישית — תיאורית וישירה.\nהחזר JSON בלבד: {"titles":["כותרת 1","כותרת 2","כותרת 3"]}\n\nתוכן המאמר:\n${bodyPreview}`
+      : `כתוב 2 כותרות שונות לחלוטין זו מזו ושונות מהכותרת המקורית: "${originalTitle}".\nאחת — חדה ופרובוקטיבית. השנייה — דרמטית ורגשית.\nהחזר JSON בלבד: {"titles":["כותרת 1","כותרת 2"]}\n\nתחילת המאמר:\n${bodyPreview}`;
+
     const titlesRes = await axios.post(
       'https://api.anthropic.com/v1/messages',
       {
@@ -374,15 +390,7 @@ app.post('/edit-stage2', async (req, res) => {
 ✓ "ישראל לא מרשה לעצמה להפסיד"
 ✓ "הבגידה שכולם ראו, איש לא אמר"
 ✓ "הנה מה שהתקשורת לא תספר לך"`,
-        messages: [{
-          role: 'user',
-          content: `כתוב 2 כותרות שונות לחלוטין זו מזו ושונות מהכותרת המקורית: "${originalTitle}".
-אחת — חדה ופרובוקטיבית. השנייה — דרמטית ורגשית.
-החזר JSON בלבד: {"titles":["כותרת 1","כותרת 2"]}
-
-תחילת המאמר:
-${bodyPreview}`
-        }]
+        messages: [{ role: 'user', content: userContent }]
       },
       { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
     );
