@@ -1955,9 +1955,9 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* תמונות מוטמעות בגוף המאמר (לא תמונה ראשית) — מרוכזות, עד חצי עמוד */
 .art-body img{display:block;max-width:50%;height:auto;margin:14px auto;border-radius:6px}
 
-/* ── @page: margin:0 — מונע כותרות אוטומטיות של Chrome/Edge.
-   כל השוליים הויזואליים (למעלה/מטה/ימין/שמאל) מגיעים מה-padding של .bk-page בלבד. ── */
-@page{size:A4;margin:0}
+/* ── @page: margin חל על כל שבירת עמוד, כולל באמצע תוכן — זה ההבדל מ-padding.
+   frontmatter (שער/הקדמה) = full-bleed ── */
+@page{size:A4;margin:18mm 20mm}
 @page frontmatter{size:A4;margin:0}
 
 /* ── הדפסה ── */
@@ -1968,9 +1968,9 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   /* שער/הקדמה — עמוד ייעודי ללא מספר */
   .bk-cover,.bk-intro,.bk-static-page{page:frontmatter}
 
-  /* כל עמוד: מתחיל דף חדש; padding = כל השוליים (15mm למעלה/מטה, 20mm ימין/שמאל) */
+  /* כל עמוד: מתחיל דף חדש. שוליים מגיעים מ-@page{margin} — חלים גם על שבירות באמצע תוכן */
   .bk-page{
-    width:100%;margin:0;padding:15mm 20mm;
+    width:100%;margin:0;padding:0;
     position:relative;
     min-height:0;
     overflow:visible!important;
