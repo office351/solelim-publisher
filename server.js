@@ -1955,10 +1955,10 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 /* תמונות מוטמעות בגוף המאמר (לא תמונה ראשית) — מרוכזות, עד חצי עמוד */
 .art-body img{display:block;max-width:50%;height:auto;margin:14px auto;border-radius:6px}
 
-/* ── @page ברמה עליונה. margin:0 לגובה — Chrome מציג כותרות רק אם יש מקום בmargin ──
-   שוליים ויזואליים (10mm למעלה/למטה) מגיעים מה-padding של .bk-page ישירות ── */
-@page{size:A4;margin:0 20mm}
-@page frontmatter{size:A4;margin:0 20mm}
+/* ── @page: margin:0 — מונע כותרות אוטומטיות של Chrome/Edge.
+   כל השוליים הויזואליים (למעלה/מטה/ימין/שמאל) מגיעים מה-padding של .bk-page בלבד. ── */
+@page{size:A4;margin:0}
+@page frontmatter{size:A4;margin:0}
 
 /* ── הדפסה ── */
 @media print{
@@ -1968,9 +1968,9 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   /* שער/הקדמה — עמוד ייעודי ללא מספר */
   .bk-cover,.bk-intro,.bk-static-page{page:frontmatter}
 
-  /* כל עמוד: מתחיל דף חדש; padding מחליף את שוליי @page למעלה/למטה */
+  /* כל עמוד: מתחיל דף חדש; padding = כל השוליים (15mm למעלה/מטה, 20mm ימין/שמאל) */
   .bk-page{
-    width:100%;margin:0;padding:10mm 0;
+    width:100%;margin:0;padding:15mm 20mm;
     position:relative;
     min-height:0;
     overflow:visible!important;
@@ -1987,7 +1987,7 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
     page-break-inside:avoid;break-inside:avoid
   }
   /* הקדמה — padding ויזואלי לתוכן */
-  .bk-intro{padding:10mm 0!important}
+  .bk-intro{padding:15mm 20mm!important}
   .bk-cover{padding:0!important}
   .bk-static-page{
     position:relative!important;
@@ -2367,9 +2367,8 @@ app.post('/publish-booklet-from-html', requireAdmin, async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
     const pdfBuffer = await page.pdf({
-      format: 'A4',
       printBackground: true,
-      margin: { top: '10mm', right: '20mm', bottom: '10mm', left: '20mm' }
+      preferCSSPageSize: true   // שוליים מגיעים מה-CSS בלבד (padding של .bk-page)
     });
     await browser.close(); browser = null;
     addLog('PDF נוצר בהצלחה, מעלה לוורדפרס...');
