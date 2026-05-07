@@ -1957,8 +1957,8 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
 
 /* ── @page: margin חל על כל שבירת עמוד, כולל באמצע תוכן — זה ההבדל מ-padding.
    frontmatter (שער/הקדמה) = full-bleed ── */
-@page{size:A4;margin:18mm 20mm}
-@page frontmatter{size:A4;margin:0}
+@page{size:A4;margin:18mm 20mm;@bottom-center{content:counter(page);font-family:Arial,sans-serif;font-size:9pt;color:#888;margin-bottom:4mm}}
+@page frontmatter{size:A4;margin:0;@bottom-center{content:none}}
 
 /* ── הדפסה ── */
 @media print{
