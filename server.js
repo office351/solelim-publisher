@@ -2020,23 +2020,19 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   .art-body blockquote{padding:8px 14px!important;margin:10px 0!important;font-size:16px!important}
   .art-body img{max-width:85mm!important;display:block!important;margin:8px auto!important;height:auto!important;page-break-inside:avoid;break-inside:avoid}
 
-  /* ── מספרי עמודים (מחליף @bottom-center שדורש margin) ──
-     counter מתחיל מ-2 כדי שעמוד המאמר הראשון = 3 (שער+הקדמה הם 1-2) */
-  body{counter-reset:bk-pg 2}
-  .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page){counter-increment:bk-pg}
-  .bk-page:not(.bk-cover):not(.bk-intro):not(.bk-static-page)::after{
-    content:counter(bk-pg);
-    display:block;
-    text-align:center;
-    font-size:8pt;
-    color:#aaa;
-    font-family:'Heebo',Arial,sans-serif;
-    margin-top:4mm
+  /* ── כיסוי כותרות/כותרות-תחתון אוטומטיות של Chrome בהדפסה ──
+     position:fixed מופיע בכל עמוד — מכסה את אזור ה-@page margin בלבן ── */
+  .print-header-mask,.print-footer-mask{
+    display:block;position:fixed;left:0;right:0;background:#fff;z-index:99999
   }
+  .print-header-mask{top:0;height:18mm}
+  .print-footer-mask{bottom:0;height:18mm}
 }
 </style>
 </head>
 <body>
+<div class="print-header-mask" aria-hidden="true"></div>
+<div class="print-footer-mask" aria-hidden="true"></div>
 <div class="pbar">
   <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
   <div class="pbar-b">
