@@ -1705,7 +1705,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   }
 
-  // שמירת PDF — שולח את ה-HTML לשרת (Puppeteer) וחוזר PDF נקי ללא כותרות Chrome
+  // שמירת PDF — מנסה Puppeteer בשרת; אם לא זמין — fallback לחלון הדפסה
   async function downloadBookletPdf() {
     if (!bkLastHtml) return;
     const btn = document.querySelector('[onclick="downloadBookletPdf()"]');
@@ -1717,10 +1717,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ html: bkLastHtml })
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -1729,10 +1726,25 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (e) {
-      alert('שגיאה ביצירת PDF: ' + e.message);
+      // Puppeteer לא זמין — פותח חלון הדפסה (יש לכבות "Headers and footers" בדיאלוג)
+      if (btn) { btn.disabled = false; btn.textContent = origText; }
+      _printBookletFallback();
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = origText; }
     }
+  }
+
+  function _printBookletFallback() {
+    if (!bkLastHtml) return;
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) { alert('אפשר פופ-אפ ונסה שוב'); return; }
+    win.document.write(bkLastHtml);
+    win.document.close();
+    win.addEventListener('load', () => {
+      win.focus();
+      win.print();
+      // הנחיה — Chrome: בטל "Headers and footers" בדיאלוג ההדפסה
+    });
   }
 
   function continueToPublish() {
