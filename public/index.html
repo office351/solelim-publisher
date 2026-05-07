@@ -1705,68 +1705,33 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     }
   }
 
-  // שמירת PDF — מזריק את ה-HTML של החוברת לתוך העמוד הנוכחי,
-  // מסתיר הכל בCSS, ומפעיל window.print() מ-onclick ישיר.
-  // לא תלוי בפופאפ, לא בPuppeteer, לא בשרת — תמיד עובד.
-  function downloadBookletPdf() {
+  // שמירת PDF — שולח את ה-HTML לשרת (Puppeteer) וחוזר PDF נקי ללא כותרות Chrome
+  async function downloadBookletPdf() {
     if (!bkLastHtml) return;
-
-    const parser = new DOMParser();
-    const bkDoc  = parser.parseFromString(bkLastHtml, 'text/html');
-
-    // חלץ CSS מראש החוברת (כולל @page, @media print, גופנים)
-    // חשוב: להזריק כ-<style> תקני ולא כ-<div> — רק <style> מעובד בתוך <head>
-    const cssText = Array.from(bkDoc.head.querySelectorAll('style'))
-      .map(s => s.textContent).join('\n');
-
-    // גוף ללא שורת כלים (pbar — מוסתרת גם ב-@media print של החוברת)
-    const bkBody = bkDoc.body.cloneNode(true);
-    bkBody.querySelector('.pbar')?.remove();
-
-    // הזרק לעמוד
-    const wrap = document.createElement('div');
-    wrap.id = '__bk_print';
-    wrap.innerHTML = bkBody.innerHTML;
-    document.body.appendChild(wrap);
-
-    const styleEl = document.createElement('style');
-    styleEl.id = '__bk_head';
-    styleEl.textContent = cssText;
-    document.head.appendChild(styleEl);
-
-    // הסתר הכל בזמן הדפסה; הצג רק החוברת
-    const hideStyle = document.createElement('style');
-    hideStyle.id = '__bk_hide';
-    hideStyle.textContent =
-      '@media print{body>*:not(#__bk_print){display:none!important}' +
-      '#__bk_print{display:block!important}}' +
-      '@media screen{#__bk_print{display:none}}';
-    document.head.appendChild(hideStyle);
-
-    // ממתין לטעינת כל התמונות לפני הדפסה
-    function doPrint() {
-      window.print();
-      window.addEventListener('afterprint', function cleanup() {
-        document.getElementById('__bk_print')?.remove();
-        document.getElementById('__bk_head')?.remove();
-        document.getElementById('__bk_hide')?.remove();
-        window.removeEventListener('afterprint', cleanup);
+    const btn = document.querySelector('[onclick="downloadBookletPdf()"]');
+    const origText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ מייצר PDF...'; }
+    try {
+      const res = await fetch('/generate-booklet-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: bkLastHtml })
       });
-    }
-
-    const imgs = Array.from(wrap.querySelectorAll('img'));
-    const pending = imgs.filter(img => !img.complete || img.naturalWidth === 0);
-    if (pending.length === 0) {
-      doPrint();
-    } else {
-      let done = 0;
-      pending.forEach(img => {
-        const finish = () => { if (++done === pending.length) doPrint(); };
-        img.addEventListener('load',  finish, { once: true });
-        img.addEventListener('error', finish, { once: true });
-      });
-      // timeout fallback — מדפיס גם אם תמונה נתקעת
-      setTimeout(() => { if (done < pending.length) doPrint(); }, 5000);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `booklet-${bkLastNum || 'draft'}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      alert('שגיאה ביצירת PDF: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = origText; }
     }
   }
 

@@ -2020,19 +2020,10 @@ html,body{background:#ddd;font-family:'Heebo','Arial Hebrew',Arial,sans-serif;di
   .art-body blockquote{padding:8px 14px!important;margin:10px 0!important;font-size:16px!important}
   .art-body img{max-width:85mm!important;display:block!important;margin:8px auto!important;height:auto!important;page-break-inside:avoid;break-inside:avoid}
 
-  /* ── כיסוי כותרות/כותרות-תחתון אוטומטיות של Chrome בהדפסה ──
-     position:fixed מופיע בכל עמוד — מכסה את אזור ה-@page margin בלבן ── */
-  .print-header-mask,.print-footer-mask{
-    display:block;position:fixed;left:0;right:0;background:#fff;z-index:99999
-  }
-  .print-header-mask{top:0;height:18mm}
-  .print-footer-mask{bottom:0;height:18mm}
 }
 </style>
 </head>
 <body>
-<div class="print-header-mask" aria-hidden="true"></div>
-<div class="print-footer-mask" aria-hidden="true"></div>
 <div class="pbar">
   <span class="pbar-t">📚 חוברת סוללים דרך — גיליון ${bookletNumber}</span>
   <div class="pbar-b">
@@ -2364,7 +2355,8 @@ app.post('/publish-booklet-from-html', requireAdmin, async (req, res) => {
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
     const pdfBuffer = await page.pdf({
       printBackground: true,
-      preferCSSPageSize: true   // שוליים מגיעים מה-CSS בלבד (padding של .bk-page)
+      displayHeaderFooter: false,
+      preferCSSPageSize: true   // מכבד @page{size:A4;margin:...} מה-CSS
     });
     await browser.close(); browser = null;
     addLog('PDF נוצר בהצלחה, מעלה לוורדפרס...');
