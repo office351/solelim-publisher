@@ -1739,20 +1739,30 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     const win = window.open('', '_blank');
     if (!win) { alert('אפשר פופ-אפ ונסה שוב'); return; }
 
-    // פרס HTML, הזרק override שמאפס שוליים של @page (מבטל כותרות Chrome)
-    // ומחזיר padding ויזואלי לכל עמוד — כך אין כותרות ויש שוליים נקיים
-    const parser  = new DOMParser();
-    const bkDoc   = parser.parseFromString(bkLastHtml, 'text/html');
-    const override = bkDoc.createElement('style');
-    override.textContent = [
-      '@page{size:A4;margin:0!important}',
-      '@media print{',
-      '  .bk-page{padding:18mm 20mm!important;height:297mm!important;overflow:hidden!important;box-sizing:border-box!important}',
-      '  .bk-cover,.bk-static-page{padding:0!important;height:297mm!important;overflow:hidden!important}',
-      '  .bk-intro{padding:18mm 20mm!important;height:297mm!important;overflow:hidden!important;box-sizing:border-box!important}',
-      '}'
+    // פרס HTML והוסף הנחיה מוסתרת בהדפסה (גלויה רק על המסך)
+    const parser = new DOMParser();
+    const bkDoc  = parser.parseFromString(bkLastHtml, 'text/html');
+
+    // הנחיה ויזואלית לפני ההדפסה (נעלמת בהדפסה עצמה)
+    const notice = bkDoc.createElement('div');
+    notice.id = '__print_notice';
+    notice.innerHTML = [
+      '<div style="font-family:Arial,sans-serif;direction:rtl;text-align:right;',
+      'background:#fff3cd;border:2px solid #f0a500;border-radius:10px;',
+      'padding:18px 24px;margin:20px;font-size:15px;line-height:2">',
+      '<strong>⚠️ לפני שתלחץ על הדפסה / שמור כ-PDF:</strong><br>',
+      'בדיאלוג ההדפסה של Chrome — בטל את האפשרות <strong>"Headers and footers"</strong>',
+      ' (כותרות עליונות ותחתונות) כדי לקבל עמודים נקיים.<br>',
+      '<span style="font-size:13px;color:#666">',
+      'לחלופין — התקן את Puppeteer על השרת (<code>npm install</code>) לשמירה ישירה ללא דיאלוג.</span>',
+      '</div>'
     ].join('');
-    bkDoc.head.appendChild(override);
+    bkDoc.body.insertBefore(notice, bkDoc.body.firstChild);
+
+    // הסתר את ההנחיה בזמן הדפסה ממש
+    const hideNotice = bkDoc.createElement('style');
+    hideNotice.textContent = '@media print{#__print_notice{display:none!important}}';
+    bkDoc.head.appendChild(hideNotice);
 
     win.document.open();
     win.document.write(bkDoc.documentElement.outerHTML);
@@ -1764,10 +1774,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       const imgs    = Array.from(win.document.querySelectorAll('img'));
       const pending = imgs.filter(img => !img.complete || img.naturalWidth === 0);
       if (pending.length === 0) {
-        setTimeout(doPrint, 400);
+        setTimeout(doPrint, 500);
       } else {
         let done = 0;
-        const finish = () => { if (++done >= pending.length) setTimeout(doPrint, 400); };
+        const finish = () => { if (++done >= pending.length) setTimeout(doPrint, 500); };
         pending.forEach(img => {
           img.addEventListener('load',  finish, { once: true });
           img.addEventListener('error', finish, { once: true });
