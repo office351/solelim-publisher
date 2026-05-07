@@ -2123,7 +2123,7 @@ try {
 } catch(_) {}
 
 async function fetchRecentPostsFromWP() {
-  const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=30';
+  const feedUrl = process.env.WP_URL + '/feed/?posts_per_page=50';
   const r = await axios.get(feedUrl, {
     timeout: 15000,
     headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' }
@@ -2206,19 +2206,22 @@ async function fetchRecentPostsFromWP() {
   return items;
 }
 
-// שליפת 10 מאמרים אחרונים — עם קאש למניעת עומס על WordPress
+// שליפת מאמרים אחרונים — עם קאש למניעת עומס על WordPress
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
+  const count    = Math.min(50, Math.max(10, parseInt(req.query.count) || 10));
   const cacheAge = Date.now() - recentPostsCache.fetchedAt;
   const hasCache = recentPostsCache.posts.length > 0;
-  const tooSoon  = cacheAge < POSTS_CACHE_MIN_AGE; // פחות מ-5 דקות — לא לגשת ל-WP
+  const tooSoon  = cacheAge < POSTS_CACHE_MIN_AGE;
+
+  const slicedPosts = (posts) => posts.slice(0, count);
 
   // אם עברו פחות מ-5 דקות, תמיד החזר קאש (הגנה על WordPress)
   if (hasCache && tooSoon) {
-    return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true });
+    return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true });
   }
   // אם לא ביקשו רענון מפורש וקאש תקין — החזר קאש
   if (hasCache && cacheAge < POSTS_CACHE_TTL && !req.query.refresh) {
-    return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true });
+    return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true });
   }
 
   try {
@@ -2229,11 +2232,11 @@ app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
       if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
       fs.writeFileSync(POSTS_CACHE_FILE, JSON.stringify(recentPostsCache), 'utf8');
     } catch(_) {}
-    res.json({ success: true, posts, fromCache: false });
+    res.json({ success: true, posts: slicedPosts(posts), fromCache: false });
   } catch (e) {
     // אם יש קאש ישן — החזר אותו במקום שגיאה
     if (recentPostsCache.posts.length > 0) {
-      return res.json({ success: true, posts: recentPostsCache.posts, fromCache: true, stale: true });
+      return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true, stale: true });
     }
     const status = e.response ? e.response.status : null;
     const detail = status ? ' (HTTP ' + status + ')' : ' (' + (e.code || 'network error') + ')';

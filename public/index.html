@@ -1121,7 +1121,7 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
       <div style="margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <label style="font-weight:bold;font-size:14px">בחר עד 4 מאמרים (לפי סדר פרסום):</label>
+          <label id="bkSelectLabel" style="font-weight:bold;font-size:14px">בחר עד 4 מאמרים (לפי סדר פרסום):</label>
           <button onclick="loadRecentPosts()" id="bkLoadBtn"
             style="background:none;border:2px solid #e67e22;color:#e67e22;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
             🔄 טען מאמרים
@@ -1129,10 +1129,30 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         </div>
 
         <div id="bkPostsList" style="display:flex;flex-direction:column;gap:8px">
-          <p style="color:#aaa;font-size:14px;text-align:center;padding:20px">לחץ "טען מאמרים" לטעינת 10 המאמרים האחרונים</p>
+          <p id="bkEmptyHint" style="color:#aaa;font-size:14px;text-align:center;padding:20px">לחץ "טען מאמרים" לטעינת 10 המאמרים האחרונים</p>
         </div>
         <p id="bkSelCount" style="font-size:13px;color:#888;margin-top:8px;text-align:left"></p>
       </div>
+
+      <details id="bkAdvancedSettings" style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:13px;color:#888;user-select:none;padding:6px 0">⚙️ הגדרות מתקדמות</summary>
+        <div style="margin-top:10px;padding:12px 14px;background:#fafafa;border-radius:8px;border:1px solid #eee;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <label style="font-size:13px;color:#555;white-space:nowrap">כמות מאמרים לטעינה:</label>
+            <input type="number" id="bkLoadCount" value="10" min="10" max="50"
+              style="width:70px;padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;font-family:inherit;text-align:center"
+              oninput="onBkSettingChange()">
+            <span style="font-size:12px;color:#aaa">(10–50)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <label style="font-size:13px;color:#555;white-space:nowrap">מספר מאמרים לחוברת:</label>
+            <input type="number" id="bkMaxSelect" value="4" min="1" max="10"
+              style="width:70px;padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:14px;font-family:inherit;text-align:center"
+              oninput="onBkSettingChange()">
+            <span style="font-size:12px;color:#aaa">(1–10)</span>
+          </div>
+        </div>
+      </details>
 
       <button onclick="generateBookletPreview()" id="bkGenBtn"
         style="background:#e67e22;color:#fff;width:100%;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
@@ -1541,16 +1561,40 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     });
   }
 
+  function getBkLoadCount()  { return Math.min(50, Math.max(10, parseInt(document.getElementById('bkLoadCount')?.value)  || 10)); }
+  function getBkMaxSelect()  { return Math.min(10, Math.max(1,  parseInt(document.getElementById('bkMaxSelect')?.value) || 4));  }
+
+  function onBkSettingChange() {
+    const max   = getBkMaxSelect();
+    const count = getBkLoadCount();
+    document.getElementById('bkSelectLabel').textContent = `בחר עד ${max} מאמרים (לפי סדר פרסום):`;
+    document.getElementById('bkEmptyHint').textContent   = `לחץ "טען מאמרים" לטעינת ${count} המאמרים האחרונים`;
+    // אם כבר נבחרו יותר מהמקסימום החדש — מחק עודפים
+    if (bkSelectedIds.length > max) {
+      bkSelectedIds = bkSelectedIds.slice(0, max);
+      document.querySelectorAll('#bkPostsList .bk-card').forEach(card => {
+        const id = parseInt(card.dataset.postId);
+        if (!bkSelectedIds.includes(id)) {
+          card.style.borderColor = '#ddd'; card.style.background = '#fff';
+          card.querySelector('.bk-check').textContent = '';
+          card.querySelector('.bk-check').style.cssText = 'width:26px;height:26px;border:2px solid #ddd;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px';
+        }
+      });
+      updateSelCount();
+    }
+  }
+
   async function loadRecentPosts() {
     const listEl = document.getElementById('bkPostsList');
     const btn    = document.getElementById('bkLoadBtn');
+    const count  = getBkLoadCount();
     btn.disabled = true;
     btn.textContent = '⏳ טוען...';
     listEl.innerHTML = '<p style="color:#aaa;font-size:14px;text-align:center;padding:16px">טוען מאמרים...</p>';
     bkSelectedIds = [];
     updateSelCount();
     try {
-      const res  = await fetch('/booklet/recent-posts?refresh=1');
+      const res  = await fetch(`/booklet/recent-posts?refresh=1&count=${count}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       renderPostsList(data.posts);
@@ -1581,6 +1625,8 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     posts.forEach(p => {
       const card = document.createElement('div');
       card.id = 'bk-post-' + p.id;
+      card.dataset.postId = p.id;
+      card.className = 'bk-card';
       card.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid #ddd;border-radius:10px;cursor:pointer;transition:all 0.15s;background:#fff';
       card.onclick = () => togglePost(p.id, card);
       card.innerHTML = `
@@ -1595,9 +1641,10 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   function togglePost(id, card) {
+    const max = getBkMaxSelect();
     const idx = bkSelectedIds.indexOf(id);
     if (idx === -1) {
-      if (bkSelectedIds.length >= 4) { alert('ניתן לבחור עד 4 מאמרים בלבד'); return; }
+      if (bkSelectedIds.length >= max) { alert(`ניתן לבחור עד ${max} מאמרים בלבד`); return; }
       bkSelectedIds.push(id);
       card.style.borderColor = '#e67e22';
       card.style.background  = '#fff8f0';
@@ -1614,10 +1661,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
   }
 
   function updateSelCount() {
-    const el = document.getElementById('bkSelCount');
-    const n  = bkSelectedIds.length;
-    el.textContent = n === 0 ? '' : `נבחרו ${n}/4 מאמרים`;
-    el.style.color = n === 4 ? '#27ae60' : '#888';
+    const el  = document.getElementById('bkSelCount');
+    const max = getBkMaxSelect();
+    const n   = bkSelectedIds.length;
+    el.textContent = n === 0 ? '' : `נבחרו ${n}/${max} מאמרים`;
+    el.style.color = n === max ? '#27ae60' : '#888';
   }
 
   let bkLastHtml = null;
