@@ -1736,14 +1736,44 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
 
   function _printBookletFallback() {
     if (!bkLastHtml) return;
-    const win = window.open('', '_blank', 'width=900,height=700');
+    const win = window.open('', '_blank');
     if (!win) { alert('אפשר פופ-אפ ונסה שוב'); return; }
-    win.document.write(bkLastHtml);
+
+    // פרס HTML, הזרק override שמאפס שוליים של @page (מבטל כותרות Chrome)
+    // ומחזיר padding ויזואלי לכל עמוד — כך אין כותרות ויש שוליים נקיים
+    const parser  = new DOMParser();
+    const bkDoc   = parser.parseFromString(bkLastHtml, 'text/html');
+    const override = bkDoc.createElement('style');
+    override.textContent = [
+      '@page{size:A4;margin:0!important}',
+      '@media print{',
+      '  .bk-page{padding:18mm 20mm!important;height:297mm!important;overflow:hidden!important;box-sizing:border-box!important}',
+      '  .bk-cover,.bk-static-page{padding:0!important;height:297mm!important;overflow:hidden!important}',
+      '  .bk-intro{padding:18mm 20mm!important;height:297mm!important;overflow:hidden!important;box-sizing:border-box!important}',
+      '}'
+    ].join('');
+    bkDoc.head.appendChild(override);
+
+    win.document.open();
+    win.document.write(bkDoc.documentElement.outerHTML);
     win.document.close();
+
+    // חכה לטעינת תמונות לפני הדפסה
+    const doPrint = () => { win.focus(); win.print(); };
     win.addEventListener('load', () => {
-      win.focus();
-      win.print();
-      // הנחיה — Chrome: בטל "Headers and footers" בדיאלוג ההדפסה
+      const imgs    = Array.from(win.document.querySelectorAll('img'));
+      const pending = imgs.filter(img => !img.complete || img.naturalWidth === 0);
+      if (pending.length === 0) {
+        setTimeout(doPrint, 400);
+      } else {
+        let done = 0;
+        const finish = () => { if (++done >= pending.length) setTimeout(doPrint, 400); };
+        pending.forEach(img => {
+          img.addEventListener('load',  finish, { once: true });
+          img.addEventListener('error', finish, { once: true });
+        });
+        setTimeout(doPrint, 8000); // timeout fallback
+      }
     });
   }
 
