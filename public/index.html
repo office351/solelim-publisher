@@ -1349,6 +1349,15 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       <h2 style="margin-top:0">🎨 יצירת תמונה</h2>
 
       <div id="editImageGenStart">
+        <!-- אפשרות מקדימה: בוט חיצוני (איכות גבוהה יותר) -->
+        <div style="margin-bottom:14px;padding:12px 14px;background:#f0f7ff;border-radius:8px;border:1px solid #c0d8f0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:18px">🤖</span>
+          <span style="font-size:13px;color:#2c5f8a;flex:1;min-width:200px">לאיכות גבוהה יותר — צור תמונה דרך הבוט החיצוני (העתק את המאמר ופתח את הבוט):</span>
+          <button onclick="copyArticleAndOpen()" style="background:#2c5f8a;color:white;border:none;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;white-space:nowrap;width:auto;margin:0">📋 העתק מאמר ופתח בוט</button>
+        </div>
+
+        <div style="text-align:center;margin:6px 0 12px;color:#aaa;font-size:13px">— או נסה ליצור דרך המערכת —</div>
+
         <div style="margin-bottom:12px">
           <p style="font-size:13px;font-weight:bold;margin:0 0 6px;color:#555">כיוון כללי לתמונה (אופציונלי):</p>
           <input type="text" id="editImageDirection" placeholder="למשל: משפחה בשבת, נוף ירושלמי, ידיים של קשיש, ילדים משחקים..." style="width:100%;padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;direction:rtl;box-sizing:border-box">
@@ -1375,12 +1384,6 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
             </div>
             <button onclick="generateEditCustomIdea()" style="background:#7b2d8b;white-space:nowrap;padding:8px 14px;width:auto;margin:0">צור תמונה</button>
           </div>
-        </div>
-
-        <div style="margin-top:14px;padding:12px 14px;background:#f0f7ff;border-radius:8px;border:1px solid #c0d8f0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:18px">🤖</span>
-          <span style="font-size:13px;color:#2c5f8a;flex:1;min-width:200px">ליצירת תמונה מהבוט החיצוני — העתק את המאמר, לחץ על הקישור והדבק את הטקסט בבוט:</span>
-          <button onclick="copyArticleAndOpen()" style="background:#2c5f8a;color:white;border:none;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;white-space:nowrap;width:auto;margin:0">📋 העתק מאמר ופתח בוט</button>
         </div>
       </div>
 
