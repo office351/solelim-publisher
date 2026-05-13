@@ -217,14 +217,22 @@ function renumberList(lines) {
   const reHeb   = new RegExp(`^([${HEB}])([.):])(\\s+(.*))?$`);
   const reDig   = /^(\d{1,3})([.):])(\s+(.*))?$/;
 
+  // מסיר עטיפת markdown (** או *) משורה שלמה, אם קיימת — שומר את העטיפה כדי להחזירה
+  const stripWrap = s => {
+    if (s.length > 4 && s.startsWith('**') && s.endsWith('**')) return { bare: s.slice(2, -2).trim(), wrap: '**' };
+    if (s.length > 2 && s.startsWith('*') && s.endsWith('*') && !s.startsWith('**')) return { bare: s.slice(1, -1).trim(), wrap: '*' };
+    return { bare: s, wrap: '' };
+  };
+
   const markers = [];
   for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim();
+    const trimmed = lines[i].trim();
+    const { bare, wrap } = stripWrap(trimmed);
     let m;
-    if ((m = t.match(reTen)))    markers.push({ idx: i, type: 'emoji', sep: '', rest: m[2] || '' });
-    else if ((m = t.match(reEmoji))) markers.push({ idx: i, type: 'emoji', sep: '', rest: m[3] || '' });
-    else if ((m = t.match(reHeb)))   markers.push({ idx: i, type: 'heb',   sep: m[2], rest: m[4] || '' });
-    else if ((m = t.match(reDig)))   markers.push({ idx: i, type: 'digit', sep: m[2], rest: m[4] || '' });
+    if ((m = bare.match(reTen)))    markers.push({ idx: i, type: 'emoji', sep: '', rest: m[2] || '', wrap });
+    else if ((m = bare.match(reEmoji))) markers.push({ idx: i, type: 'emoji', sep: '', rest: m[3] || '', wrap });
+    else if ((m = bare.match(reHeb)))   markers.push({ idx: i, type: 'heb',   sep: m[2], rest: m[4] || '', wrap });
+    else if ((m = bare.match(reDig)))   markers.push({ idx: i, type: 'digit', sep: m[2], rest: m[4] || '', wrap });
   }
 
   if (markers.length < 2) return lines; // לא רשימה — אל תיגע
@@ -251,7 +259,9 @@ function renumberList(lines) {
     const orig   = lines[m.idx];
     const indent = orig.match(/^\s*/)[0];
     const newMk  = buildMarker(i + 1);
-    out[m.idx]   = m.rest ? `${indent}${newMk} ${m.rest}` : `${indent}${newMk}`;
+    const body   = m.rest ? `${newMk} ${m.rest}` : newMk;
+    // החזרת עטיפת ה-markdown (** או *) אם הייתה במקור
+    out[m.idx]   = `${indent}${m.wrap}${body}${m.wrap}`;
   });
   return out;
 }
