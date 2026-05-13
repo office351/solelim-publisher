@@ -204,6 +204,58 @@ function normalizeStructuredSpacing(lines) {
   return result;
 }
 
+// ─── מספור רשימות: המרה למספרים רציפים (1. 2. 3.) ─────────────────────────
+// מזהה שורות שמתחילות באות עברית (א. ב. ג.) / ספרה (1. 2. 3.) / ספרה-אימוג'י (1️⃣ 2️⃣)
+// אם יש לפחות 2 סמנים — ממספר מחדש ברצף 1, 2, 3...
+// אותיות → ספרות. ספרות → ספרות (תוקן רצף). אימוג'י → אימוג'י (תוקן רצף).
+// משאיר ללא שינוי: indentation, מפריד (. או ) או :), המשך השורה (טקסט אחרי הסמן או שורה ריקה).
+function renumberList(lines) {
+  const HEB = 'אבגדהוזחטיכלמנסעפצקרשת';
+  // אימוג'י-ספרה: 0-9 + U+FE0F + U+20E3, או 🔟 (U+1F51F) ל-10
+  const reEmoji = new RegExp('^([0-9])\\uFE0F\\u20E3(\\s+(.*))?$');
+  const reTen   = /^🔟(\s+(.*))?$/;
+  const reHeb   = new RegExp(`^([${HEB}])([.):])(\\s+(.*))?$`);
+  const reDig   = /^(\d{1,3})([.):])(\s+(.*))?$/;
+
+  const markers = [];
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    let m;
+    if ((m = t.match(reTen)))    markers.push({ idx: i, type: 'emoji', sep: '', rest: m[2] || '' });
+    else if ((m = t.match(reEmoji))) markers.push({ idx: i, type: 'emoji', sep: '', rest: m[3] || '' });
+    else if ((m = t.match(reHeb)))   markers.push({ idx: i, type: 'heb',   sep: m[2], rest: m[4] || '' });
+    else if ((m = t.match(reDig)))   markers.push({ idx: i, type: 'digit', sep: m[2], rest: m[4] || '' });
+  }
+
+  if (markers.length < 2) return lines; // לא רשימה — אל תיגע
+
+  // סגנון יעד: אם יש סמן אימוג'י — שמור אימוג'י; אחרת ספרה
+  const hasEmoji = markers.some(m => m.type === 'emoji');
+  const targetStyle = hasEmoji ? 'emoji' : 'digit';
+
+  // מפריד יעד לסגנון ספרות — לפי הנפוץ ביותר במקור, או '.' כברירת מחדל
+  const sepCounts = {};
+  markers.forEach(m => { if (m.sep) sepCounts[m.sep] = (sepCounts[m.sep] || 0) + 1; });
+  const targetSep = Object.keys(sepCounts).sort((a, b) => sepCounts[b] - sepCounts[a])[0] || '.';
+
+  const buildMarker = n => {
+    if (targetStyle === 'emoji' && n <= 10) {
+      if (n === 10) return '🔟';
+      return `${n}️⃣`;
+    }
+    return `${n}${targetSep}`; // fallback לספרות גם ב-11+ ברשימת אימוג'י
+  };
+
+  const out = lines.slice();
+  markers.forEach((m, i) => {
+    const orig   = lines[m.idx];
+    const indent = orig.match(/^\s*/)[0];
+    const newMk  = buildMarker(i + 1);
+    out[m.idx]   = m.rest ? `${indent}${newMk} ${m.rest}` : `${indent}${newMk}`;
+  });
+  return out;
+}
+
 // ─── מאגר משימות הגהה ברקע ───────────────────────────────────────────────────
 const editJobs = new Map();
 // ניקוי משימות ישנות כל 10 דקות
@@ -326,9 +378,13 @@ app.post('/edit-stage1', async (req, res) => {
 
       // נרמול רווחים — רק אם המאמר ממוספר (אותיות עבריות / ספרות כסמני פסקה)
       bodyLines = normalizeStructuredSpacing(bodyLines);
+      // מספור רשימות: אותיות→ספרות, תיקון רצף (1.2.3 גם אם המקור היה 1,3,3 או א,ב,ג)
+      bodyLines = renumberList(bodyLines);
 
       const body = bodyLines.join('\n').trim();
-      res.json({ success: true, correctedText, originalTitle, body,
+      // עדכן את correctedText כך שישקף את המספור החדש (לארכוב)
+      const correctedTextFinal = originalTitle ? `${originalTitle}\n\n${body}` : body;
+      res.json({ success: true, correctedText: correctedTextFinal, originalTitle, body,
         siteUrl: process.env.SITE_URL || process.env.WP_URL || '' });
     } catch (error) {
       console.error('[הגהה] שגיאה:', error.message);
