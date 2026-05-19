@@ -194,16 +194,20 @@ function normalizeStructuredSpacing(lines) {
     prevBlank = isBlank;
   }
 
-  // שלב ב: הוספת שורה ריקה לפני כל סמן — אם השורה הקודמת אינה ריקה
-  // (מתקן מקרים שהמודל הצמיד את הסעיף לפסקה שלפניו)
+  // שלב ב: הוספת שורה ריקה לפני סמן רק אם השורה הקודמת היא תוכן (לא סמן ולא ריקה)
+  // — שומר רשימות הדוקות (1.\n2.\n3.) ומתקן כותרות סעיפים שהוצמדו לפסקה הקודמת
   const result = [];
   for (const line of collapsed) {
     const trimmed = line.trim();
     const isMarker = markerRe.test(trimmed);
 
     if (isMarker && result.length > 0) {
-      const prev = result[result.length - 1];
-      if (prev.trim()) result.push(''); // הוסף הפרדה
+      const prev         = result[result.length - 1];
+      const prevTrimmed  = prev.trim();
+      const prevIsBlank  = !prevTrimmed;
+      const prevIsMarker = markerRe.test(prevTrimmed);
+      // הוסף רווח רק אם השורה הקודמת תוכן רגיל (לא ריקה ולא סמן)
+      if (!prevIsBlank && !prevIsMarker) result.push('');
     }
     result.push(line);
   }
@@ -234,45 +238,70 @@ function renumberList(lines) {
     return { bare: s, wrap: '' };
   };
 
+  // חילוץ ערך מספרי מסמן (אות→1-22, ספרה→המספר, אימוג'י→המספר)
+  const markerValue = (type, raw) => {
+    if (type === 'heb')   return HEB.indexOf(raw) + 1;
+    if (type === 'digit') return parseInt(raw, 10);
+    if (type === 'emoji') return raw === '🔟' ? 10 : parseInt(raw[0], 10);
+    return 0;
+  };
+
   const markers = [];
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     const { bare, wrap } = stripWrap(trimmed);
     let m;
-    if ((m = bare.match(reTen)))    markers.push({ idx: i, type: 'emoji', sep: '', rest: m[2] || '', wrap });
-    else if ((m = bare.match(reEmoji))) markers.push({ idx: i, type: 'emoji', sep: '', rest: m[3] || '', wrap });
-    else if ((m = bare.match(reHeb)))   markers.push({ idx: i, type: 'heb',   sep: m[2], rest: m[4] || '', wrap });
-    else if ((m = bare.match(reDig)))   markers.push({ idx: i, type: 'digit', sep: m[2], rest: m[4] || '', wrap });
+    if ((m = bare.match(reTen)))    markers.push({ idx: i, type: 'emoji', sep: '', rest: m[2] || '', wrap, raw: '🔟' });
+    else if ((m = bare.match(reEmoji))) markers.push({ idx: i, type: 'emoji', sep: '', rest: m[3] || '', wrap, raw: m[0].slice(0, m[1].length + 2) });
+    else if ((m = bare.match(reHeb)))   markers.push({ idx: i, type: 'heb',   sep: m[2], rest: m[4] || '', wrap, raw: m[1] });
+    else if ((m = bare.match(reDig)))   markers.push({ idx: i, type: 'digit', sep: m[2], rest: m[4] || '', wrap, raw: m[1] });
   }
 
   if (markers.length < 2) return lines; // לא רשימה — אל תיגע
 
-  // סגנון יעד: אם יש סמן אימוג'י — שמור אימוג'י; אחרת ספרה
-  const hasEmoji = markers.some(m => m.type === 'emoji');
-  const targetStyle = hasEmoji ? 'emoji' : 'digit';
-
-  // מפריד יעד לסגנון ספרות — לפי הנפוץ ביותר במקור, או '.' כברירת מחדל
-  const sepCounts = {};
-  markers.forEach(m => { if (m.sep) sepCounts[m.sep] = (sepCounts[m.sep] || 0) + 1; });
-  const targetSep = Object.keys(sepCounts).sort((a, b) => sepCounts[b] - sepCounts[a])[0] || '.';
-
-  const buildMarker = n => {
-    if (targetStyle === 'emoji' && n <= 10) {
-      if (n === 10) return '🔟';
-      return `${n}️⃣`;
+  // חלוקה לרשימות נפרדות: אם סמן הולך אחורה (מ-ג ל-א, מ-5 ל-1) — זו רשימה חדשה
+  const lists = [[markers[0]]];
+  for (let i = 1; i < markers.length; i++) {
+    const prev = markers[i - 1];
+    const curr = markers[i];
+    const prevVal = markerValue(prev.type, prev.raw);
+    const currVal = markerValue(curr.type, curr.raw);
+    // רשימה חדשה אם: הסמן הנוכחי קטן או שווה לקודם, או שיש קפיצה גדולה (>3 בלי שזה גדל בהדרגה)
+    if (currVal <= prevVal) {
+      lists.push([curr]);
+    } else {
+      lists[lists.length - 1].push(curr);
     }
-    return `${n}${targetSep}`; // fallback לספרות גם ב-11+ ברשימת אימוג'י
-  };
+  }
 
+  // ממספר רק רשימות שיש בהן לפחות 2 סמנים — רשימה של 1 = ככל הנראה התייחסות מקרית
   const out = lines.slice();
-  markers.forEach((m, i) => {
-    const orig   = lines[m.idx];
-    const indent = orig.match(/^\s*/)[0];
-    const newMk  = buildMarker(i + 1);
-    const body   = m.rest ? `${newMk} ${m.rest}` : newMk;
-    // החזרת עטיפת ה-markdown (** או *) אם הייתה במקור
-    out[m.idx]   = `${indent}${m.wrap}${body}${m.wrap}`;
-  });
+  for (const list of lists) {
+    if (list.length < 2) continue;
+
+    // סגנון יעד וסמן המפריד נקבעים בנפרד לכל רשימה
+    const hasEmoji = list.some(m => m.type === 'emoji');
+    const targetStyle = hasEmoji ? 'emoji' : 'digit';
+    const sepCounts = {};
+    list.forEach(m => { if (m.sep) sepCounts[m.sep] = (sepCounts[m.sep] || 0) + 1; });
+    const targetSep = Object.keys(sepCounts).sort((a, b) => sepCounts[b] - sepCounts[a])[0] || '.';
+
+    const buildMarker = n => {
+      if (targetStyle === 'emoji' && n <= 10) {
+        if (n === 10) return '🔟';
+        return `${n}️⃣`;
+      }
+      return `${n}${targetSep}`;
+    };
+
+    list.forEach((m, i) => {
+      const orig   = lines[m.idx];
+      const indent = orig.match(/^\s*/)[0];
+      const newMk  = buildMarker(i + 1);
+      const body   = m.rest ? `${newMk} ${m.rest}` : newMk;
+      out[m.idx]   = `${indent}${m.wrap}${body}${m.wrap}`;
+    });
+  }
   return out;
 }
 
@@ -292,9 +321,10 @@ app.post('/edit-stage1', async (req, res) => {
   if (!text?.trim()) return res.status(400).json({ success: false, error: 'טקסט חסר' });
 
   try {
-      // פיצול לחלקים לפי פסקאות — כל חלק עד 5000 תווים
+      // ניקוי תווים בלתי-נראים בהתחלה (BOM, LRM, zero-width) שמגיעים מהדבקה מ-Word/Telegram
+      const cleanText = text.replace(/^[﻿​-‏‪-‮]+/, '');
       const CHUNK_SIZE = 5000;
-      const lines = text.split('\n');
+      const lines = cleanText.split('\n');
 
       // חיתוך שם הכותב מהשורה הראשונה לפני שליחה לClaude
       // (/ או \ מפרידים בין כותרת לשם הכותב — שם הכותב נמחק)
@@ -302,22 +332,47 @@ app.post('/edit-stage1', async (req, res) => {
         const slashIdx = lines[0].search(/[/\\]/);
         if (slashIdx !== -1) lines[0] = lines[0].slice(0, slashIdx).trim();
       }
+
+      // חלוקה ל-chunks: מעדיפים גבולות פסקאות (שורות ריקות) על פני חיתוך באמצע פסקה.
+      // אם פסקה גדולה מ-CHUNK_SIZE — נחתוך אותה (fallback) כדי לא להיתקע.
       const chunks = [];
       let current = [];
       let currentLen = 0;
-
-      for (const line of lines) {
-        const lineLen = line.length + 1;
-        // אם הוספת השורה תחרוג מהגבול וכבר יש תוכן — שמור חלק וצור חדש
-        if (currentLen + lineLen > CHUNK_SIZE && current.length > 0) {
+      const flush = () => {
+        if (current.length > 0) {
           chunks.push(current.join('\n'));
           current = [];
           currentLen = 0;
         }
-        current.push(line);
-        currentLen += lineLen;
+      };
+      // פיצול לפסקאות לפי שורות ריקות
+      const paragraphs = [];
+      let para = [];
+      for (const line of lines) {
+        if (!line.trim()) {
+          if (para.length) { paragraphs.push(para); para = []; }
+          paragraphs.push(['']); // שמירה על השורה הריקה כפסקה מינימלית
+        } else {
+          para.push(line);
+        }
       }
-      if (current.length > 0) chunks.push(current.join('\n'));
+      if (para.length) paragraphs.push(para);
+
+      for (const p of paragraphs) {
+        const pText = p.join('\n');
+        const pLen  = pText.length + 1;
+        // אם הפסקה לבד גדולה מהמכסה — נשלח כ-chunk נפרד (לא משאירים אותה ל-chunk הבא)
+        if (pLen > CHUNK_SIZE) {
+          flush();
+          chunks.push(pText);
+          continue;
+        }
+        // אחרת — אם תוסיף לחורגת מהמכסה, נסגור chunk קודם
+        if (currentLen + pLen > CHUNK_SIZE && current.length > 0) flush();
+        current.push(pText);
+        currentLen += pLen;
+      }
+      flush();
 
       // פונקציית עזר: timeout אמיתי עם Promise.race
       const withTimeout = (promise, ms) => Promise.race([
