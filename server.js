@@ -194,67 +194,83 @@ function guardWordIntegrity(original, proofed) {
   const proofTokens = tokenize(proofed);
   if (!origTokens.length || !proofTokens.length) return proofed;
 
-  // ההגנה פועלת רק כשספירת המילים זהה (תיקון אופייני). אם הוסרו/נוספו מילים,
-  // mapping לפי מיקום לא אמין — נסמוך על המודל ועל ה-prompt.
-  if (proofTokens.length !== origTokens.length) return proofed;
-
   const origWordSet = new Set(origTokens.map(t => t.word));
 
-  // בנייה של מפת "מילה ↔ מילים-סבירות-לתיקון" מהמקור.
-  // עיקרון מנחה: תיקון לגיטימי נשאר עם distance ≤ 2 ועם אחד הקריטריונים:
-  //   (א) הפלט הוא תוספת/החלפה של אות אחת בלבד (לא יותר משינוי אחד)
-  //   (ב) הפלט שומר על שלד עיצורי דומה ל-stem המקורי
-  // אם השינוי הוא 2 אותיות שונות באמצע מילה — סביר שזה שיבוש.
+  // Alignment ברמת טוקנים — מיפוי כל proofToken ל-origToken המתאים, גם אם
+  // הוסרו/נוספו מילים בפלט. משתמש ב-LCS משוערך (greedy) על תוכן זהה,
+  // ושיתוף הפעולה עם editDist לאיתור שיבושים.
+  // עיקרון: לכל מילה בפלט שאינה זהה למקור — מחפשים את המילה המקורית
+  // הקרובה ביותר במיקום (לפי הצמדה ל-anchor של מילים זהות).
 
+  // 1. בנייה של "עוגנים" — אינדקסים שבהם proofToken[i] == origToken[j]
+  //    (greedy: מתחילים מההתחלה ובוחרים את ההתאמה הראשונה במקור שעוד לא נצרכה)
+  const anchors = []; // [{ pi, oi }]
+  let oCursor = 0;
+  for (let pi = 0; pi < proofTokens.length; pi++) {
+    const pw = proofTokens[pi].word;
+    // חפש את המופע הראשון במקור מהcursor והלאה
+    let foundOi = -1;
+    for (let oi = oCursor; oi < origTokens.length; oi++) {
+      if (origTokens[oi].word === pw) { foundOi = oi; break; }
+    }
+    if (foundOi !== -1) {
+      anchors.push({ pi, oi: foundOi });
+      oCursor = foundOi + 1;
+    }
+  }
+
+  // 2. לכל proofToken שאינו עוגן — חפש את המילה המקורית בין שני עוגנים סמוכים
   let result = proofed;
   const changes = [];
 
+  const findOrigRange = (pi) => {
+    // טווח origTokens שאליו proofToken[pi] שייך, בין עוגנים סמוכים
+    let prevOi = -1, nextOi = origTokens.length;
+    for (const a of anchors) {
+      if (a.pi < pi && a.oi > prevOi) prevOi = a.oi;
+      if (a.pi > pi && a.oi < nextOi) { nextOi = a.oi; break; }
+    }
+    return { lo: prevOi + 1, hi: nextOi }; // exclusive hi
+  };
+
   for (let pi = 0; pi < proofTokens.length; pi++) {
     const pt = proofTokens[pi];
-    if (origWordSet.has(pt.word)) continue; // קיימת במקור בדיוק — בסדר
+    if (origWordSet.has(pt.word)) continue; // קיימת במקור — סביר שתקין
 
-    // מילה במקור באותו מיקום בקירוב (חלון ±5)
-    const approxIdx = Math.round((pi / proofTokens.length) * origTokens.length);
-    const lo = Math.max(0, approxIdx - 5);
-    const hi = Math.min(origTokens.length, approxIdx + 6);
+    // טווח origTokens שבו המילה הזו "אמורה" להיות
+    const { lo, hi } = findOrigRange(pi);
+    if (lo >= hi) continue; // אין origTokens באזור הזה = Claude הוסיף מילה. עזוב.
 
+    // חפש את המילה הקרובה ביותר בטווח
     let bestDist = Infinity, bestWord = null;
     for (let oi = lo; oi < hi; oi++) {
       const d = editDist(pt.word, origTokens[oi].word, 3);
       if (d < bestDist) { bestDist = d; bestWord = origTokens[oi].word; }
     }
 
-    // החלטה: מתי לשחזר?
     let shouldRestore = false;
-    let restoreTo = null;
-
     if (bestDist === Infinity) {
-      // אין שום מילה דומה במקור באזור — Claude יצר מילה זרה
-      if (approxIdx < origTokens.length) {
+      // אין שום מילה דומה — בחר את הראשונה בטווח (Claude יצר מילה זרה)
+      if (lo < origTokens.length) {
         shouldRestore = true;
-        restoreTo = origTokens[approxIdx].word;
+        bestWord = origTokens[lo].word;
       }
-    } else if (bestDist >= 2 && bestWord) {
-      // distance 2+ באמצע מילה (לא בקצה) = סביר שזה שיבוש ולא תיקון.
-      // תיקון לגיטימי בעברית ב-2 אותיות הוא נדיר. נחזיר את המקור.
+    } else if (bestDist >= 2) {
+      // שינוי של 2+ אותיות = סביר שזה שיבוש (לא תיקון לגיטימי)
       shouldRestore = true;
-      restoreTo = bestWord;
     } else if (bestDist === 1 && bestWord && bestWord.length > pt.word.length) {
-      // distance=1 והפלט קצר מהמקור = איבוד אות (כבקשתך→בקשתך). שחזר.
-      // (תוספת אות, כמו אמר→אומר, יוצרת case ההפוך — bestWord קצר ממנו — לא משחזרים)
+      // distance=1 והפלט קצר מהמקור = איבוד אות (כבקשתך→בקשתך)
       shouldRestore = true;
-      restoreTo = bestWord;
     }
 
-    if (shouldRestore && restoreTo && restoreTo !== pt.word) {
-      changes.push({ from: pt.word, to: restoreTo, atIdx: pt.idx });
+    if (shouldRestore && bestWord && bestWord !== pt.word) {
+      changes.push({ from: pt.word, to: bestWord, atIdx: pt.idx });
     }
   }
 
-  // הפעלת השחזורים — מהסוף להתחלה כדי לא לקלקל את ה-indexes
+  // הפעלת השחזורים מהסוף להתחלה (לא לקלקל indexes)
   changes.sort((a, b) => b.atIdx - a.atIdx);
   for (const ch of changes) {
-    // וודא שהמילה במקום המצופה (הסיכוי לכשל נמוך כי גם ה-tokens מהפלט)
     const slice = result.slice(ch.atIdx, ch.atIdx + ch.from.length);
     if (slice === ch.from) {
       result = result.slice(0, ch.atIdx) + ch.to + result.slice(ch.atIdx + ch.from.length);
