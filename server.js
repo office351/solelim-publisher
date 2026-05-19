@@ -525,18 +525,16 @@ app.post('/edit-stage1', async (req, res) => {
           const proofRes = await withTimeout(
             axios.post(
               'https://api.anthropic.com/v1/messages',
-              { model: 'claude-haiku-4-5-20251001', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
+              { model: 'claude-sonnet-4-6', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
                 temperature: 0, // מינימום אקראיות — תוצאות עקביות וזהירות
                 messages: [{ role: 'user', content: chunk }] },
-              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
+              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 120000 }
             ),
-            85000
+            115000
           );
           console.log(`[הגהה] חלק ${ci + 1} הושלם תוך ${((Date.now()-tStart)/1000).toFixed(1)}s`);
           // שמור על מבנה השורות הריקות של המקור בדיוק
-          let proofedText = matchBlankLines(chunk, proofRes.data.content[0].text.trim());
-          // הגנה על שלמות מילים — מחזיר מילים שClaude שיבש לערך המקורי
-          proofedText = guardWordIntegrity(chunk, proofedText);
+          const proofedText = matchBlankLines(chunk, proofRes.data.content[0].text.trim());
           proofedChunks.push(proofedText);
         } catch (chunkErr) {
           console.error(`[הגהה] חלק ${ci + 1} נכשל אחרי ${((Date.now()-tStart)/1000).toFixed(1)}s: ${chunkErr.message}`);
