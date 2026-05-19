@@ -525,12 +525,12 @@ app.post('/edit-stage1', async (req, res) => {
           const proofRes = await withTimeout(
             axios.post(
               'https://api.anthropic.com/v1/messages',
-              { model: 'claude-sonnet-4-6', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
+              { model: 'claude-haiku-4-5-20251001', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
                 temperature: 0, // מינימום אקראיות — תוצאות עקביות וזהירות
                 messages: [{ role: 'user', content: chunk }] },
-              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 120000 }
+              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
             ),
-            115000
+            85000
           );
           console.log(`[הגהה] חלק ${ci + 1} הושלם תוך ${((Date.now()-tStart)/1000).toFixed(1)}s`);
           // שמור על מבנה השורות הריקות של המקור בדיוק
@@ -588,13 +588,9 @@ app.post('/edit-stage1', async (req, res) => {
 
       // נרמול רווחים — רק אם המאמר ממוספר (אותיות עבריות / ספרות כסמני פסקה)
       bodyLines = normalizeStructuredSpacing(bodyLines);
-      // מספור רשימות: אותיות→ספרות, תיקון רצף (1.2.3 גם אם המקור היה 1,3,3 או א,ב,ג)
-      bodyLines = renumberList(bodyLines);
 
       const body = bodyLines.join('\n').trim();
-      // עדכן את correctedText כך שישקף את המספור החדש (לארכוב)
-      const correctedTextFinal = originalTitle ? `${originalTitle}\n\n${body}` : body;
-      res.json({ success: true, correctedText: correctedTextFinal, originalTitle, body,
+      res.json({ success: true, correctedText, originalTitle, body,
         siteUrl: process.env.SITE_URL || process.env.WP_URL || '' });
     } catch (error) {
       console.error('[הגהה] שגיאה:', error.message);
