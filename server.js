@@ -149,6 +149,122 @@ NEVER write ה׳ה...׳ (שתי ה"א). השאר אחת מחוץ, מחק מבפ�
 
 החזר את הטקסט המתוקן בלבד, ללא הסברים.`;
 
+// ─── הגנה על שלמות מילים ─────────────────────────────────────────────────────
+// אחרי הגהה, מזהה מילים שClaude "שיבש" — מילים שלא היו במקור ואינן תיקון לגיטימי
+// (כלומר: אין שום מילה במקור עם distance ≤ 2 שיכלה להפוך אליהן).
+// בעיות אופייניות שזיהינו ב-prod:
+//   "כבקשתך" → "בקשתך" (אות נופלה במקום בלי תיקון), "בניגוד" → "ביוגוד" (אותיות מוחלפות, לא מילה!).
+// הגישה: ניקח טוקנים של מילים מהמקור ומהפלט במקביל (לפי מיקום בקירוב). אם מילה בפלט
+// לא קיימת בכלל במקור (אפילו לא כצורה דומה), נחזיר את המילה המקבילה מהמקור.
+function guardWordIntegrity(original, proofed) {
+  // טוקניזציה: מילים עבריות בלבד (אותיות + גרשיים)
+  const tokenize = txt => {
+    const result = [];
+    const re = /[֐-׿׳״]+/g; // אותיות עבריות + גרש/גרשיים
+    let m;
+    while ((m = re.exec(txt)) !== null) {
+      result.push({ word: m[0], idx: m.index });
+    }
+    return result;
+  };
+
+  // Levenshtein distance — עד thresh; מחזיר Infinity אם גדול מ-thresh
+  const editDist = (a, b, thresh = 2) => {
+    if (Math.abs(a.length - b.length) > thresh) return Infinity;
+    if (a === b) return 0;
+    const n = a.length, k = b.length;
+    let prev = Array(k + 1).fill(0);
+    let curr = Array(k + 1).fill(0);
+    for (let j = 0; j <= k; j++) prev[j] = j;
+    for (let i = 1; i <= n; i++) {
+      curr[0] = i;
+      let rowMin = curr[0];
+      for (let j = 1; j <= k; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+        if (curr[j] < rowMin) rowMin = curr[j];
+      }
+      if (rowMin > thresh) return Infinity;
+      [prev, curr] = [curr, prev];
+    }
+    return prev[k];
+  };
+
+  const origTokens  = tokenize(original);
+  const proofTokens = tokenize(proofed);
+  if (!origTokens.length || !proofTokens.length) return proofed;
+
+  // ההגנה פועלת רק כשספירת המילים זהה (תיקון אופייני). אם הוסרו/נוספו מילים,
+  // mapping לפי מיקום לא אמין — נסמוך על המודל ועל ה-prompt.
+  if (proofTokens.length !== origTokens.length) return proofed;
+
+  const origWordSet = new Set(origTokens.map(t => t.word));
+
+  // בנייה של מפת "מילה ↔ מילים-סבירות-לתיקון" מהמקור.
+  // עיקרון מנחה: תיקון לגיטימי נשאר עם distance ≤ 2 ועם אחד הקריטריונים:
+  //   (א) הפלט הוא תוספת/החלפה של אות אחת בלבד (לא יותר משינוי אחד)
+  //   (ב) הפלט שומר על שלד עיצורי דומה ל-stem המקורי
+  // אם השינוי הוא 2 אותיות שונות באמצע מילה — סביר שזה שיבוש.
+
+  let result = proofed;
+  const changes = [];
+
+  for (let pi = 0; pi < proofTokens.length; pi++) {
+    const pt = proofTokens[pi];
+    if (origWordSet.has(pt.word)) continue; // קיימת במקור בדיוק — בסדר
+
+    // מילה במקור באותו מיקום בקירוב (חלון ±5)
+    const approxIdx = Math.round((pi / proofTokens.length) * origTokens.length);
+    const lo = Math.max(0, approxIdx - 5);
+    const hi = Math.min(origTokens.length, approxIdx + 6);
+
+    let bestDist = Infinity, bestWord = null;
+    for (let oi = lo; oi < hi; oi++) {
+      const d = editDist(pt.word, origTokens[oi].word, 3);
+      if (d < bestDist) { bestDist = d; bestWord = origTokens[oi].word; }
+    }
+
+    // החלטה: מתי לשחזר?
+    let shouldRestore = false;
+    let restoreTo = null;
+
+    if (bestDist === Infinity) {
+      // אין שום מילה דומה במקור באזור — Claude יצר מילה זרה
+      if (approxIdx < origTokens.length) {
+        shouldRestore = true;
+        restoreTo = origTokens[approxIdx].word;
+      }
+    } else if (bestDist >= 2 && bestWord) {
+      // distance 2+ באמצע מילה (לא בקצה) = סביר שזה שיבוש ולא תיקון.
+      // תיקון לגיטימי בעברית ב-2 אותיות הוא נדיר. נחזיר את המקור.
+      shouldRestore = true;
+      restoreTo = bestWord;
+    } else if (bestDist === 1 && bestWord && bestWord.length > pt.word.length) {
+      // distance=1 והפלט קצר מהמקור = איבוד אות (כבקשתך→בקשתך). שחזר.
+      // (תוספת אות, כמו אמר→אומר, יוצרת case ההפוך — bestWord קצר ממנו — לא משחזרים)
+      shouldRestore = true;
+      restoreTo = bestWord;
+    }
+
+    if (shouldRestore && restoreTo && restoreTo !== pt.word) {
+      changes.push({ from: pt.word, to: restoreTo, atIdx: pt.idx });
+    }
+  }
+
+  // הפעלת השחזורים — מהסוף להתחלה כדי לא לקלקל את ה-indexes
+  changes.sort((a, b) => b.atIdx - a.atIdx);
+  for (const ch of changes) {
+    // וודא שהמילה במקום המצופה (הסיכוי לכשל נמוך כי גם ה-tokens מהפלט)
+    const slice = result.slice(ch.atIdx, ch.atIdx + ch.from.length);
+    if (slice === ch.from) {
+      result = result.slice(0, ch.atIdx) + ch.to + result.slice(ch.atIdx + ch.from.length);
+      console.log(`[הגנת שלמות] שחזור: "${ch.from}" → "${ch.to}"`);
+    }
+  }
+
+  return result;
+}
+
 // ─── שמירת מבנה שורות ריקות מהמקור על הפלט המתוקן ───────────────────────────
 // מפרק שני טקסטים לרצפי שורות-תוכן + מספר שורות ריקות לפניהן,
 // ואם מספר השורות שווה — מיישם את דפוס הרווחים של המקור על הפלט.
@@ -393,15 +509,18 @@ app.post('/edit-stage1', async (req, res) => {
           const proofRes = await withTimeout(
             axios.post(
               'https://api.anthropic.com/v1/messages',
-              { model: 'claude-haiku-4-5-20251001', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
+              { model: 'claude-sonnet-4-6', max_tokens: maxTok, system: PROOFREADING_SYSTEM,
+                temperature: 0, // מינימום אקראיות — תוצאות עקביות וזהירות
                 messages: [{ role: 'user', content: chunk }] },
-              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 90000 }
+              { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 120000 }
             ),
-            85000
+            115000
           );
           console.log(`[הגהה] חלק ${ci + 1} הושלם תוך ${((Date.now()-tStart)/1000).toFixed(1)}s`);
           // שמור על מבנה השורות הריקות של המקור בדיוק
-          const proofedText = matchBlankLines(chunk, proofRes.data.content[0].text.trim());
+          let proofedText = matchBlankLines(chunk, proofRes.data.content[0].text.trim());
+          // הגנה על שלמות מילים — מחזיר מילים שClaude שיבש לערך המקורי
+          proofedText = guardWordIntegrity(chunk, proofedText);
           proofedChunks.push(proofedText);
         } catch (chunkErr) {
           console.error(`[הגהה] חלק ${ci + 1} נכשל אחרי ${((Date.now()-tStart)/1000).toFixed(1)}s: ${chunkErr.message}`);
