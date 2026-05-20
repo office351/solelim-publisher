@@ -700,24 +700,37 @@ app.post('/edit-stage3', async (req, res) => {
     if (body && body.includes('*')) {
       return res.json({ success: true, formattedBody: body });
     }
+
+    // זיהוי האם המאמר מחולק לסעיפים (כדי לבקש כותרות אחידות מודגשות)
+    const sectionRe = /^(?:[א-תA-Z\d]{1,2})\s*[.):\-־—–]/;
+    const sectionLines = body.split('\n').filter(l => sectionRe.test(l.trim()));
+    const hasSections = sectionLines.length >= 2;
+
+    const sectionInstr = hasSections
+      ? `2. המאמר מחולק לסעיפים (א./ב./ג./1./2./וכו'). חובה לכלול את **כותרת כל סעיף** ברשימה — הכותרת היא הסמן + המשפט הראשון של הסעיף עד הפסיק או הנקודה הראשונה (לדוגמה: "א. בנושא הגיוס"). חובה אחידות — או כל הכותרות מודגשות או אף לא אחת. בחר את כולן.`
+      : '';
+
     const phrasesRes = await axios.post(
       'https://api.anthropic.com/v1/messages',
       {
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 700,
+        max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: `קרא את המאמר הבא וזהה משפטים שלמים חזקים שכדאי להדגיש.
-משפט שלם = מתחיל אחרי נקודה (או בתחילת פסקה) ומסתיים בנקודה.
-כלל: לפחות משפט אחד לכל פסקה.
-כל משפט חייב להופיע בטקסט כמות שהוא בדיוק — אל תשנה אף מילה.
-החזר JSON בלבד: {"phrases":["משפט 1","משפט 2","משפט 3"]}
+          content: `קרא את **המאמר השלם** וזהה משפטים חזקים להדגשה. חיוני לכסות את כל המאמר — מהתחלה ועד הסוף, לא רק את החלק הראשון.
 
-המאמר:
-${body.slice(0, 6000)}`
+חוקים:
+1. לפחות משפט מודגש אחד **לכל פסקה** במאמר — כולל הפסקאות האחרונות.
+${sectionInstr}
+3. משפט שלם = מתחיל אחרי נקודה (או בתחילת פסקה) ומסתיים בנקודה.
+4. כל משפט/כותרת חייבים להופיע בטקסט בדיוק כפי שהם — אל תשנה אף מילה.
+5. החזר JSON בלבד עם כל הביטויים — בלי דיון: {"phrases":["...","...","..."]}
+
+המאמר השלם (${body.length} תווים, ${body.split('\n').filter(l => l.trim()).length} שורות):
+${body}`
         }]
       },
-      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 20000 }
+      { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, timeout: 45000 }
     );
     const raw = phrasesRes.data.content[0].text;
     const match = raw.match(/\{[\s\S]*\}/);

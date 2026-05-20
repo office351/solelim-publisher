@@ -3272,15 +3272,37 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       let result = audioHtml;
       if (intro) result += intro + SEP;
 
-      // פיזור כל ה-inserts בין הסעיפים לפי סדר
-      for (let i = 0; i < sections.length; i++) {
-        result += sections[i];
-        if (i < sections.length - 1) {
-          result += allInserts[i] !== undefined ? allInserts[i] : SEP;
+      // פיזור inserts: הראשון תמיד אחרי סעיף ראשון, האחרון תמיד לפני סעיף אחרון.
+      // אם יש יותר מ-2 inserts — האמצעיים מתחלקים בין שאר ה-gaps.
+      // אם יש פחות inserts מ-gaps — gap ללא insert מקבל רק SEP.
+      const numGaps = sections.length - 1;
+      const slots = new Array(numGaps).fill(null);
+      if (allInserts.length === 1 && numGaps >= 1) {
+        slots[0] = allInserts[0]; // יחיד → אחרי סעיף ראשון
+      } else if (allInserts.length >= 2 && numGaps >= 1) {
+        slots[0] = allInserts[0];                                // ראשון
+        slots[numGaps - 1] = allInserts[allInserts.length - 1];  // אחרון
+        // inserts אמצעיים — פיזור אחיד בין ה-gaps באמצע
+        const middleInserts = allInserts.slice(1, -1);
+        const middleGaps    = numGaps - 2; // gaps זמינים באמצע
+        if (middleInserts.length > 0 && middleGaps > 0) {
+          middleInserts.forEach((ins, i) => {
+            // מיקום יחסי באמצע — בין slot[1] ו-slot[numGaps-2]
+            const pos = 1 + Math.floor((i + 1) * middleGaps / (middleInserts.length + 1));
+            if (slots[pos] === null) slots[pos] = ins;
+          });
         }
       }
-      // שאר ה-inserts שלא נכנסו (אם יש יותר inserts מ-gaps) — מצורפים בסוף
-      for (let i = sections.length - 1; i < allInserts.length; i++) {
+
+      for (let i = 0; i < sections.length; i++) {
+        result += sections[i];
+        if (i < numGaps) {
+          result += slots[i] !== null ? slots[i] : SEP;
+        }
+      }
+      // inserts שעדיין לא נכנסו (יותר מדי inserts לעומת gaps) — סוף המאמר
+      const usedCount = slots.filter(s => s !== null).length;
+      for (let i = usedCount; i < allInserts.length; i++) {
         result += allInserts[i];
       }
 
