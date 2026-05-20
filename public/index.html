@@ -3214,17 +3214,17 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     const audioHtml = buildAudioEmbed(audioUrl);
     const SEP = '\n<p>&nbsp;</p>\n';
 
-    // כל ה"הוספות": ציטוטים קודם, אחר כך מדיה
+    // ─── הכנת ה-inserts: ציטוטים בנפרד ממדיה (לפיזור שונה) ────────────────
     const MEDIA_SEP = `${SEP}${SEP}`; // שתי שורות ריקות לפני ואחרי מדיה
-    const allInserts = [];
-    if (quote1) allInserts.push(`${SEP}<blockquote>${quote1}</blockquote>${SEP}`);
-    if (quote2) allInserts.push(`${SEP}<blockquote>${quote2}</blockquote>${SEP}`);
+    const quoteInserts = [];
+    if (quote1) quoteInserts.push(`${SEP}<blockquote>${quote1}</blockquote>${SEP}`);
+    if (quote2) quoteInserts.push(`${SEP}<blockquote>${quote2}</blockquote>${SEP}`);
     // PDF לא נכנס בין סעיפים — יצורף בסוף המאמר בנפרד
-    mediaItems.filter(m => m.status === 'ready' && m.html && m.type !== 'pdf').forEach(m => allInserts.push(`${MEDIA_SEP}${m.html}${MEDIA_SEP}`));
-
-    // קיצורים לשימוש בקוד ישן (בטוח)
-    const q1 = allInserts[0] || `${SEP}<blockquote>${quote1}</blockquote>${SEP}`;
-    const q2 = allInserts[1] || `${SEP}<blockquote>${quote2}</blockquote>${SEP}`;
+    const mediaInserts = mediaItems
+      .filter(m => m.status === 'ready' && m.html && m.type !== 'pdf')
+      .map(m => `${MEDIA_SEP}${m.html}${MEDIA_SEP}`);
+    // לשימוש פנימי בלוגיקות שדורשות רשימה אחת (החלק של מאמר ללא סעיפים)
+    const allInserts = [...quoteInserts, ...mediaInserts];
 
     // זיהוי כותרת פסקה: ספרה/אות עברית/לטינית + פיסוק + רווח, עם עטיפת <strong> או בלעדיה
     // לדוגמה: "א. כותרת" / "A. Title" / "1. כותרת" / "<strong>ב. כותרת</strong>"
@@ -3272,39 +3272,53 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
       let result = audioHtml;
       if (intro) result += intro + SEP;
 
-      // פיזור inserts: הראשון תמיד אחרי סעיף ראשון, האחרון תמיד לפני סעיף אחרון.
-      // אם יש יותר מ-2 inserts — האמצעיים מתחלקים בין שאר ה-gaps.
-      // אם יש פחות inserts מ-gaps — gap ללא insert מקבל רק SEP.
+      // ─── פיזור inserts ─────────────────────────────────────────────────
+      // ציטוטים מעוגנים בקצוות: ראשון אחרי סעיף ראשון, אחרון לפני סעיף אחרון.
+      // מדיה (קישורים, סרטונים, תמונות) מתפזרת אחיד **בין הציטוטים** (פערים אמצעיים בלבד).
+      // יתרה (אם אין מקום) — בסוף המאמר.
       const numGaps = sections.length - 1;
       const slots = new Array(numGaps).fill(null);
-      if (allInserts.length === 1 && numGaps >= 1) {
-        slots[0] = allInserts[0]; // יחיד → אחרי סעיף ראשון
-      } else if (allInserts.length >= 2 && numGaps >= 1) {
-        slots[0] = allInserts[0];                                // ראשון
-        slots[numGaps - 1] = allInserts[allInserts.length - 1];  // אחרון
-        // inserts אמצעיים — פיזור אחיד בין ה-gaps באמצע
-        const middleInserts = allInserts.slice(1, -1);
-        const middleGaps    = numGaps - 2; // gaps זמינים באמצע
-        if (middleInserts.length > 0 && middleGaps > 0) {
-          middleInserts.forEach((ins, i) => {
-            // מיקום יחסי באמצע — בין slot[1] ו-slot[numGaps-2]
-            const pos = 1 + Math.floor((i + 1) * middleGaps / (middleInserts.length + 1));
-            if (slots[pos] === null) slots[pos] = ins;
+      const leftover = [];
+
+      // עיגון ציטוטים
+      if (numGaps >= 1 && quoteInserts.length >= 1) slots[0] = quoteInserts[0];
+      if (numGaps >= 2 && quoteInserts.length >= 2) slots[numGaps - 1] = quoteInserts[1];
+      if (numGaps < 2 && quoteInserts.length >= 2) leftover.push(quoteInserts[1]);
+
+      // פיזור מדיה בפערים האמצעיים — אחרי ה-quote הראשון, לפני האחרון
+      const midStart = (slots[0] !== null) ? 1 : 0;
+      const midEnd   = (numGaps >= 2 && slots[numGaps - 1] !== null) ? numGaps - 1 : numGaps;
+      const midAvail = Math.max(0, midEnd - midStart);
+
+      if (mediaInserts.length > 0) {
+        if (midAvail === 0) {
+          // אין פערים אמצעיים — כל המדיה לסוף המאמר
+          leftover.push(...mediaInserts);
+        } else if (mediaInserts.length <= midAvail) {
+          // פיזור אחיד באמצע: מיקום i = midStart + floor((i+0.5) * midAvail / count)
+          mediaInserts.forEach((ins, i) => {
+            const pos = midStart + Math.floor((i + 0.5) * midAvail / mediaInserts.length);
+            if (pos < midEnd && slots[pos] === null) slots[pos] = ins;
+            else leftover.push(ins);
           });
+        } else {
+          // יותר מדיה מהמקום הזמין — מלא רצוף, השאר לסוף
+          let placed = 0;
+          for (let i = midStart; i < midEnd && placed < mediaInserts.length; i++) {
+            if (slots[i] === null) slots[i] = mediaInserts[placed++];
+          }
+          for (let i = placed; i < mediaInserts.length; i++) leftover.push(mediaInserts[i]);
         }
       }
 
+      // בניית הפלט
       for (let i = 0; i < sections.length; i++) {
         result += sections[i];
         if (i < numGaps) {
           result += slots[i] !== null ? slots[i] : SEP;
         }
       }
-      // inserts שעדיין לא נכנסו (יותר מדי inserts לעומת gaps) — סוף המאמר
-      const usedCount = slots.filter(s => s !== null).length;
-      for (let i = usedCount; i < allInserts.length; i++) {
-        result += allInserts[i];
-      }
+      for (const ins of leftover) result += ins;
 
       return result;
     }
