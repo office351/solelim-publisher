@@ -2571,8 +2571,8 @@ app.get('/booklet/preview/:token', requireAdmin, (req, res) => {
 app.post('/booklet/generate-html', requireAdmin, express.json(), async (req, res) => {
   try {
     const { bookletNumber, postIds } = req.body;
-    if (!postIds || postIds.length < 1 || postIds.length > 4)
-      return res.status(400).json({ success: false, error: 'יש לבחור 1–4 מאמרים' });
+    if (!postIds || postIds.length < 1 || postIds.length > 10)
+      return res.status(400).json({ success: false, error: 'יש לבחור 1–10 מאמרים' });
     if (!bookletNumber)
       return res.status(400).json({ success: false, error: 'מספר חוברת חסר' });
 
