@@ -566,8 +566,18 @@ app.post('/edit-stage1', async (req, res) => {
           const proofedText = matchBlankLines(chunk, proofRes.data.content[0].text.trim());
           proofedChunks.push(proofedText);
         } catch (chunkErr) {
-          console.error(`[הגהה] חלק ${ci + 1} נכשל אחרי ${((Date.now()-tStart)/1000).toFixed(1)}s: ${chunkErr.message}`);
-          throw chunkErr;
+          // חשיפת הודעת השגיאה האמיתית מהAPI (axios מסתיר אותה תחת error.message כללי)
+          const apiErr = chunkErr.response?.data?.error?.message
+                      || chunkErr.response?.data?.error
+                      || (chunkErr.response?.data && JSON.stringify(chunkErr.response.data))
+                      || chunkErr.message;
+          const apiStatus = chunkErr.response?.status;
+          console.error(`[הגהה] חלק ${ci + 1} נכשל אחרי ${((Date.now()-tStart)/1000).toFixed(1)}s (HTTP ${apiStatus || '?'}): ${apiErr}`);
+          // העברת ההודעה החוצה בצורה ברורה
+          const wrapped = new Error(`API ${apiStatus || ''}: ${apiErr}`.trim());
+          wrapped.apiStatus = apiStatus;
+          wrapped.apiData   = chunkErr.response?.data;
+          throw wrapped;
         }
       }
 
