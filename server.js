@@ -41,7 +41,18 @@ function requireAdminOrEnglish(req, res, next) {
   res.status(403).json({ error: 'אין הרשאה' });
 }
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB — מספיק לתמונה גדולה אך מונע OOM
+});
+
+// טיפול בשגיאות multer (חשוב — אחרת השרת מתרסק על קובץ גדול)
+app.use((err, req, res, next) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ success: false, error: 'הקובץ גדול מ-25MB. דחוס/הקטן תמונה ונסה שוב.' });
+  }
+  next(err);
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));

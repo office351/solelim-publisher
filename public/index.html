@@ -3156,14 +3156,59 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
     el.innerHTML = logs.map(l => `[${new Date(l.time).toLocaleTimeString('he-IL')}] ${l.message}`).join('\n');
   }
 
-  function uploadImageNow(input) {
-    pendingImageFile = input.files[0] || null;
+  // דוחס תמונה גדולה ל-JPEG (max 2000px, איכות 0.85) כדי לחסוך bandwidth ולמנוע timeouts
+  function compressImageIfLarge(file, maxSizeMB = 2, maxDim = 2000) {
+    return new Promise((resolve, reject) => {
+      if (file.size <= maxSizeMB * 1024 * 1024) return resolve(file);
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            const ratio = Math.min(maxDim / width, maxDim / height);
+            width  = Math.round(width  * ratio);
+            height = Math.round(height * ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => {
+            if (!blob) return reject(new Error('דחיסה נכשלה'));
+            const newName = file.name.replace(/\.(heic|heif|png|webp)$/i, '.jpg');
+            resolve(new File([blob], newName, { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.85);
+        };
+        img.onerror = () => reject(new Error('לא ניתן לקרוא את התמונה'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('קריאת הקובץ נכשלה'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadImageNow(input) {
+    const original = input.files[0] || null;
     const status = document.getElementById('imageStatus');
-    if (pendingImageFile) {
-      status.className = 'upload-status ok';
-      status.textContent = `✓ תמונה נבחרה: ${pendingImageFile.name} — תועלה בלחיצה על "עבד מאמר"`;
-    } else {
-      status.textContent = '';
+    if (!original) { pendingImageFile = null; status.textContent = ''; return; }
+    const origMB = (original.size / 1024 / 1024).toFixed(1);
+    try {
+      if (original.size > 2 * 1024 * 1024) {
+        status.className = 'upload-status';
+        status.textContent = `דוחס תמונה (${origMB}MB)...`;
+        pendingImageFile = await compressImageIfLarge(original);
+        const newMB = (pendingImageFile.size / 1024 / 1024).toFixed(1);
+        status.className = 'upload-status ok';
+        status.textContent = `✓ תמונה נבחרה ודחוסה (${origMB}MB → ${newMB}MB) — תועלה בלחיצה על "עבד מאמר"`;
+      } else {
+        pendingImageFile = original;
+        status.className = 'upload-status ok';
+        status.textContent = `✓ תמונה נבחרה: ${original.name} (${origMB}MB) — תועלה בלחיצה על "עבד מאמר"`;
+      }
+    } catch (e) {
+      pendingImageFile = original; // fallback: נשלח את המקור גם אם הדחיסה נכשלה
+      status.className = 'upload-status';
+      status.textContent = `⚠ דחיסה נכשלה, מעלה מקורי (${origMB}MB)`;
     }
   }
 
@@ -3521,7 +3566,11 @@ button[onclick*="sendToMainGroup"]:hover:not(:disabled) {
         }
       } catch(e) {
         document.getElementById('imageStatus').className = 'upload-status err';
-        document.getElementById('imageStatus').textContent = 'שגיאה: ' + e.message;
+        // 'Failed to fetch' = שגיאת רשת (תמונה גדולה, חיבור איטי, וכו')
+        const msg = /Failed to fetch/i.test(e.message)
+          ? 'שגיאת רשת בהעלאת התמונה — ייתכן שהתמונה גדולה מדי או שהחיבור נקטע. נסה שוב או השתמש בתמונה קטנה יותר.'
+          : 'שגיאה: ' + e.message;
+        document.getElementById('imageStatus').textContent = msg;
       }
       pendingImageFile = null;
     }
