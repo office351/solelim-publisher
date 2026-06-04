@@ -2421,8 +2421,9 @@ app.get('/booklet/wp-config', requireAdmin, (req, res) => {
 
 // קאש מאמרים אחרונים — נשמר בקובץ כדי לשרוד רסטרטים ולמנוע עומס על WordPress
 const POSTS_CACHE_FILE    = path.join(__dirname, 'data', 'recent-posts-cache.json');
-const POSTS_CACHE_TTL     = 24 * 60 * 60 * 1000; // 24 שעות — תקינות רגילה
-const POSTS_CACHE_MIN_AGE = 24 * 60 * 60 * 1000; // 24 שעות — מינימום בין כל רענון
+const POSTS_CACHE_TTL     = 60 * 60 * 1000;       // 60 דקות — תקינות רגילה
+const POSTS_CACHE_MIN_AGE = 5  * 60 * 1000;       // 5 דקות — מינימום בין רענונים אוטומטיים
+// הערה: ?refresh=1 דורס את כל המגבלות ומכריח שליפה טרייה מ-WordPress
 
 let recentPostsCache = { posts: [], fetchedAt: 0 };
 // טעינת קאש מקובץ בעת הפעלת השרת
@@ -2518,20 +2519,24 @@ async function fetchRecentPostsFromWP() {
 
 // שליפת מאמרים אחרונים — עם קאש למניעת עומס על WordPress
 app.get('/booklet/recent-posts', requireAdmin, async (req, res) => {
-  const count    = Math.min(50, Math.max(10, parseInt(req.query.count) || 10));
-  const cacheAge = Date.now() - recentPostsCache.fetchedAt;
-  const hasCache = recentPostsCache.posts.length > 0;
-  const tooSoon  = cacheAge < POSTS_CACHE_MIN_AGE;
+  const count       = Math.min(50, Math.max(10, parseInt(req.query.count) || 10));
+  const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
+  const cacheAge    = Date.now() - recentPostsCache.fetchedAt;
+  const hasCache    = recentPostsCache.posts.length > 0;
+  const tooSoon     = cacheAge < POSTS_CACHE_MIN_AGE;
 
   const slicedPosts = (posts) => posts.slice(0, count);
 
-  // אם עברו פחות מ-5 דקות, תמיד החזר קאש (הגנה על WordPress)
-  if (hasCache && tooSoon) {
-    return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true });
-  }
-  // אם לא ביקשו רענון מפורש וקאש תקין — החזר קאש
-  if (hasCache && cacheAge < POSTS_CACHE_TTL && !req.query.refresh) {
-    return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true });
+  // ?refresh=1 דורס הכל — תמיד שולף מ-WordPress
+  if (!forceRefresh) {
+    // הגנה מפני flood: אם עברו פחות מ-5 דקות מהשליפה האחרונה — קאש
+    if (hasCache && tooSoon) {
+      return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true });
+    }
+    // אם הקאש בתוקף (60 דקות) — קאש
+    if (hasCache && cacheAge < POSTS_CACHE_TTL) {
+      return res.json({ success: true, posts: slicedPosts(recentPostsCache.posts), fromCache: true });
+    }
   }
 
   try {
